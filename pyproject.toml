@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "ocainstallationhelper"
+name = "oca-installation-helper"
 version = "4.2.0.0"
 description = "opsi-client-agent installation helper"
 homepage = "https://www.opsi.org"

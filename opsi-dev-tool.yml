@@ -1,0 +1,22 @@
+pyinstaller-poetry:
+  one_file: yes
+  hidden_imports:
+    all: []
+    windows: []
+    linux: []
+    darwin: []
+  scripts:
+    - script: run-oca-installation-helper
+      binaries:
+        - oca-installation-helper
+  before_script:
+    linux: []
+    darwin: []
+    windows: []
+  data_files: []
+  dirname: ocainstallationhelper
+  locale_install: []
+  after_script:
+    linux: []
+    darwin: []
+    windows: []

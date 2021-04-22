@@ -15,16 +15,14 @@ import socket
 import shutil
 import tempfile
 import subprocess
+import logging
 from configparser import ConfigParser
 from argparse import ArgumentParser
 from zeroconf import ServiceBrowser, Zeroconf
 import PySimpleGUI as sg
 
-from . import __version__
-
-from opsicommon.logging import logger, init_logging, secret_filter, LOG_NONE
-from opsicommon.client.jsonrpc import JSONRPCClient, BackendAuthenticationError
-
+from . import __version__, logger
+from .jsonrpc import JSONRPCClient, BackendAuthenticationError
 
 class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	setup_script_name = "setup.opsiscript"
@@ -68,9 +66,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		arg_list = [ "/batch", self.setup_script, log_file ] #,"/PARAMETER INSTALL:CREATE_CLIENT:REBOOT"
 
 		arg_list = ",".join([ f'\\"{arg}\\"' for arg in arg_list ])
-		logger.devel(arg_list)
+		logger.info(arg_list)
 		start_proc = f'"Start-Process -FilePath \\"{opsi_script}\\" -ArgumentList {arg_list} -Wait"'
-		logger.devel(start_proc)
+		logger.info(start_proc)
 		subprocess.call(
 			["powershell", "-ExcecutionPolicy", "bypass", "-Verb", "runas", "-Command", start_proc]
 		)
@@ -110,25 +108,31 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.setup_script = os.path.join(self.base_dir, self.setup_script_name)
 
 	def run(self):
-		if self.interactive:
-			self.show_dialog()
+		try:
+			if self.interactive:
+				self.show_dialog()
 
-		self.find_setup_script()
-		self.get_config()
-		if (
-			self.client_id and self.service_address and
-			self.service_username and self.service_password
-		):
-			self.connect_service()
-			if not self.error:
-				return
+			self.find_setup_script()
+			self.get_config()
+			if (
+				self.client_id and self.service_address and
+				self.service_username and self.service_password
+			):
+				self.connect_service()
+				if not self.error:
+					return
 
-		if self.interactive:
-			self.dialog_event_loop()
+			if self.interactive:
+				self.dialog_event_loop()
 
-		#if self.full_path.startswith("\\\\"):
-		self.copy_installation_files()
-		self.run_setup_script()
+			#if self.full_path.startswith("\\\\"):
+			self.copy_installation_files()
+			self.run_setup_script()
+		except Exception as err:
+			self.show_message(str(err), "error")
+			if self.window:
+				time.sleep(3)
+			raise
 
 	def read_config_files(self):
 		for config_file in ("installation.ini", "files/opsi/cfg/config.ini"):
@@ -197,21 +201,18 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			)
 			self.show_message("Connected", "success")
 			if "." not in self.client_id:
-				self.client_id = f"{self.client_id}.{self.service.getDomain()}"  # pylint: disable=no-member
+				self.client_id = f"{self.client_id}.{self.service.execute_rpc('getDomain')}"
 				if self.window:
 					self.window['client_id'].update(self.client_id)
-			client = self.service.host_getObjects(id=self.client_id)  # pylint: disable=no-member
+			client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
 			if not client:
 				self.show_message("Create client...")
-				self.service.host_createOpsiClient(  # pylint: disable=no-member
-					id=self.client_id
-				)
+				self.service.execute_rpc("host_createOpsiClient", [{"type": "OpsiClient", "id": self.client_id}])
 				self.show_message("Client created", "success")
-				client = self.service.host_getObjects(id=self.client_id)  # pylint: disable=no-member
+				client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
 
-			logger.devel(client[0])
-			self.client_key = client[0].opsiHostKey
-			self.client_id = client[0].id
+			self.client_key = client[0]["opsiHostKey"]
+			self.client_id = client[0]["id"]
 			self.show_message("Client exists", "success")
 			if self.window:
 				self.window["client_id"].update(self.client_id)
@@ -219,6 +220,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			self.error = err
 			self.show_message("Authentication error, wrong username or password", "error")
 		except Exception as err:  # pylint: disable=broad-except
+			logger.error(err, exc_info=True)
 			self.error = err
 			self.show_message(str(err), "error")
 
@@ -279,8 +281,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			if values:
 				self.__dict__.update(values)
 
-			secret_filter.add_secrets(self.service_password)
-
 			if event in (sg.WINDOW_CLOSED, 'cancel'):
 				sys.exit(1)
 			if event == "connect":
@@ -294,8 +294,9 @@ def main():
 	parser = ArgumentParser()
 	parser.add_argument('--version',
 		action='version',
-		version=f"{__version__}"
+		version=__version__
 	)
+	"""
 	parser.add_argument("-l", "--log-level",
 		default=LOG_NONE,
 		type=int,
@@ -306,6 +307,7 @@ def main():
 			"6: infos, 7: debug messages, 8: trace messages, 9: secrets"
 		)
 	)
+	"""
 	parser.add_argument(
 		"--service-address",
 		default=None,
@@ -334,9 +336,11 @@ def main():
 
 	args = parser.parse_args()
 
-	init_logging(
-		stderr_level=args.log_level,
-		#stderr_format=DEFAULT_STDERR_LOG_FORMAT.replace('%(contextstring)-40s', '')
+	logging.basicConfig(
+		level=logging.DEBUG,
+		format="[%(levelname)-9s %(asctime)s] %(message)s",
+		handlers=[
+			logging.StreamHandler(stream=sys.stderr)
+		]
 	)
-
 	InstallationHelper(args).run()

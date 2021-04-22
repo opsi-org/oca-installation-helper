@@ -5,4 +5,9 @@
 # All rights reserved.
 # License: AGPL-3.0
 
+import logging
+
 __version__ = "4.2.0.0"
+
+logger = logging
+logger.notice = logger.info

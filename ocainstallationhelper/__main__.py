@@ -14,6 +14,7 @@ import time
 import socket
 import shutil
 import tempfile
+import platform
 import subprocess
 import logging
 from configparser import ConfigParser
@@ -23,6 +24,8 @@ import PySimpleGUI as sg
 
 from . import __version__, logger
 from .jsonrpc import JSONRPCClient, BackendAuthenticationError
+
+
 
 class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	setup_script_name = "setup.opsiscript"
@@ -58,12 +61,17 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		if not self.setup_script:
 			raise RuntimeError(f"{self.setup_script_name} not found")
 
-	def run_setup_script(self):
-		self.show_message("Running setup script")
+	def run_setup_script_windows(self):
 		opsi_script = os.path.join(self.base_dir, "files", "opsi-script", "opsi-script.exe")
 		log_dir = r"c:\opsi.org\log"
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
-		arg_list = [ "/batch", self.setup_script, log_file ] #,"/PARAMETER INSTALL:CREATE_CLIENT:REBOOT"
+		arg_list = [
+			"/opsiservice", self.service_address,
+			"/clientid", self.client_id,
+			"/username", self.service_username,
+			"/password", self.service_password,
+			"/batch", self.setup_script, log_file
+		] #,"/PARAMETER INSTALL:CREATE_CLIENT:REBOOT"
 
 		arg_list = ",".join([ f'\\"{arg}\\"' for arg in arg_list ])
 		logger.info(arg_list)
@@ -72,6 +80,14 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		subprocess.call(
 			["powershell", "-ExcecutionPolicy", "bypass", "-Verb", "runas", "-Command", start_proc]
 		)
+
+	def run_setup_script(self):
+		self.show_message("Running setup script")
+		if platform.system().lower() == 'windows':
+			return self.run_setup_script_windows()
+		#if platform.system().lower() == 'linux':
+		#	return self.run_setup_script_windows()
+		raise NotImplementedError(f"Not implemented for {platform.system()}")
 
 	def get_config(self):
 		self.interactive = not self.cmdline_args.non_interactive
@@ -147,7 +163,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				if not self.service_address:
 					self.service_address = config.get(
 						"service", "address", fallback=config.get(
-							"opsiclientd", "config_service.url", fallback=None
+							"opsiclientd", "config_service.url", fallback=config.get(
+								"config_service", "url", fallback=None
+							)
 						)
 					)
 				if not self.service_username:

@@ -64,6 +64,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	def run_setup_script_windows(self):
 		opsi_script = os.path.join(self.base_dir, "files", "opsi-script", "opsi-script.exe")
 		log_dir = r"c:\opsi.org\log"
+		os.makedirs(log_dir)
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
 		arg_list = [
 			"/opsiservice", self.service_address,

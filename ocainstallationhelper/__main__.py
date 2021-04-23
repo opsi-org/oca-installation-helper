@@ -141,13 +141,14 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				self.window[attr].update(getattr(self, attr))
 
 	def start_zeroconf(self):
-		if not self.zeroconf:
-			self.zeroconf = Zeroconf()
-			ServiceBrowser(
-				zc=self.zeroconf,
-				type_="_opsics._tcp.local.",
-				handlers=[self.zeroconf_handler]
-			)
+		if self.zeroconf:
+			self.zeroconf.close()
+		self.zeroconf = Zeroconf()
+		ServiceBrowser(
+			zc=self.zeroconf,
+			type_="_opsics._tcp.local.",
+			handlers=[self.zeroconf_handler]
+		)
 
 	def zeroconf_handler(self, zeroconf, service_type, name, state_change):  # pylint: disable=unused-argument
 		info = zeroconf.get_service_info(service_type, name)
@@ -167,8 +168,14 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					logger.warning("Failed to parse service address '%s': %s", service_address, err)
 				for iface in ifaces:
 					if service_address in iface.network:
+						logger.info("Service address '%s' in network '%s'", service_address, iface.network)
 						self.service_address = f"https://{service_address}:{info.port}"
+						if self.window:
+							self.window['service_address'].update(self.service_address)
+							self.window.refresh()
 						return
+					else:
+						logger.debug("Service address '%s' not in network '%s'", service_address, iface.network)
 
 	def copy_installation_files(self):
 		dst_dir = os.path.join(self.tmp_dir)
@@ -297,7 +304,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			[sg.Input(key='client_id', size=(70,1), default_text=self.client_id)],
 			[sg.Text("", font='Any 3')],
 			[sg.Text("Service")],
-			[sg.Input(key='service_address', size=(70,1), default_text=self.service_address)],
+			[
+				sg.Input(key='service_address', size=(55,1), default_text=self.service_address),
+				sg.Button('Zeroconf', key='zeroconf', size=(15,1))
+			],
 			[sg.Text("", font='Any 3')],
 			[sg.Text("Username")],
 			[sg.Input(key='service_username', size=(70,1), default_text=self.service_username)],
@@ -313,9 +323,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				sg.Button('Install', key="install", size=(10,1), bind_return_key=True)
 			]
 		]
+		height = 320 if platform.system().lower() == 'windows' else 350
 		self.window = sg.Window(
 			title='opsi client agent installation',
-			size=(500,350),
+			size=(500, height),
 			layout=layout,
 			finalize=True
 		)
@@ -331,7 +342,12 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 			if event in (sg.WINDOW_CLOSED, 'cancel'):
 				sys.exit(1)
-			if event == "install":
+			if event == "zeroconf":
+				self.service_address = None
+				self.window["service_address"].update("")
+				self.window.refresh()
+				self.start_zeroconf()
+			elif event == "install":
 				try:
 					self.install()
 					self.show_message("Installation completed", "success")

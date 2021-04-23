@@ -101,14 +101,20 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			os.makedirs(log_dir)
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
 		arg_list = [
-			"/opsiservice", self.service_address,
-			"/clientid", self.client_id,
-			"/username", self.service_username,
-			"/password", self.service_password,
-			"/batch", self.setup_script, log_file
+			"/batch", self.setup_script, log_file,
+			#"/opsiservice", self.service_address,
+			#"/clientid", self.client_id,
+			#"/username", self.service_username,
+			#"/password", self.service_password
+			"/parameter", (
+				f"client_id::{self.client_id}||"
+				f"service_address::{self.service_address}||"
+				f"service_username::{self.service_username}||"
+				f"service_password::{self.service_password}"
+			)
 		] #,"/PARAMETER INSTALL:CREATE_CLIENT:REBOOT"
 
-		arg_list = ",".join([ f'\\"{arg}\\"' for arg in arg_list ])
+		arg_list = ",".join(arg_list)
 		ps_script = f'"Start-Process -FilePath \\"{opsi_script}\\" -ArgumentList {arg_list} -Wait"'
 		logger.debug(ps_script)
 		ps_script_file = os.path.join(self.base_dir, "setup.ps1")
@@ -155,7 +161,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 
 	def copy_installation_files(self):
-		dst_dir = os.path.join(tempfile.gettempdir(), "ocd")
+		dst_dir = os.path.join(tempfile.gettempdir(), "oca")
 		self.show_message(f"Copy installation files from '{self.base_dir}' to '{dst_dir}'")
 		if os.path.exists(dst_dir):
 			shutil.rmtree(dst_dir)

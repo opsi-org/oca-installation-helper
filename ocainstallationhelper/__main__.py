@@ -44,7 +44,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.service_address = None
 		self.service_username = None
 		self.service_password = None
-		self.error = None
 		self.base_dir = None
 		self.setup_script = None
 		self.full_path = sys.argv[0]
@@ -165,15 +164,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 			self.find_setup_script()
 			self.get_config()
-			if (
-				self.client_id and self.service_address and
-				self.service_username and self.service_password
-			):
-				self.install()
-				if not self.error:
-					return
 
-			if self.interactive:
+			if not self.interactive:
+				self.install()
+			else:
 				self.dialog_event_loop()
 		except Exception as err:
 			self.show_message(str(err), "error")
@@ -255,53 +249,41 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.run_setup_script()
 
 	def service_setup(self):
-		self.error = None
 		if self.window:
 			self.window['install'].update(disabled=True)
 			self.window.refresh()
 		self.show_message("Connecting to service...")
 
-		try:
-			if not self.service_address:
-				raise ValueError("Invalid service address")
+		if not self.service_address:
+			raise ValueError("Invalid service address")
 
-			self.service = JSONRPCClient(
-				address=self.service_address,
-				username=self.service_username,
-				password=self.service_password
-			)
-			self.show_message("Connected", "success")
-			if "." not in self.client_id:
-				self.client_id = f"{self.client_id}.{self.service.execute_rpc('getDomain')}"
-				if self.window:
-					self.window['client_id'].update(self.client_id)
-			client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
-			if not client:
-				self.show_message("Create client...")
-				# id, opsiHostKey, description, notes, hardwareAddress, ipAddress,
-				# inventoryNumber, oneTimePassword, created, lastSeen
-				client = [self.client_id]
-				logger.info("Creating client: %s", client)
-				self.service.execute_rpc("host_createOpsiClient", client)
-				self.show_message("Client created", "success")
-				client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
-
-			self.client_key = client[0]["opsiHostKey"]
-			self.client_id = client[0]["id"]
-			self.show_message("Client exists", "success")
+		self.service = JSONRPCClient(
+			address=self.service_address,
+			username=self.service_username,
+			password=self.service_password
+		)
+		self.show_message("Connected", "success")
+		if "." not in self.client_id:
+			self.client_id = f"{self.client_id}.{self.service.execute_rpc('getDomain')}"
 			if self.window:
-				self.window["client_id"].update(self.client_id)
-		except BackendAuthenticationError as err:
-			self.error = err
-			self.show_message("Authentication error, wrong username or password", "error")
-		except Exception as err:  # pylint: disable=broad-except
-			logger.error(err, exc_info=True)
-			self.error = err
-			self.show_message(str(err), "error")
+				self.window['client_id'].update(self.client_id)
+		client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
+		if not client:
+			self.show_message("Create client...")
+			# id, opsiHostKey, description, notes, hardwareAddress, ipAddress,
+			# inventoryNumber, oneTimePassword, created, lastSeen
+			client = [self.client_id]
+			logger.info("Creating client: %s", client)
+			self.service.execute_rpc("host_createOpsiClient", client)
+			self.show_message("Client created", "success")
+			client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
 
-		if self.error and self.window:
-			self.window['install'].update(disabled=False)
-			self.window.refresh()
+		self.client_key = client[0]["opsiHostKey"]
+		self.client_id = client[0]["id"]
+		self.show_message("Client exists", "success")
+		if self.window:
+			self.window["client_id"].update(self.client_id)
+
 
 	def show_dialog(self):
 		sg.theme("Reddit")
@@ -333,8 +315,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			layout=layout,
 			finalize=True
 		)
-		if self.error:
-			self.window['message'].update(str(self.error), text_color="red")
 
 	def show_message(self, message, severity=None):
 		text_color = "black"
@@ -362,10 +342,16 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			if event in (sg.WINDOW_CLOSED, 'cancel'):
 				sys.exit(1)
 			if event == "install":
-				self.install()
-				if not self.error:
+				try:
+					self.install()
 					return
+				except BackendAuthenticationError as err:
+					self.show_message("Authentication error, wrong username or password", "error")
+				except Exception as err:  # pylint: disable=broad-except
+					self.show_message(str(err), "error")
 
+				self.window['install'].update(disabled=False)
+				self.window.refresh()
 
 def main():
 	#sg.theme_previewer()

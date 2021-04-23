@@ -12,7 +12,10 @@ import os
 import sys
 import time
 import socket
+import signal
 import shutil
+import psutil
+import ipaddress
 import tempfile
 import platform
 import subprocess
@@ -45,8 +48,38 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.base_dir = None
 		self.setup_script = None
 		self.full_path = sys.argv[0]
+		self.should_stop = False
 		if not os.path.isabs(self.full_path):
 			self.full_path = os.path.abspath(os.path.join(os.path.curdir, self.full_path))
+
+		signal.signal(signal.SIGINT, self.signal_handler)
+
+	def signal_handler(self, signal, frame):
+		logger.info("Signal: %s", signal)
+		sys.exit(0)
+
+	@property
+	def opsiclientd_conf(self):
+		if platform.system().lower() == 'windows':
+			return os.path.join(
+				os.environ.get("PROGRAMFILES(X86)") or os.environ.get("PROGRAMFILES"),
+				"opsi.org", "opsi-client-agent", "opsiclientd", "opsiclientd.conf"
+			)
+		if platform.system().lower() == 'linux':
+			return "/etc/opsi-client-agent/opsiclientd.conf"
+
+	def get_ip_interfaces(self):
+		for interface, snics in psutil.net_if_addrs().items():
+			for snic in snics:
+				if snic.family not in (socket.AF_INET, socket.AF_INET6):
+					continue
+				try:
+					netmask = snic.netmask
+					if ":" in netmask:
+						netmask = netmask.lower().count('f') * 4
+					yield ipaddress.ip_interface(f"{snic.address.split('%')[0]}/{netmask}")
+				except ValueError:
+					continue
 
 	def find_setup_script(self):
 		path = self.full_path
@@ -152,6 +185,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			raise
 
 	def read_config_files(self):
+		#for config_file in ("installation.ini", self.opsiclientd_conf, "files/opsi/cfg/config.ini"):
 		for config_file in ("installation.ini", "files/opsi/cfg/config.ini"):
 			config_file = os.path.join(self.base_dir, config_file)
 			if not os.path.exists(config_file):
@@ -196,14 +230,23 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 	def zeroconf_handler(self, zeroconf, service_type, name, state_change):  # pylint: disable=unused-argument
 		info = zeroconf.get_service_info(service_type, name)
-		addresses = ["%s:%d" % (addr, info.port) for addr in info.parsed_addresses()]
 		logger.info(
-			"opsi config service detected: server=%s, port=%s, version=%s, addresses=%s",
-			info.server, info.port, info.properties.get(b'version', b'').decode(), addresses
+			"opsi config service detected: server=%s, port=%s, version=%s",
+			info.server, info.port, info.properties.get(b'version', b'').decode()
 		)
 		logger.debug(info)
 		if not self.service_address:
-			self.service_address = f"https://{addresses[0]}"
+			ifaces = list(self.get_ip_interfaces())
+			logger.info("Local ip interfaces: %s", [iface.compressed for iface in  ifaces])
+			for service_address in info.parsed_addresses():
+				try:
+					service_address = ipaddress.ip_address(service_address)
+				except ValueError as err:
+					logger.warning("Failed to parse service address '%s': %s", service_address, err)
+				for iface in ifaces:
+					if service_address in iface.network:
+						self.service_address = f"https://{service_address}:{info.port}"
+						return
 
 	def connect_service(self):
 		self.error = None
@@ -296,7 +339,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 	def dialog_event_loop(self):
 		while True:
-			event, values = self.window.read()
+			event, values = self.window.read(timeout=1000)
+			if event == "__TIMEOUT__":
+				continue
+
 			if values:
 				self.__dict__.update(values)
 

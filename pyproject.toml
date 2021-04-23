@@ -15,6 +15,7 @@ url = "http://pypi.uib.gmbh:8080/simple/"
 python = "^3.7"
 zeroconf = "^0.29.0"
 pysimplegui = "^4.39.1"
+psutil = "^5.8.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

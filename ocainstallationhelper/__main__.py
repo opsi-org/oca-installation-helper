@@ -29,7 +29,7 @@ import PySimpleGUI as sg
 from . import __version__, logger
 from .jsonrpc import JSONRPCClient, BackendAuthenticationError
 
-
+SG_THEME = "Default1" # "Reddit"
 
 class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	setup_script_name = "setup.opsiscript"
@@ -49,9 +49,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.setup_script = None
 		self.full_path = sys.argv[0]
 		self.should_stop = False
+		self.tmp_dir = os.path.join(tempfile.gettempdir(), "oca-installation-helper")
 		if not os.path.isabs(self.full_path):
 			self.full_path = os.path.abspath(os.path.join(os.path.curdir, self.full_path))
-
 		signal.signal(signal.SIGINT, self.signal_handler)
 
 	def signal_handler(self, signal, frame):
@@ -80,111 +80,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					yield ipaddress.ip_interface(f"{snic.address.split('%')[0]}/{netmask}")
 				except ValueError:
 					continue
-
-	def find_setup_script(self):
-		path = self.full_path
-		while not self.setup_script and os.path.dirname(path) != path:
-			script = os.path.join(path, self.setup_script_name)
-			if os.path.exists(script):
-				self.setup_script = script
-				self.base_dir = os.path.dirname(script)
-			else:
-				path = os.path.dirname(path)
-
-		if not self.setup_script:
-			raise RuntimeError(f"{self.setup_script_name} not found")
-
-	def run_setup_script_windows(self):
-		opsi_script = os.path.join(self.base_dir, "files", "opsi-script", "opsi-script.exe")
-		log_dir = r"c:\opsi.org\log"
-		if not os.path.exists(log_dir):
-			os.makedirs(log_dir)
-		log_file = os.path.join(log_dir, "opsi-client-agent.log")
-		arg_list = [
-			"/batch", self.setup_script, log_file,
-			#"/opsiservice", self.service_address,
-			#"/clientid", self.client_id,
-			#"/username", self.service_username,
-			#"/password", self.service_password
-			"/parameter", (
-				f"{self.client_id}||{self.service_address}||{self.service_username}||{self.service_password}"
-			)
-		] #,"/PARAMETER INSTALL:CREATE_CLIENT:REBOOT"
-
-		arg_list = ",".join([f'"{arg}"' for arg in arg_list])
-		ps_script = f'Start-Process -Verb runas -FilePath "{opsi_script}" -ArgumentList {arg_list} -Wait'
-		logger.debug(ps_script)
-		ps_script_file = os.path.join(self.base_dir, "setup.ps1")
-		with codecs.open(ps_script_file, "w", "windows-1252") as file:
-			file.write(f"{ps_script}\r\n")
-
-		command = ["powershell", "-ExecutionPolicy", "bypass", "-File", ps_script_file]
-		logger.info("Executing: %s", command)
-		try:
-			subprocess.call(command)
-		finally:
-			pass ##############os.remove(ps_script_file)
-
-	def run_setup_script(self):
-		self.show_message("Running setup script")
-		if platform.system().lower() == 'windows':
-			return self.run_setup_script_windows()
-		#if platform.system().lower() == 'linux':
-		#	return self.run_setup_script_windows()
-		raise NotImplementedError(f"Not implemented for {platform.system()}")
-
-	def get_config(self):
-		self.interactive = not self.cmdline_args.non_interactive
-		self.client_id = self.cmdline_args.client_id
-		self.service_address = self.cmdline_args.service_address
-		self.service_username = self.cmdline_args.service_username
-		self.service_password = self.cmdline_args.service_password
-
-		self.read_config_files()
-
-		if not self.client_id:
-			self.client_id = socket.getfqdn()
-
-		if not self.service_address:
-			self.start_zeroconf()
-			for _sec in range(5):
-				if self.service_address:
-					break
-				time.sleep(1)
-
-		if self.window:
-			for attr in ("client_id", "service_address", "service_username", "service_password"):
-				self.window[attr].update(getattr(self, attr))
-
-
-	def copy_installation_files(self):
-		dst_dir = os.path.join(tempfile.gettempdir(), "oca")
-		self.show_message(f"Copy installation files from '{self.base_dir}' to '{dst_dir}'")
-		if os.path.exists(dst_dir):
-			shutil.rmtree(dst_dir)
-		shutil.copytree(self.base_dir, dst_dir)
-		self.show_message(f"Installation files succesfully copied to '{dst_dir}'", "success")
-		self.base_dir = dst_dir
-		self.setup_script = os.path.join(self.base_dir, self.setup_script_name)
-
-	def run(self):
-		try:
-			if self.interactive:
-				self.show_dialog()
-
-			self.find_setup_script()
-			self.get_config()
-
-			if not self.interactive:
-				self.install()
-			else:
-				self.dialog_event_loop()
-		except Exception as err:
-			self.show_message(str(err), "error")
-			if self.window:
-				for _num in range(3):
-					time.sleep(1)
-			raise
 
 	def read_config_files(self):
 		for config_file in ("installation.ini", self.opsiclientd_conf, "files/opsi/cfg/config.ini"):
@@ -222,6 +117,29 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			except Exception as err:  # pylint: disable=broad-except
 				logger.error(err)
 
+	def get_config(self):
+		self.interactive = not self.cmdline_args.non_interactive
+		self.client_id = self.cmdline_args.client_id
+		self.service_address = self.cmdline_args.service_address
+		self.service_username = self.cmdline_args.service_username
+		self.service_password = self.cmdline_args.service_password
+
+		self.read_config_files()
+
+		if not self.client_id:
+			self.client_id = socket.getfqdn()
+
+		if not self.service_address:
+			self.start_zeroconf()
+			for _sec in range(5):
+				if self.service_address:
+					break
+				time.sleep(1)
+
+		if self.window:
+			for attr in ("client_id", "service_address", "service_username", "service_password"):
+				self.window[attr].update(getattr(self, attr))
+
 	def start_zeroconf(self):
 		if not self.zeroconf:
 			self.zeroconf = Zeroconf()
@@ -251,6 +169,65 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					if service_address in iface.network:
 						self.service_address = f"https://{service_address}:{info.port}"
 						return
+
+	def copy_installation_files(self):
+		dst_dir = os.path.join(self.tmp_dir)
+		self.show_message(f"Copy installation files from '{self.base_dir}' to '{dst_dir}'")
+		if os.path.exists(dst_dir):
+			shutil.rmtree(dst_dir)
+		shutil.copytree(self.base_dir, dst_dir)
+		self.show_message(f"Installation files succesfully copied to '{dst_dir}'", "success")
+		self.base_dir = dst_dir
+		self.setup_script = os.path.join(self.base_dir, self.setup_script_name)
+
+	def find_setup_script(self):
+		path = self.full_path
+		while not self.setup_script and os.path.dirname(path) != path:
+			script = os.path.join(path, self.setup_script_name)
+			if os.path.exists(script):
+				self.setup_script = script
+				self.base_dir = os.path.dirname(script)
+			else:
+				path = os.path.dirname(path)
+
+		if not self.setup_script:
+			raise RuntimeError(f"{self.setup_script_name} not found")
+
+	def run_setup_script_windows(self):
+		opsi_script = os.path.join(self.base_dir, "files", "opsi-script", "opsi-script.exe")
+		log_dir = r"c:\opsi.org\log"
+		if not os.path.exists(log_dir):
+			os.makedirs(log_dir)
+		log_file = os.path.join(log_dir, "opsi-client-agent.log")
+		arg_list = [
+			"/batch", self.setup_script, log_file,
+			#"/opsiservice", self.service_address,
+			#"/clientid", self.client_id,
+			#"/username", self.service_username,
+			#"/password", self.service_password
+			"/parameter", (
+				f"{self.client_id}||{self.service_address}||{self.service_username}||{self.service_password}"
+			)
+		] #,"/PARAMETER INSTALL:CREATE_CLIENT:REBOOT"
+
+		arg_list = ",".join([f'"{arg}"' for arg in arg_list])
+		ps_script = f'Start-Process -Verb runas -FilePath "{opsi_script}" -ArgumentList {arg_list} -Wait'
+		logger.debug(ps_script)
+		ps_script_file = os.path.join(self.tmp_dir, "setup.ps1")
+		with codecs.open(ps_script_file, "w", "windows-1252") as file:
+			file.write(f"{ps_script}\r\n")
+
+		command = ["powershell", "-ExecutionPolicy", "bypass", "-File", ps_script_file]
+		logger.info("Executing: %s", command)
+		subprocess.call(command)
+
+	def run_setup_script(self):
+		self.show_message("Running setup script")
+		if platform.system().lower() == 'windows':
+			return self.run_setup_script_windows()
+		#if platform.system().lower() == 'linux':
+		#	return self.run_setup_script_windows()
+		raise NotImplementedError(f"Not implemented for {platform.system()}")
 
 	def install(self):
 		try:
@@ -298,9 +275,22 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		if self.window:
 			self.window["client_id"].update(self.client_id)
 
+	def show_message(self, message, severity=None):
+		text_color = "black"
+		log = logger.notice
+		if severity == "success":
+			text_color = "green"
+		if severity == "error":
+			text_color = "red"
+			log = logger.error
+
+		log(message)
+		if self.window:
+			self.window['message'].update(message, text_color=text_color)
+			self.window.refresh()
 
 	def show_dialog(self):
-		sg.theme("Reddit")
+		sg.theme(SG_THEME)
 		sg.SetOptions(element_padding=((1,1),0))
 		layout = [
 			[sg.Text("Client-ID")],
@@ -324,25 +314,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			]
 		]
 		self.window = sg.Window(
-			title='opsi service',
+			title='opsi client agent installation',
 			size=(500,350),
 			layout=layout,
 			finalize=True
 		)
-
-	def show_message(self, message, severity=None):
-		text_color = "black"
-		log = logger.notice
-		if severity == "success":
-			text_color = "green"
-		if severity == "error":
-			text_color = "red"
-			log = logger.error
-
-		log(message)
-		if self.window:
-			self.window['message'].update(message, text_color=text_color)
-			self.window.refresh()
 
 	def dialog_event_loop(self):
 		while True:
@@ -369,6 +345,35 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 				self.window['install'].update(disabled=False)
 				self.window.refresh()
+
+	def run(self):
+		try:
+			try:
+				if os.path.exists(self.tmp_dir):
+					shutil.rmtree(self.tmp_dir)
+				logger.debug("Create temp dir '%s'", self.tmp_dir)
+				os.makedirs(self.tmp_dir)
+
+				if self.interactive:
+					self.show_dialog()
+
+				self.find_setup_script()
+				self.get_config()
+
+				if not self.interactive:
+					self.install()
+				else:
+					self.dialog_event_loop()
+			except Exception as err:
+				self.show_message(str(err), "error")
+				if self.window:
+					for _num in range(3):
+						time.sleep(1)
+				raise
+		finally:
+			if os.path.exists(self.tmp_dir):
+				logger.debug("Delete temp dir '%s'", self.tmp_dir)
+				shutil.rmtree(self.tmp_dir)
 
 def main():
 	#sg.theme_previewer()

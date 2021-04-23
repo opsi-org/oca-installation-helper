@@ -11,6 +11,7 @@ opsi-client-agent installation_helper
 import os
 import sys
 import time
+import codecs
 import socket
 import signal
 import shutil
@@ -111,11 +112,15 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		ps_script = f'"Start-Process -FilePath \\"{opsi_script}\\" -ArgumentList {arg_list} -Wait"'
 		logger.debug(ps_script)
 		ps_script_file = os.path.join(self.base_dir, "setup.ps1")
-		with open(ps_script_file, "w", "windows-1252") as file:
+		with codecs.open(ps_script_file, "w", "windows-1252") as file:
 			file.write(f"{ps_script}\r\n")
-		subprocess.call(
-			["powershell", "-ExcecutionPolicy", "bypass", "-Verb", "runas", "-File", ps_script_file]
-		)
+
+		command = ["powershell", "-ExcecutionPolicy", "bypass", "-Verb", "runas", "-File", ps_script_file]
+		logger.info("Executing: %s", command)
+		try:
+			subprocess.call(command)
+		finally:
+			pass ##############os.remove(ps_script_file)
 
 	def run_setup_script(self):
 		self.show_message("Running setup script")
@@ -245,10 +250,14 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 						return
 
 	def install(self):
-		self.service_setup()
-		if self.full_path.startswith("\\\\"):
-			self.copy_installation_files()
-		self.run_setup_script()
+		try:
+			self.service_setup()
+			if self.full_path.startswith("\\\\"):
+				self.copy_installation_files()
+			self.run_setup_script()
+		except Exception as err:
+			logger.error(err, exc_info=True)
+			raise
 
 	def service_setup(self):
 		if self.window:

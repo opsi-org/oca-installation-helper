@@ -323,7 +323,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				sg.Button('Install', key="install", size=(10,1), bind_return_key=True)
 			]
 		]
-		height = 320 if platform.system().lower() == 'windows' else 350
+		height = 310 if platform.system().lower() == 'windows' else 350
 		self.window = sg.Window(
 			title='opsi client agent installation',
 			size=(500, height),

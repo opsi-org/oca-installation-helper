@@ -108,11 +108,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		] #,"/PARAMETER INSTALL:CREATE_CLIENT:REBOOT"
 
 		arg_list = ",".join([ f'\\"{arg}\\"' for arg in arg_list ])
-		logger.info(arg_list)
-		start_proc = f'"Start-Process -FilePath \\"{opsi_script}\\" -ArgumentList {arg_list} -Wait"'
-		logger.info(start_proc)
+		ps_script = f'"Start-Process -FilePath \\"{opsi_script}\\" -ArgumentList {arg_list} -Wait"'
+		logger.debug(ps_script)
+		ps_script_file = os.path.join(self.base_dir, "setup.ps1")
+		with open(ps_script_file, "w", "windows-1252") as file:
+			file.write(f"{ps_script}\r\n")
 		subprocess.call(
-			["powershell", "-ExcecutionPolicy", "bypass", "-Verb", "runas", "-Command", start_proc]
+			["powershell", "-ExcecutionPolicy", "bypass", "-Verb", "runas", "-File", ps_script_file]
 		)
 
 	def run_setup_script(self):

@@ -71,7 +71,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	def get_ip_interfaces(self):
 		for interface, snics in psutil.net_if_addrs().items():
 			for snic in snics:
-				if snic.family not in (socket.AF_INET, socket.AF_INET6):
+				if snic.family not in (socket.AF_INET, socket.AF_INET6) or not snic.address or not snic.netmask:
 					continue
 				try:
 					netmask = snic.netmask

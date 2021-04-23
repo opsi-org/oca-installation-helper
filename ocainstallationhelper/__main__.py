@@ -107,10 +107,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			#"/username", self.service_username,
 			#"/password", self.service_password
 			"/parameter", (
-				f"client_id::{self.client_id}||"
-				f"service_address::{self.service_address}||"
-				f"service_username::{self.service_username}||"
-				f"service_password::{self.service_password}"
+				f"{self.client_id}||{self.service_address}||{self.service_username}||{self.service_password}"
 			)
 		] #,"/PARAMETER INSTALL:CREATE_CLIENT:REBOOT"
 

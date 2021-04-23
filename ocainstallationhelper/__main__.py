@@ -112,7 +112,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		] #,"/PARAMETER INSTALL:CREATE_CLIENT:REBOOT"
 
 		arg_list = ",".join([f'"{arg}"' for arg in arg_list])
-		ps_script = f'Start-Process -FilePath "{opsi_script}" -ArgumentList {arg_list} -Wait"'
+		ps_script = f'Start-Process -Verb runas -FilePath "{opsi_script}" -ArgumentList {arg_list} -Wait'
 		logger.debug(ps_script)
 		ps_script_file = os.path.join(self.base_dir, "setup.ps1")
 		with codecs.open(ps_script_file, "w", "windows-1252") as file:
@@ -358,6 +358,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			if event == "install":
 				try:
 					self.install()
+					self.show_message("Installation completed", "success")
 					for _num in range(5):
 						time.sleep(1)
 					return

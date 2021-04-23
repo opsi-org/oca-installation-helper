@@ -239,6 +239,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			ifaces = list(self.get_ip_interfaces())
 			logger.info("Local ip interfaces: %s", [iface.compressed for iface in  ifaces])
 			for service_address in info.parsed_addresses():
+				logger.info("Service address: %s", service_address)
 				try:
 					service_address = ipaddress.ip_address(service_address)
 				except ValueError as err:

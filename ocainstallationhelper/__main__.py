@@ -181,7 +181,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		except Exception as err:
 			self.show_message(str(err), "error")
 			if self.window:
-				time.sleep(3)
+				for _num in range(3):
+					time.sleep(1)
 			raise
 
 	def read_config_files(self):
@@ -257,6 +258,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.show_message("Connecting...")
 
 		try:
+			if not self.service_address:
+				raise ValueError("Invalid service address")
+
 			self.service = JSONRPCClient(
 				address=self.service_address,
 				username=self.service_username,
@@ -270,7 +274,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
 			if not client:
 				self.show_message("Create client...")
-				self.service.execute_rpc("host_createOpsiClient", [{"type": "OpsiClient", "id": self.client_id}])
+				client = {"type": "OpsiClient", "id": self.client_id}
+				logger.info("Creating client: %s", client)
+				self.service.execute_rpc("host_createOpsiClient", [client])
 				self.show_message("Client created", "success")
 				client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
 
@@ -362,18 +368,10 @@ def main():
 		action='version',
 		version=__version__
 	)
-	"""
-	parser.add_argument("-l", "--log-level",
-		default=LOG_NONE,
-		type=int,
-		choices=range(0, 10),
-		help=(
-			"Set the log level. "
-			"0: nothing, 1: essential, 2: critical, 3: errors, 4: warnings, 5: notices "
-			"6: infos, 7: debug messages, 8: trace messages, 9: secrets"
-		)
+	parser.add_argument("--log-level",
+		default="warning",
+		choices=['debug', 'info', 'warning', 'error', 'critical']
 	)
-	"""
 	parser.add_argument(
 		"--service-address",
 		default=None,
@@ -402,8 +400,12 @@ def main():
 
 	args = parser.parse_args()
 
+	log_level = args.log_level.upper()
+	if log_level == "TRACE":
+		log_level = "DEBUG"
+
 	logging.basicConfig(
-		level=logging.DEBUG,
+		level=getattr(logging, log_level),
 		format="[%(levelname)-9s %(asctime)s] %(message)s",
 		handlers=[
 			logging.StreamHandler(stream=sys.stderr)

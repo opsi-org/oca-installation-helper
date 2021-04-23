@@ -286,6 +286,8 @@ class JSONRPCClient:  # pylint: disable=too-many-instance-attributes
 			"params": params
 		}
 
+		logger.debug("RPC request: %s", data)
+
 		headers['Accept'] = headers['Content-Type'] = 'application/json'
 		headers['Content-Encoding'] = 'gzip'
 		headers['Accept-Encoding'] = 'gzip'
@@ -307,6 +309,7 @@ class JSONRPCClient:  # pylint: disable=too-many-instance-attributes
 			self.server_name = response.headers.get('server')
 
 		data = response.json()
+		logger.debug("RPC response: %s", data)
 
 		error_cls = None
 		error_msg = None

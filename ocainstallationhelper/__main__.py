@@ -97,7 +97,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	def run_setup_script_windows(self):
 		opsi_script = os.path.join(self.base_dir, "files", "opsi-script", "opsi-script.exe")
 		log_dir = r"c:\opsi.org\log"
-		os.makedirs(log_dir)
+		if not os.path.exists(log_dir):
+			os.makedirs(log_dir)
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
 		arg_list = [
 			"/opsiservice", self.service_address,
@@ -361,7 +362,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			if event in (sg.WINDOW_CLOSED, 'cancel'):
 				sys.exit(1)
 			if event == "install":
-				self.connect_service()
+				self.install()
 				if not self.error:
 					return
 

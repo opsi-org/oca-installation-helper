@@ -82,7 +82,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					continue
 
 	def read_config_files(self):
-		for config_file in ("installation.ini", self.opsiclientd_conf, "files/opsi/cfg/config.ini"):
+		for config_file in ("install.conf", self.opsiclientd_conf, "files/opsi/cfg/config.ini"):
 			config_file = os.path.join(self.base_dir, config_file)
 			if not os.path.exists(config_file):
 				logger.info("Config file '%s' not found", config_file)
@@ -326,6 +326,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		height = 310 if platform.system().lower() == 'windows' else 350
 		self.window = sg.Window(
 			title='opsi client agent installation',
+			icon='opsi.ico',
 			size=(500, height),
 			layout=layout,
 			finalize=True

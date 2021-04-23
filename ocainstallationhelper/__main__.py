@@ -168,16 +168,12 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				self.client_id and self.service_address and
 				self.service_username and self.service_password
 			):
-				self.connect_service()
+				self.install()
 				if not self.error:
 					return
 
 			if self.interactive:
 				self.dialog_event_loop()
-
-			#if self.full_path.startswith("\\\\"):
-			self.copy_installation_files()
-			self.run_setup_script()
 		except Exception as err:
 			self.show_message(str(err), "error")
 			if self.window:
@@ -186,12 +182,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			raise
 
 	def read_config_files(self):
-		#for config_file in ("installation.ini", self.opsiclientd_conf, "files/opsi/cfg/config.ini"):
-		for config_file in ("installation.ini", "files/opsi/cfg/config.ini"):
+		for config_file in ("installation.ini", self.opsiclientd_conf, "files/opsi/cfg/config.ini"):
 			config_file = os.path.join(self.base_dir, config_file)
 			if not os.path.exists(config_file):
+				logger.info("Config file '%s' not found", config_file)
 				continue
 			try:
+				logger.info("Reading config file '%s'", config_file)
 				config = ConfigParser()
 				config.read(config_file, encoding="utf-8")
 				if not self.client_id:
@@ -250,12 +247,18 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 						self.service_address = f"https://{service_address}:{info.port}"
 						return
 
-	def connect_service(self):
+	def install(self):
+		self.service_setup()
+		if self.full_path.startswith("\\\\"):
+			self.copy_installation_files()
+		self.run_setup_script()
+
+	def service_setup(self):
 		self.error = None
 		if self.window:
-			self.window['connect'].update(disabled=True)
+			self.window['install'].update(disabled=True)
 			self.window.refresh()
-		self.show_message("Connecting...")
+		self.show_message("Connecting to service...")
 
 		try:
 			if not self.service_address:
@@ -274,9 +277,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
 			if not client:
 				self.show_message("Create client...")
-				client = {"type": "OpsiClient", "id": self.client_id}
+				# id, opsiHostKey, description, notes, hardwareAddress, ipAddress,
+				# inventoryNumber, oneTimePassword, created, lastSeen
+				client = [self.client_id]
 				logger.info("Creating client: %s", client)
-				self.service.execute_rpc("host_createOpsiClient", [client])
+				self.service.execute_rpc("host_createOpsiClient", client)
 				self.show_message("Client created", "success")
 				client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
 
@@ -294,7 +299,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			self.show_message(str(err), "error")
 
 		if self.error and self.window:
-			self.window['connect'].update(disabled=False)
+			self.window['install'].update(disabled=False)
 			self.window.refresh()
 
 	def show_dialog(self):
@@ -316,9 +321,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			[sg.Text(size=(70,3), key='message')],
 			[sg.Text("", font='Any 3')],
 			[
-				sg.Text("", size=(39,1)),
+				sg.Text("", size=(35,1)),
 				sg.Button('Cancel', key='cancel', size=(10,1)),
-				sg.Button('Connect', key="connect", size=(10,1), bind_return_key=True)
+				sg.Button('Install', key="install", size=(10,1), bind_return_key=True)
 			]
 		]
 		self.window = sg.Window(
@@ -355,7 +360,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 			if event in (sg.WINDOW_CLOSED, 'cancel'):
 				sys.exit(1)
-			if event == "connect":
+			if event == "install":
 				self.connect_service()
 				if not self.error:
 					return
@@ -411,4 +416,9 @@ def main():
 			logging.StreamHandler(stream=sys.stderr)
 		]
 	)
+	arg_dict = dict(args.__dict__)
+	if arg_dict["service_password"]:
+		arg_dict["service_password"] = "***confidential***"
+	logger.debug("Cmdline arguments: %s", arg_dict)
+
 	InstallationHelper(args).run()

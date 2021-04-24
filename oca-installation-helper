@@ -1,4 +1,25 @@
+# -*- coding: utf-8 -*-
+
+# opsiclientd is part of the desktop management solution opsi http://www.opsi.org
+# Copyright (c) 2010-2021 uib GmbH <info@uib.de>
+# All rights reserved.
+# License: AGPL-3.0
+
+import sys
+import traceback
+
 from ocainstallationhelper.__main__ import main
 
 if __name__ == "__main__":
-	main()
+	try:
+		main()
+	except SystemExit:
+		pass
+	except KeyboardInterrupt:
+		print("Interrupted", file=sys.stderr)
+		sys.exit(1)
+	except Exception as e:
+		# Do not let pyinstaller handle exceptions and print:
+		# "Failed to execute script"
+		traceback.print_exc()
+		sys.exit(1)

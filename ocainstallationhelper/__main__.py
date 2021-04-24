@@ -394,15 +394,24 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				shutil.rmtree(self.tmp_dir)
 
 def main():
+
 	#sg.theme_previewer()
 	parser = ArgumentParser()
-	parser.add_argument('--version',
-		action='version',
+	parser.add_argument(
+		"--version",
+		action="version",
 		version=__version__
 	)
-	parser.add_argument("--log-level",
+	parser.add_argument(
+		"--log-file",
+		default=os.path.join(
+			tempfile.gettempdir(), "oca-installation-helper.log"
+		)
+	)
+	parser.add_argument(
+		"--log-level",
 		default="warning",
-		choices=['debug', 'info', 'warning', 'error', 'critical']
+		choices=["none", "debug", "info", "warning", "error", "critical"]
 	)
 	parser.add_argument(
 		"--service-address",
@@ -436,13 +445,16 @@ def main():
 	if log_level == "TRACE":
 		log_level = "DEBUG"
 
-	logging.basicConfig(
-		level=getattr(logging, log_level),
-		format="[%(levelname)-9s %(asctime)s] %(message)s",
-		handlers=[
-			logging.StreamHandler(stream=sys.stderr)
-		]
-	)
+	if log_level != "none":
+		logging.basicConfig(
+			level=getattr(logging, log_level),
+			format="[%(levelname)-9s %(asctime)s] %(message)s",
+			handlers=[
+				logging.FileHandler(filename=args.log_file, mode="w", encoding="utf-8")
+				#logging.StreamHandler(stream=sys.stderr)
+			]
+		)
+
 	arg_dict = dict(args.__dict__)
 	if arg_dict["service_password"]:
 		arg_dict["service_password"] = "***confidential***"

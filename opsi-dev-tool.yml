@@ -6,3 +6,4 @@ pyinstaller-poetry:
         - oca-installation-helper
   dirname: ocainstallationhelper
   icon: opsi.ico
+  extra_args: --noconsole

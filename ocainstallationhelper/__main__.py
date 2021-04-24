@@ -53,6 +53,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		if not os.path.isabs(self.full_path):
 			self.full_path = os.path.abspath(os.path.join(os.path.curdir, self.full_path))
 		signal.signal(signal.SIGINT, self.signal_handler)
+		self.get_cmdline_config()
 
 	def signal_handler(self, signal, frame):
 		logger.info("Signal: %s", signal)
@@ -115,14 +116,16 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					)
 				#config.get("general", "dnsdomain", fallback=None)
 			except Exception as err:  # pylint: disable=broad-except
-				logger.error(err)
+				logger.error(err, exc_info=True)
 
-	def get_config(self):
+	def get_cmdline_config(self):
 		self.interactive = not self.cmdline_args.non_interactive
 		self.client_id = self.cmdline_args.client_id
 		self.service_address = self.cmdline_args.service_address
 		self.service_username = self.cmdline_args.service_username
 		self.service_password = self.cmdline_args.service_password
+
+	def get_config(self):
 
 		self.read_config_files()
 
@@ -366,17 +369,16 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	def run(self):
 		try:
 			try:
+				if self.interactive:
+					self.show_dialog()
+
+				self.find_setup_script()
 				self.get_config()
 
 				if os.path.exists(self.tmp_dir):
 					shutil.rmtree(self.tmp_dir)
 				logger.debug("Create temp dir '%s'", self.tmp_dir)
 				os.makedirs(self.tmp_dir)
-
-				if self.interactive:
-					self.show_dialog()
-
-				self.find_setup_script()
 
 				if not self.interactive:
 					self.install()
@@ -448,7 +450,7 @@ def main():
 	if log_level != "none":
 		logging.basicConfig(
 			level=getattr(logging, log_level),
-			format="[%(levelname)-9s %(asctime)s] %(message)s",
+			format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
 			handlers=[
 				logging.FileHandler(filename=args.log_file, mode="w", encoding="utf-8")
 				#logging.StreamHandler(stream=sys.stderr)

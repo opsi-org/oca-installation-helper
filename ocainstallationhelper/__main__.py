@@ -366,6 +366,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	def run(self):
 		try:
 			try:
+				self.get_config()
+
 				if os.path.exists(self.tmp_dir):
 					shutil.rmtree(self.tmp_dir)
 				logger.debug("Create temp dir '%s'", self.tmp_dir)
@@ -375,7 +377,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					self.show_dialog()
 
 				self.find_setup_script()
-				self.get_config()
 
 				if not self.interactive:
 					self.install()

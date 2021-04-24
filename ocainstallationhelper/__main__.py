@@ -227,7 +227,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		with codecs.open(ps_script_file, "w", "windows-1252") as file:
 			file.write(f"{ps_script}\r\n")
 
-		command = ["powershell", "-ExecutionPolicy", "bypass", "-File", ps_script_file]
+		command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-File", ps_script_file]
 		logger.info("Executing: %s", command)
 		subprocess.call(command)
 

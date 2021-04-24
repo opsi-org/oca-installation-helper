@@ -14,8 +14,6 @@ import time
 import codecs
 import socket
 import signal
-import shutil
-import psutil
 import ipaddress
 import tempfile
 import platform
@@ -23,6 +21,8 @@ import subprocess
 import logging
 from configparser import ConfigParser
 from argparse import ArgumentParser
+import shutil
+import psutil
 from zeroconf import ServiceBrowser, Zeroconf
 import PySimpleGUI as sg
 
@@ -55,8 +55,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		signal.signal(signal.SIGINT, self.signal_handler)
 		self.get_cmdline_config()
 
-	def signal_handler(self, signal, frame):
-		logger.info("Signal: %s", signal)
+	def signal_handler(self, sig, frame):  # pylint: disable=unused-argument,no-self-use
+		logger.info("Signal: %s", sig)
 		sys.exit(0)
 
 	@property
@@ -68,9 +68,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			)
 		if platform.system().lower() == 'linux':
 			return "/etc/opsi-client-agent/opsiclientd.conf"
+		return None
 
-	def get_ip_interfaces(self):
-		for interface, snics in psutil.net_if_addrs().items():
+	def get_ip_interfaces(self):  # pylint: disable=no-self-use
+		for snics in psutil.net_if_addrs().values():
 			for snic in snics:
 				if snic.family not in (socket.AF_INET, socket.AF_INET6) or not snic.address or not snic.netmask:
 					continue
@@ -177,8 +178,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 							self.window['service_address'].update(self.service_address)
 							self.window.refresh()
 						return
-					else:
-						logger.debug("Service address '%s' not in network '%s'", service_address, iface.network)
+					logger.debug("Service address '%s' not in network '%s'", service_address, iface.network)
 
 	def copy_installation_files(self):
 		dst_dir = os.path.join(self.tmp_dir)

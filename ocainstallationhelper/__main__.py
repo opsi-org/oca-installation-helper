@@ -85,8 +85,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					continue
 
 	def read_config_files(self):  # pylint: disable=too-many-branches
-		placeholder_regex = re.compile(r'^\s*#\@(\w+)\**#+\s*$')
-		placeholder_regex_new = re.compile(r'^\s*%([\w\-]+)%\s*$')
+		placeholder_regex = re.compile(r'#\@(\w+)\**#+')
+		placeholder_regex_new = re.compile(r'%([\w\-]+)%')
 
 		install_conf = os.path.join("custom", "install.conf")
 		if not os.path.exists(install_conf):

@@ -97,10 +97,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					if config_file == "install.conf" and not "[installation]" in data:
 						data = "[installation]\n" + data
 					config.read_string(data)
+
 					if not self.client_id:
 						self.client_id = config.get(
 							"installation", "client_id", # install.conf
-							fallback=config.get("client", "id", # opsiclientd.conf
+							fallback=config.get("global", "host_id", # opsiclientd.conf
 								fallback=None
 							)
 						)
@@ -129,8 +130,14 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 								fallback=None
 							)
 						)
-					if config_file == "install.conf" and config.has_option("installation", "interactive"):
+					if config.get("installation", "interactive", fallback=None): # install.conf
 						self.interactive = config.get("installation", "interactive").lower().strip() in ("yes", "true", "on", "1")
+					logger.debug(
+						"Config after reading '%s': interactive=%s, client_id=%s, "
+						"service_address=%s, service_username=%s, service_password=%s",
+						config_file, self.interactive, self.client_id, self.service_address,
+						self.service_username, "*" * len(self.service_password or "")
+					)
 			except Exception as err:  # pylint: disable=broad-except
 				logger.error(err, exc_info=True)
 
@@ -140,9 +147,14 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.service_address = self.cmdline_args.service_address
 		self.service_username = self.cmdline_args.service_username
 		self.service_password = self.cmdline_args.service_password
+		logger.debug(
+			"Config from cmdline: interactive=%s, client_id=%s, "
+			"service_address=%s, service_username=%s, service_password=%s",
+			self.interactive, self.client_id, self.service_address,
+			self.service_username, "*" * len(self.service_password or "")
+		)
 
 	def get_config(self):
-
 		self.read_config_files()
 
 		if not self.client_id:
@@ -154,6 +166,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				if self.service_address:
 					break
 				time.sleep(1)
+
+		logger.debug(
+			"Config: interactive=%s, client_id=%s, "
+			"service_address=%s, service_username=%s, service_password=%s",
+			self.interactive, self.client_id, self.service_address,
+			self.service_username, "*" * len(self.service_password or "")
+		)
 
 		if self.window:
 			for attr in ("client_id", "service_address", "service_username", "service_password"):
@@ -395,10 +414,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				logger.debug("Create temp dir '%s'", self.tmp_dir)
 				os.makedirs(self.tmp_dir)
 
-				if not self.interactive:
-					self.install()
-				else:
+				if self.interactive:
 					self.dialog_event_loop()
+				else:
+					self.install()
+
 			except Exception as err:
 				self.show_message(str(err), "error")
 				if self.window:
@@ -471,10 +491,5 @@ def main():
 				#logging.StreamHandler(stream=sys.stderr)
 			]
 		)
-
-	arg_dict = dict(args.__dict__)
-	if arg_dict["service_password"]:
-		arg_dict["service_password"] = "***confidential***"
-	logger.debug("Cmdline arguments: %s", arg_dict)
 
 	InstallationHelper(args).run()

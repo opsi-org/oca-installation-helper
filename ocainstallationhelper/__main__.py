@@ -9,6 +9,7 @@ opsi-client-agent installation_helper
 """
 
 import os
+import re
 import sys
 import time
 import codecs
@@ -83,7 +84,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				except ValueError:
 					continue
 
-	def read_config_files(self):
+	def read_config_files(self):  # pylint: disable=too-many-branches
+		placeholder_regex = re.compile(r'^\s*#\@(\w+)\**#+\s*$')
+		placeholder_regex_new = re.compile(r'^\s*%([\w\-]+)%\s*$')
+
 		install_conf = os.path.join("custom", "install.conf")
 		if not os.path.exists(install_conf):
 			install_conf = "install.conf"
@@ -102,21 +106,25 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					config.read_string(data)
 
 					if not self.client_id:
-						self.client_id = config.get(
+						val = config.get(
 							"installation", "client_id", # install.conf, config.ini
 							fallback=config.get("global", "host_id", # opsiclientd.conf
 								fallback=None
 							)
 						)
+						if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
+							self.client_id = val
 					if not self.service_address:
-						self.service_address = config.get(
+						val = config.get(
 							"installation", "service_address", # install.conf, config.ini
 							fallback=config.get("config_service", "url", # opsiclientd.conf
 								fallback=None
 							)
 						)
+						if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
+							self.service_address = val
 					if not self.service_username:
-						self.service_username = config.get(
+						val = config.get(
 							"installation", "service_username", # install.conf
 							fallback=config.get("installation", "client_id", # config.ini
 								fallback=config.get("global", "host_id", # opsiclientd.conf
@@ -124,8 +132,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 								)
 							)
 						)
+						if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
+							self.service_username = val
 					if not self.service_password:
-						self.service_password = config.get(
+						val = config.get(
 							"installation", "service_password", # install.conf
 							fallback=config.get("installation", "client_key", # config.ini
 								fallback=config.get("global", "opsi_host_key", # opsiclientd.conf
@@ -133,8 +143,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 								)
 							)
 						)
-					if config.get("installation", "interactive", fallback=None): # install.conf
-						self.interactive = config.get("installation", "interactive").lower().strip() in ("yes", "true", "on", "1")
+						if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
+							self.service_password = val
+					val = config.get("installation", "interactive", fallback=None) # install.conf
+					if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
+						self.interactive = val.lower().strip() in ("yes", "true", "on", "1")
 					logger.debug(
 						"Config after reading '%s': interactive=%s, client_id=%s, "
 						"service_address=%s, service_username=%s, service_password=%s",

@@ -92,30 +92,45 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			try:
 				logger.info("Reading config file '%s'", config_file)
 				config = ConfigParser()
-				config.read(config_file, encoding="utf-8")
-				if not self.client_id:
-					self.service_address = config.get("client", "id", fallback=None)
-				if not self.service_address:
-					self.service_address = config.get(
-						"service", "address", fallback=config.get(
-							"opsiclientd", "config_service.url", fallback=config.get(
-								"config_service", "url", fallback=None
+				with codecs.open(config_file, "r", "utf-8") as file:
+					data = file.read().replace("\r\n", "\n")
+					if config_file == "install.conf" and not "[installation]" in data:
+						data = "[installation]\n" + data
+					config.read_string(data)
+					if not self.client_id:
+						self.client_id = config.get(
+							"installation", "client_id", # install.conf
+							fallback=config.get("client", "id", # opsiclientd.conf
+								fallback=None
 							)
 						)
-					)
-				if not self.service_username:
-					self.service_username = config.get(
-						"service", "username", fallback=config.get(
-							"installation", "service_user", fallback=None
+					if not self.service_address:
+						self.service_address = config.get(
+							"installation", "service_address", # install.conf
+							fallback=config.get("opsiclientd", "config_service.url", # config.ini
+								fallback=config.get("config_service", "url", # opsiclientd.conf
+									fallback=None
+								)
+							)
 						)
-					)
-				if not self.service_password:
-					self.service_password = config.get(
-						"service", "password", fallback=config.get(
-							"installation", "service_password", fallback=None
+					if not self.service_username:
+						self.service_username = config.get(
+							"installation", "service_username", # install.conf
+							fallback=config.get("installation", "service_user", # config.ini
+								fallback=config.get("global", "host_id", # opsiclientd.conf
+									fallback=None
+								)
+							)
 						)
-					)
-				#config.get("general", "dnsdomain", fallback=None)
+					if not self.service_password:
+						self.service_password = config.get(
+							"installation", "service_password", # install.conf, config.ini
+							fallback=config.get("global", "opsi_host_key", # opsiclientd.conf
+								fallback=None
+							)
+						)
+					if config_file == "install.conf" and config.has_option("installation", "interactive"):
+						self.interactive = config.get("installation", "interactive").lower().strip() in ("yes", "true", "on", "1")
 			except Exception as err:  # pylint: disable=broad-except
 				logger.error(err, exc_info=True)
 

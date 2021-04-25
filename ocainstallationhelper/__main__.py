@@ -103,24 +103,22 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 					if not self.client_id:
 						self.client_id = config.get(
-							"installation", "client_id", # install.conf
+							"installation", "client_id", # install.conf, config.ini
 							fallback=config.get("global", "host_id", # opsiclientd.conf
 								fallback=None
 							)
 						)
 					if not self.service_address:
 						self.service_address = config.get(
-							"installation", "service_address", # install.conf
-							fallback=config.get("opsiclientd", "config_service.url", # config.ini
-								fallback=config.get("config_service", "url", # opsiclientd.conf
-									fallback=None
-								)
+							"installation", "service_address", # install.conf, config.ini
+							fallback=config.get("config_service", "url", # opsiclientd.conf
+								fallback=None
 							)
 						)
 					if not self.service_username:
 						self.service_username = config.get(
 							"installation", "service_username", # install.conf
-							fallback=config.get("installation", "service_user", # config.ini
+							fallback=config.get("installation", "client_id", # config.ini
 								fallback=config.get("global", "host_id", # opsiclientd.conf
 									fallback=None
 								)
@@ -128,9 +126,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 						)
 					if not self.service_password:
 						self.service_password = config.get(
-							"installation", "service_password", # install.conf, config.ini
-							fallback=config.get("global", "opsi_host_key", # opsiclientd.conf
-								fallback=None
+							"installation", "service_password", # install.conf
+							fallback=config.get("installation", "client_key", # config.ini
+								fallback=config.get("global", "opsi_host_key", # opsiclientd.conf
+									fallback=None
+								)
 							)
 						)
 					if config.get("installation", "interactive", fallback=None): # install.conf

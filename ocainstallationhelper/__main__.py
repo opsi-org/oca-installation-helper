@@ -84,12 +84,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					continue
 
 	def read_config_files(self):
-		for config_file in (
-			os.path.join("custom", "install.conf"),
-			"install.conf",
-			self.opsiclientd_conf,
-			os.path.join("files", "opsi", "cfg", "config.ini")
-		):
+		install_conf = os.path.join("custom", "install.conf")
+		if not os.path.exists(install_conf):
+			install_conf = "install.conf"
+		for config_file in (install_conf, self.opsiclientd_conf, os.path.join("files", "opsi", "cfg", "config.ini")):
 			config_file = os.path.join(self.base_dir, config_file)
 			if not os.path.exists(config_file):
 				logger.info("Config file '%s' not found", config_file)
@@ -252,10 +250,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			"/batch", self.setup_script, log_file,
 			#"/opsiservice", self.service_address,
 			#"/clientid", self.client_id,
-			#"/username", self.service_username,
-			#"/password", self.service_password
+			#"/username", self.client_id,
+			#"/password", self.client_key
 			"/parameter", (
-				f"{self.client_id}||{self.service_address}||{self.service_username}||{self.service_password}"
+				f"{self.service_address}||{self.client_id}||{self.client_key}"
 			)
 		] #,"/PARAMETER INSTALL:CREATE_CLIENT:REBOOT"
 

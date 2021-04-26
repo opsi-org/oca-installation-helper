@@ -377,9 +377,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			]
 		]
 
-		logger.error(os.path.curdir)
-		logger.error(os.listdir("."))
-		logger.error(os.path.curdir)
+		# logger.error(os.path.curdir)
+		# logger.error(os.listdir("."))
+		# logger.error(os.path.curdir)
+		logger.error(__file__)
+		logger.error(os.listdir(os.path.dirname(__file__)))
 
 		height = 350
 		icon_data = None

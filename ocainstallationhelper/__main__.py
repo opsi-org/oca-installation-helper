@@ -376,10 +376,17 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				sg.Button('Install', key="install", size=(10,1), bind_return_key=True)
 			]
 		]
-		height = 310 if platform.system().lower() == 'windows' else 350
+
+		height = 350
+		icon_data = None
+		if platform.system().lower() == "windows":
+			height = 310
+			with open("opsi.ico", "rb") as file:
+				icon_data = file.read()
+
 		self.window = sg.Window(
-			title='opsi client agent installation',
-			icon='opsi.ico',
+			title="opsi client agent installation",
+			icon=icon_data,
 			size=(500, height),
 			layout=layout,
 			finalize=True

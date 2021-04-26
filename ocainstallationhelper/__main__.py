@@ -32,6 +32,16 @@ from .jsonrpc import JSONRPCClient, BackendAuthenticationError
 
 SG_THEME = "Default1" # "Reddit"
 
+def get_resource_path(relative_path):
+	""" Get absolute path to resource, works for dev and for PyInstaller """
+	try:
+		# PyInstaller creates a temp folder and stores path in _MEIPASS
+		base_path = sys._MEIPASS  # pylint: disable=protected-access,no-member
+	except Exception:  # pylint: disable=broad-except
+		base_path = os.path.abspath(".")
+
+	return os.path.join(base_path, relative_path)
+
 class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	setup_script_name = "setup.opsiscript"
 
@@ -377,22 +387,15 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			]
 		]
 
-		# logger.error(os.path.curdir)
-		# logger.error(os.listdir("."))
-		# logger.error(os.path.curdir)
-		logger.error(__file__)
-		logger.error(os.listdir(os.path.dirname(__file__)))
-
 		height = 350
-		icon_data = None
+		icon = None
 		if platform.system().lower() == "windows":
 			height = 310
-			with open("opsi.ico", "rb") as file:
-				icon_data = file.read()
+			icon = get_resource_path("opsi.ico")
 
 		self.window = sg.Window(
 			title="opsi client agent installation",
-			icon=icon_data,
+			icon=icon,
 			size=(500, height),
 			layout=layout,
 			finalize=True

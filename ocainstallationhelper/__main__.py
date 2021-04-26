@@ -377,6 +377,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			]
 		]
 
+		logger.error(os.path.curdir)
+		logger.error(os.listdir("."))
+		logger.error(os.path.curdir)
+
 		height = 350
 		icon_data = None
 		if platform.system().lower() == "windows":

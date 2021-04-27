@@ -514,7 +514,7 @@ def main():
 	if log_level == "TRACE":
 		log_level = "DEBUG"
 
-	if log_level != "none":
+	if log_level != "NONE":
 		logging.basicConfig(
 			level=getattr(logging, log_level),
 			format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",

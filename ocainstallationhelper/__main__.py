@@ -50,6 +50,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.window = None
 		self.service = None
 		self.zeroconf = None
+		self.zeroconf_addresses = []
 		self.zeroconf_idx = -1
 		self.interactive = True
 		self.client_id = None
@@ -226,7 +227,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		if self.service_address:
 			return
 
-		service_addresses = set()
 		ifaces = list(self.get_ip_interfaces())
 		logger.info("Local ip interfaces: %s", [iface.compressed for iface in  ifaces])
 		for service_address in info.parsed_addresses():
@@ -238,17 +238,16 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			for iface in ifaces:
 				if service_address in iface.network:
 					logger.info("Service address '%s' in network '%s'", service_address, iface.network)
-					service_addresses.add(f"https://{service_address}:{info.port}")
+					service_address = f"https://{service_address}:{info.port}"
+					if not service_address in self.zeroconf_addresses:
+						self.zeroconf_addresses.append(service_address)
 				logger.debug("Service address '%s' not in network '%s'", service_address, iface.network)
 
-		if not service_addresses:
-			return
-
 		self.zeroconf_idx += 1
-		if self.zeroconf_idx >= len(service_addresses):
+		if self.zeroconf_idx >= len(self.zeroconf_addresses):
 			self.zeroconf_idx = 0
 
-		self.service_address = sorted(list(service_addresses))[self.zeroconf_idx]
+		self.service_address = self.zeroconf_addresses[self.zeroconf_idx]
 		if self.window:
 			self.window['service_address'].update(self.service_address)
 			self.window.refresh()

@@ -50,6 +50,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.window = None
 		self.service = None
 		self.zeroconf = None
+		self.zeroconf_idx = -1
 		self.interactive = True
 		self.client_id = None
 		self.client_key = None
@@ -221,24 +222,36 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			info.server, info.port, info.properties.get(b'version', b'').decode()
 		)
 		logger.debug(info)
-		if not self.service_address:
-			ifaces = list(self.get_ip_interfaces())
-			logger.info("Local ip interfaces: %s", [iface.compressed for iface in  ifaces])
-			for service_address in info.parsed_addresses():
-				logger.info("Service address: %s", service_address)
-				try:
-					service_address = ipaddress.ip_address(service_address)
-				except ValueError as err:
-					logger.warning("Failed to parse service address '%s': %s", service_address, err)
-				for iface in ifaces:
-					if service_address in iface.network:
-						logger.info("Service address '%s' in network '%s'", service_address, iface.network)
-						self.service_address = f"https://{service_address}:{info.port}"
-						if self.window:
-							self.window['service_address'].update(self.service_address)
-							self.window.refresh()
-						return
-					logger.debug("Service address '%s' not in network '%s'", service_address, iface.network)
+
+		if self.service_address:
+			return
+
+		service_addresses = set()
+		ifaces = list(self.get_ip_interfaces())
+		logger.info("Local ip interfaces: %s", [iface.compressed for iface in  ifaces])
+		for service_address in info.parsed_addresses():
+			logger.info("Service address: %s", service_address)
+			try:
+				service_address = ipaddress.ip_address(service_address)
+			except ValueError as err:
+				logger.warning("Failed to parse service address '%s': %s", service_address, err)
+			for iface in ifaces:
+				if service_address in iface.network:
+					logger.info("Service address '%s' in network '%s'", service_address, iface.network)
+					service_addresses.add(f"https://{service_address}:{info.port}")
+				logger.debug("Service address '%s' not in network '%s'", service_address, iface.network)
+
+		if not service_addresses:
+			return
+
+		self.zeroconf_idx += 1
+		if self.zeroconf_idx >= len(service_addresses):
+			self.zeroconf_idx = 0
+
+		self.service_address = service_addresses[self.zeroconf_idx]
+		if self.window:
+			self.window['service_address'].update(self.service_address)
+			self.window.refresh()
 
 	def copy_installation_files(self):
 		dst_dir = os.path.join(self.tmp_dir)

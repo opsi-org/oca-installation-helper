@@ -58,6 +58,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.service_address = None
 		self.service_username = None
 		self.service_password = None
+		self.reboot = False
 		self.base_dir = None
 		self.setup_script = None
 		self.full_path = sys.argv[0]
@@ -281,6 +282,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		if not os.path.exists(log_dir):
 			os.makedirs(log_dir)
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
+		reboot = "reboot" if self.reboot else "noreboot"
 		arg_list = [
 			"/batch", self.setup_script, log_file,
 			#"/opsiservice", self.service_address,
@@ -288,9 +290,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			#"/username", self.client_id,
 			#"/password", self.client_key
 			"/parameter", (
-				f"{self.service_address}||{self.client_id}||{self.client_key}"
+				f"{self.service_address}||{self.client_id}||{self.client_key}||{reboot}"
 			)
-		] #,"/PARAMETER INSTALL:CREATE_CLIENT:REBOOT"
+		]
 
 		arg_list = ",".join([f'"{arg}"' for arg in arg_list])
 		ps_script = f'Start-Process -Verb runas -FilePath "{opsi_script}" -ArgumentList {arg_list} -Wait'

@@ -248,7 +248,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		if self.zeroconf_idx >= len(service_addresses):
 			self.zeroconf_idx = 0
 
-		self.service_address = list(service_addresses)[self.zeroconf_idx]
+		self.service_address = sorted(list(service_addresses))[self.zeroconf_idx]
 		if self.window:
 			self.window['service_address'].update(self.service_address)
 			self.window.refresh()

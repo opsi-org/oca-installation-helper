@@ -238,9 +238,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			for iface in ifaces:
 				if service_address in iface.network:
 					logger.info("Service address '%s' in network '%s'", service_address, iface.network)
-					service_address = f"https://{service_address}:{info.port}"
-					if not service_address in self.zeroconf_addresses:
-						self.zeroconf_addresses.append(service_address)
+					service_url = f"https://{service_address}:{info.port}"
+					if not service_url in self.zeroconf_addresses:
+						self.zeroconf_addresses.append(service_url)
 				logger.debug("Service address '%s' not in network '%s'", service_address, iface.network)
 
 		self.zeroconf_idx += 1

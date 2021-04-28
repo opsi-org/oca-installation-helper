@@ -58,7 +58,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.service_address = None
 		self.service_username = None
 		self.service_password = None
-		self.reboot = False
+		self.finalize = "noreboot"	# or reboot or shutdown
 		self.base_dir = None
 		self.setup_script = None
 		self.full_path = sys.argv[0]
@@ -80,7 +80,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				os.environ.get("PROGRAMFILES(X86)") or os.environ.get("PROGRAMFILES"),
 				"opsi.org", "opsi-client-agent", "opsiclientd", "opsiclientd.conf"
 			)
-		if platform.system().lower() == 'linux':
+		if platform.system().lower() in ('linux', 'macos'):
 			return "/etc/opsi-client-agent/opsiclientd.conf"
 		return None
 
@@ -282,7 +282,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		if not os.path.exists(log_dir):
 			os.makedirs(log_dir)
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
-		reboot = "reboot" if self.reboot else "noreboot"
 		arg_list = [
 			"/batch", self.setup_script, log_file,
 			#"/opsiservice", self.service_address,
@@ -290,7 +289,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			#"/username", self.client_id,
 			#"/password", self.client_key
 			"/parameter", (
-				f"{self.service_address}||{self.client_id}||{self.client_key}||{reboot}"
+				f"{self.service_address}||{self.client_id}||{self.client_key}||{self.finalize}"
 			)
 		]
 
@@ -305,12 +304,40 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		logger.info("Executing: %s", command)
 		subprocess.call(command)
 
+	def run_setup_script_posix(self):
+		if platform.system().lower() == "linux":
+			opsi_script = os.path.join(self.base_dir, "files", "opsi-script", "opsi-script")
+		elif platform.system().lower() == "macos":
+			opsi_script = os.path.join(self.base_dir, "files", "opsi-script.app", "Contents", "MacOS", "opsi-script")
+		else:
+			raise ValueError("'run_setup_script_posix' can only be executed on linux or macos!")
+
+		log_dir = "/var/log"
+		if not os.path.exists(log_dir):
+			os.makedirs(log_dir)
+		log_file = os.path.join(log_dir, "opsi-client-agent.log")
+		arg_list = [
+			"-batch", self.setup_script, log_file,
+			#"-opsiservice", self.service_address,
+			#"-clientid", self.client_id,
+			#"-username", self.client_id,
+			#"-password", self.client_key
+			"-parameter", (
+				f"{self.service_address}||{self.client_id}||{self.client_key}||{self.finalize}"
+			)
+		]
+
+		arg_list = ",".join([f'"{arg}"' for arg in arg_list])
+		command = [opsi_script].extend(arg_list)
+		logger.info("Executing: %s", command)
+		subprocess.call(command)
+
 	def run_setup_script(self):
 		self.show_message("Running setup script")
 		if platform.system().lower() == 'windows':
 			return self.run_setup_script_windows()
-		#if platform.system().lower() == 'linux':
-		#	return self.run_setup_script_windows()
+		if platform.system().lower() in ('linux', 'macos'):
+			return self.run_setup_script_posix()
 		raise NotImplementedError(f"Not implemented for {platform.system()}")
 
 	def install(self):

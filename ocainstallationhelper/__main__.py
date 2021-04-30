@@ -114,7 +114,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				config = ConfigParser()
 				with codecs.open(config_file, "r", "utf-8") as file:
 					data = file.read().replace("\r\n", "\n")
-					if config_file == "install.conf" and not "[installation]" in data:
+					if os.path.basename(config_file) == "install.conf" and not "[installation]" in data:
 						data = "[installation]\n" + data
 					config.read_string(data)
 

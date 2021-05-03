@@ -434,6 +434,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			height = 310
 			icon = get_resource_path("opsi.ico")
 
+		logger.debug("rendering window with icon %s and layout %s", icon, layout)
 		self.window = sg.Window(
 			title="opsi client agent installation",
 			icon=icon,

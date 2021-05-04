@@ -27,8 +27,8 @@ import psutil
 from zeroconf import ServiceBrowser, Zeroconf
 import PySimpleGUI as sg
 
-from . import __version__, logger
-from .jsonrpc import JSONRPCClient, BackendAuthenticationError
+from ocainstallationhelper import __version__, logger
+from ocainstallationhelper.jsonrpc import JSONRPCClient, BackendAuthenticationError
 
 SG_THEME = "Default1" # "Reddit"
 
@@ -114,13 +114,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				config = ConfigParser()
 				with codecs.open(config_file, "r", "utf-8") as file:
 					data = file.read().replace("\r\n", "\n")
-					if os.path.basename(config_file) == "install.conf" and not "[installation]" in data:
-						data = "[installation]\n" + data
+					if os.path.basename(config_file) == "install.conf" and not "[install]" in data:
+						data = "[install]\n" + data
 					config.read_string(data)
 
 					if not self.client_id:
 						val = config.get(
-							"installation", "client_id", # install.conf, config.ini
+							"install", "client_id", # install.conf, config.ini
 							fallback=config.get("global", "host_id", # opsiclientd.conf
 								fallback=None
 							)
@@ -129,7 +129,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 							self.client_id = val
 					if not self.service_address:
 						val = config.get(
-							"installation", "service_address", # install.conf, config.ini
+							"install", "service_address", # install.conf, config.ini
 							fallback=config.get("config_service", "url", # opsiclientd.conf
 								fallback=None
 							)
@@ -138,8 +138,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 							self.service_address = val
 					if not self.service_username:
 						val = config.get(
-							"installation", "service_username", # install.conf
-							fallback=config.get("installation", "client_id", # config.ini
+							"install", "service_username", # install.conf
+							fallback=config.get("install", "client_id", # config.ini
 								fallback=config.get("global", "host_id", # opsiclientd.conf
 									fallback=None
 								)
@@ -149,8 +149,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 							self.service_username = val
 					if not self.service_password:
 						val = config.get(
-							"installation", "service_password", # install.conf
-							fallback=config.get("installation", "client_key", # config.ini
+							"install", "service_password", # install.conf
+							fallback=config.get("install", "client_key", # config.ini
 								fallback=config.get("global", "opsi_host_key", # opsiclientd.conf
 									fallback=None
 								)
@@ -158,7 +158,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 						)
 						if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
 							self.service_password = val
-					val = config.get("installation", "interactive", fallback=None) # install.conf
+					val = config.get("install", "interactive", fallback=None) # install.conf
 					if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
 						self.interactive = val.lower().strip() in ("yes", "true", "on", "1")
 					logger.debug(
@@ -323,7 +323,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			#"-username", self.client_id,
 			#"-password", self.client_key
 			"-parameter", (
-				f"{self.service_address}||{self.client_id}||{self.client_key}||{self.finalize}"
+				f"{self.service_address}\\|\\|{self.client_id}\\|\\|{self.client_key}\\|\\|{self.finalize}"
 			)
 		]
 

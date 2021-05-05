@@ -1,14 +1,10 @@
 pyinstaller-poetry:
-  one_file: yes
+  one_file: no
   scripts:
     - script: oca-installation-helper
       binaries:
         - oca-installation-helper
   dirname: ocainstallationhelper
-  extra_args:
-    darwin:
-      - --exclude-module
-      - tkinter
   data_files:
     - src: opsi.ico
       dst: .

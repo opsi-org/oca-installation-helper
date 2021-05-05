@@ -283,14 +283,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			os.makedirs(log_dir)
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
 		arg_list = [
-			self.setup_script, "-batch",
-			"-productid", "opsi-client-agent",
-			"-opsiservice", self.service_address,
-			"-clientid", self.client_id,
-			"-username", self.client_id,
-			"-password", self.client_key,
-			"-logfile", log_file,
-			"-parameter", self.finalize
+			self.setup_script, log_file, "/batch",
+			"/productid", "opsi-client-agent",
+			"/opsiservice", self.service_address,
+			"/clientid", self.client_id,
+			"/username", self.client_id,
+			"/password", self.client_key,
+			"/parameter", self.finalize
 		]
 
 		arg_list = ",".join([f'"{arg}"' for arg in arg_list])

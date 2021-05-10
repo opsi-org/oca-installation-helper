@@ -337,7 +337,12 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			"-parameter", self.finalize
 		]
 
-		command = ["sudo", opsi_script].extend(arg_list)
+		if os.environ.get("USER") != "root":
+			xhost_command = ["xhost", "+si:localuser:root"]
+			subprocess.call(xhost_command)
+
+		command = ["sudo", opsi_script]
+		command.extend(arg_list)
 		logger.info("Executing: %s", command)
 		subprocess.call(command)
 

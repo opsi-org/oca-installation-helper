@@ -26,9 +26,10 @@ import shutil
 import psutil
 from zeroconf import ServiceBrowser, Zeroconf
 import PySimpleGUI.PySimpleGUI
+from rich.prompt import Prompt
 
-from . import __version__, logger
-from .jsonrpc import JSONRPCClient, BackendAuthenticationError
+from ocainstallationhelper import __version__, logger
+from ocainstallationhelper.jsonrpc import JSONRPCClient, BackendAuthenticationError
 
 SG_THEME = "Default1" # "Reddit"
 
@@ -126,13 +127,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				config = ConfigParser()
 				with codecs.open(config_file, "r", "utf-8") as file:
 					data = file.read().replace("\r\n", "\n")
-					if os.path.basename(config_file) == "install.conf" and not "[installation]" in data:
-						data = "[installation]\n" + data
+					if os.path.basename(config_file) == "install.conf" and not "[install]" in data:
+						data = "[install]\n" + data
 					config.read_string(data)
 
 					if not self.client_id:
 						val = config.get(
-							"installation", "client_id", # install.conf, config.ini
+							"install", "client_id", # install.conf, config.ini
 							fallback=config.get("global", "host_id", # opsiclientd.conf
 								fallback=None
 							)
@@ -141,7 +142,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 							self.client_id = val
 					if not self.service_address:
 						val = config.get(
-							"installation", "service_address", # install.conf, config.ini
+							"install", "service_address", # install.conf, config.ini
 							fallback=config.get("config_service", "url", # opsiclientd.conf
 								fallback=None
 							)
@@ -150,8 +151,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 							self.service_address = val
 					if not self.service_username:
 						val = config.get(
-							"installation", "service_username", # install.conf
-							fallback=config.get("installation", "client_id", # config.ini
+							"install", "service_username", # install.conf
+							fallback=config.get("install", "client_id", # config.ini
 								fallback=config.get("global", "host_id", # opsiclientd.conf
 									fallback=None
 								)
@@ -161,8 +162,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 							self.service_username = val
 					if not self.service_password:
 						val = config.get(
-							"installation", "service_password", # install.conf
-							fallback=config.get("installation", "client_key", # config.ini
+							"install", "service_password", # install.conf
+							fallback=config.get("install", "client_key", # config.ini
 								fallback=config.get("global", "opsi_host_key", # opsiclientd.conf
 									fallback=None
 								)
@@ -170,7 +171,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 						)
 						if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
 							self.service_password = val
-					val = config.get("installation", "interactive", fallback=None) # install.conf
+					val = config.get("install", "interactive", fallback=None) # install.conf
 					if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
 						self.interactive = val.lower().strip() in ("yes", "true", "on", "1")
 					logger.debug(
@@ -329,17 +330,20 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
 		arg_list = [
 			"-batch", self.setup_script, log_file,
-			#"-opsiservice", self.service_address,
-			#"-clientid", self.client_id,
-			#"-username", self.client_id,
-			#"-password", self.client_key
-			"-parameter", (
-				f"{self.service_address}||{self.client_id}||{self.client_key}||{self.finalize}"
-			)
+			"-productid", "opsi-linux-client-agent",
+			"-opsiservice", self.service_address,
+			"-clientid", self.client_id,
+			"-username", self.client_id,
+			"-password", self.client_key,
+			"-parameter", self.finalize
 		]
 
-		arg_list = ",".join([f'"{arg}"' for arg in arg_list])
-		command = [opsi_script].extend(arg_list)
+		if os.environ.get("USER") != "root" and os.environ.get("DISPLAY"):
+			xhost_command = ["xhost", "+si:localuser:root"]
+			subprocess.call(xhost_command)
+
+		command = ["sudo", opsi_script]
+		command.extend(arg_list)
 		logger.info("Executing: %s", command)
 		subprocess.call(command)
 
@@ -445,6 +449,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			height = 310
 			icon = get_resource_path("opsi.ico")
 
+		logger.debug("rendering window with icon %s and layout %s", icon, layout)
 		self.window = sg.Window(
 			title="opsi client agent installation",
 			icon=icon,
@@ -484,21 +489,34 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				self.window['install'].update(disabled=False)
 				self.window.refresh()
 
+	def rich_input(self):
+		default = self.client_id or None
+		self.client_id = Prompt.ask("Please enter the ClientID [i](fqdn)[/i]", default=default)
+		default = self.service_address or None
+		self.service_address = Prompt.ask("Please enter the service address [i](https://<url>:<port>)[/i]", default=default)
+		default = self.service_username or self.client_id or None
+		self.service_username = Prompt.ask("Please enter the service username [i](e.g. the ClientID)[/i]", default=default)
+		default = self.service_password or None
+		self.service_password = Prompt.ask("Please enter the service password [i](e.g. Host-Key)[/i]", default=default, password=True)
+		#2d37472e8cb2ac2a3f11b9ea78181668
 	def run(self):
 		try:
 			try:
-				if self.interactive:
+				if self.interactive and os.environ.get("DISPLAY"):
 					self.show_dialog()
 
 				self.find_setup_script()
 				self.get_config()
+
+				if self.interactive and not os.environ.get("DISPLAY"):
+					self.rich_input()
 
 				if os.path.exists(self.tmp_dir):
 					shutil.rmtree(self.tmp_dir)
 				logger.debug("Create temp dir '%s'", self.tmp_dir)
 				os.makedirs(self.tmp_dir)
 
-				if self.interactive:
+				if self.interactive and os.environ.get("DISPLAY"):
 					self.dialog_event_loop()
 				else:
 					self.install()

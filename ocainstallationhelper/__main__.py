@@ -25,12 +25,24 @@ from argparse import ArgumentParser
 import shutil
 import psutil
 from zeroconf import ServiceBrowser, Zeroconf
-import PySimpleGUI as sg
+import PySimpleGUI.PySimpleGUI
 
 from ocainstallationhelper import __version__, logger
 from ocainstallationhelper.jsonrpc import JSONRPCClient, BackendAuthenticationError
 
 SG_THEME = "Default1" # "Reddit"
+
+
+def _refresh_debugger():
+	pass
+
+def _create_error_message():
+	pass
+
+PySimpleGUI.PySimpleGUI._refresh_debugger = _refresh_debugger  # pylint: disable=protected-access
+PySimpleGUI.PySimpleGUI._create_error_message = _create_error_message  # pylint: disable=protected-access
+
+sg = PySimpleGUI.PySimpleGUI
 
 def get_resource_path(relative_path):
 	""" Get absolute path to resource, works for dev and for PyInstaller """

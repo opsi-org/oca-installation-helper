@@ -317,17 +317,15 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
 		arg_list = [
 			"-batch", self.setup_script, log_file,
-			#"-opsiservice", self.service_address,
-			#"-clientid", self.client_id,
-			#"-username", self.client_id,
-			#"-password", self.client_key
-			"-parameter", (
-				f"{self.service_address}\\|\\|{self.client_id}\\|\\|{self.client_key}\\|\\|{self.finalize}"
-			)
+			"-productid", "opsi-linux-client-agent",
+			"-opsiservice", self.service_address,
+			"-clientid", self.client_id,
+			"-username", self.client_id,
+			"-password", self.client_key,
+			"-parameter", self.finalize
 		]
 
-		arg_list = ",".join([f'"{arg}"' for arg in arg_list])
-		command = [opsi_script].extend(arg_list)
+		command = ["sudo", opsi_script].extend(arg_list)
 		logger.info("Executing: %s", command)
 		subprocess.call(command)
 
@@ -478,6 +476,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			try:
 				if self.interactive:
 					self.show_dialog()
+				#TODO: else some magic with 'rich' forms
 
 				self.find_setup_script()
 				self.get_config()

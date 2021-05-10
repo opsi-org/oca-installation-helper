@@ -26,6 +26,7 @@ import shutil
 import psutil
 from zeroconf import ServiceBrowser, Zeroconf
 import PySimpleGUI.PySimpleGUI
+from rich.prompt import Prompt
 
 from ocainstallationhelper import __version__, logger
 from ocainstallationhelper.jsonrpc import JSONRPCClient, BackendAuthenticationError
@@ -337,7 +338,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			"-parameter", self.finalize
 		]
 
-		if os.environ.get("USER") != "root":
+		if os.environ.get("USER") != "root" and os.environ.get("DISPLAY"):
 			xhost_command = ["xhost", "+si:localuser:root"]
 			subprocess.call(xhost_command)
 
@@ -488,22 +489,34 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				self.window['install'].update(disabled=False)
 				self.window.refresh()
 
+	def rich_input(self):
+		default = self.client_id or None
+		self.client_id = Prompt.ask("Please enter the ClientID [i](fqdn)[/i]", default=default)
+		default = self.service_address or None
+		self.service_address = Prompt.ask("Please enter the service address [i](https://<url>:<port>)[/i]", default=default)
+		default = self.service_username or self.client_id or None
+		self.service_username = Prompt.ask("Please enter the service username [i](e.g. the ClientID)[/i]", default=default)
+		default = self.service_password or None
+		self.service_password = Prompt.ask("Please enter the service password [i](e.g. Host-Key)[/i]", default=default, password=True)
+		#2d37472e8cb2ac2a3f11b9ea78181668
 	def run(self):
 		try:
 			try:
-				if self.interactive:
+				if self.interactive and os.environ.get("DISPLAY"):
 					self.show_dialog()
-				#TODO: else some magic with 'rich' forms
 
 				self.find_setup_script()
 				self.get_config()
+
+				if self.interactive and not os.environ.get("DISPLAY"):
+					self.rich_input()
 
 				if os.path.exists(self.tmp_dir):
 					shutil.rmtree(self.tmp_dir)
 				logger.debug("Create temp dir '%s'", self.tmp_dir)
 				os.makedirs(self.tmp_dir)
 
-				if self.interactive:
+				if self.interactive and os.environ.get("DISPLAY"):
 					self.dialog_event_loop()
 				else:
 					self.install()

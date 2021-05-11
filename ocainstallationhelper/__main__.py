@@ -319,8 +319,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	def run_setup_script_posix(self):
 		if platform.system().lower() == "linux":
 			opsi_script = os.path.join(self.base_dir, "files", "opsi-script", "opsi-script")
+			productid = "opsi-linux-client-agent"
 		elif platform.system().lower() == "darwin":
 			opsi_script = os.path.join(self.base_dir, "files", "opsi-script.app", "Contents", "MacOS", "opsi-script")
+			productid = "opsi-mac-client-agent"
 		else:
 			raise ValueError("'run_setup_script_posix' can only be executed on linux or macos!")
 
@@ -330,7 +332,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
 		arg_list = [
 			"-batch", self.setup_script, log_file,
-			"-productid", "opsi-linux-client-agent",
+			"-productid", productid,
 			"-opsiservice", self.service_address,
 			"-clientid", self.client_id,
 			"-username", self.client_id,

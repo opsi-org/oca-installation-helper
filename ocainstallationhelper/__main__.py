@@ -93,7 +93,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				os.environ.get("PROGRAMFILES(X86)") or os.environ.get("PROGRAMFILES"),
 				"opsi.org", "opsi-client-agent", "opsiclientd", "opsiclientd.conf"
 			)
-		if platform.system().lower() in ('linux', 'macos'):
+		if platform.system().lower() in ('linux', 'darwin'):
 			return "/etc/opsi-client-agent/opsiclientd.conf"
 		return None
 
@@ -319,7 +319,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	def run_setup_script_posix(self):
 		if platform.system().lower() == "linux":
 			opsi_script = os.path.join(self.base_dir, "files", "opsi-script", "opsi-script")
-		elif platform.system().lower() == "macos":
+		elif platform.system().lower() == "darwin":
 			opsi_script = os.path.join(self.base_dir, "files", "opsi-script.app", "Contents", "MacOS", "opsi-script")
 		else:
 			raise ValueError("'run_setup_script_posix' can only be executed on linux or macos!")
@@ -351,7 +351,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.show_message("Running setup script")
 		if platform.system().lower() == 'windows':
 			return self.run_setup_script_windows()
-		if platform.system().lower() in ('linux', 'macos'):
+		if platform.system().lower() in ('linux', 'darwin'):
 			return self.run_setup_script_posix()
 		raise NotImplementedError(f"Not implemented for {platform.system()}")
 
@@ -498,17 +498,18 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.service_username = Prompt.ask("Please enter the service username [i](e.g. the ClientID)[/i]", default=default)
 		default = self.service_password or None
 		self.service_password = Prompt.ask("Please enter the service password [i](e.g. Host-Key)[/i]", default=default, password=True)
-		#2d37472e8cb2ac2a3f11b9ea78181668
+
 	def run(self):
 		try:
 			try:
-				if self.interactive and os.environ.get("DISPLAY"):
+				use_gui = os.environ.get("DISPLAY") or platform.system().lower() == "darwin"
+				if self.interactive and use_gui:
 					self.show_dialog()
 
 				self.find_setup_script()
 				self.get_config()
 
-				if self.interactive and not os.environ.get("DISPLAY"):
+				if self.interactive and not use_gui:
 					self.rich_input()
 
 				if os.path.exists(self.tmp_dir):
@@ -516,7 +517,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				logger.debug("Create temp dir '%s'", self.tmp_dir)
 				os.makedirs(self.tmp_dir)
 
-				if self.interactive and os.environ.get("DISPLAY"):
+				if self.interactive and use_gui:
 					self.dialog_event_loop()
 				else:
 					self.install()

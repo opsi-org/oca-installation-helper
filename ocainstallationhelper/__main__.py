@@ -417,7 +417,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 	def show_dialog(self):
 		sg.theme(SG_THEME)
-		sg.ChangeLookAndFeel('LightTeal')
 		sg.SetOptions(element_padding=((1,1),0))
 		layout = [
 			[sg.Text("Client-ID")],
@@ -503,7 +502,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	def run(self):
 		try:
 			try:
-				use_gui = os.environ.get("DISPLAY") or platform.system().lower() == "darwin"
+				# macos does not use DISPLAY. gui does not work properly on macos right now.
+				use_gui = os.environ.get("DISPLAY")# or platform.system().lower() == "darwin"
 				if self.interactive and use_gui:
 					self.show_dialog()
 

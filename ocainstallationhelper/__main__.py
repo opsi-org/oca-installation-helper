@@ -417,6 +417,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 	def show_dialog(self):
 		sg.theme(SG_THEME)
+		sg.ChangeLookAndFeel('LightTeal')
 		sg.SetOptions(element_padding=((1,1),0))
 		layout = [
 			[sg.Text("Client-ID")],

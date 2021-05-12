@@ -505,7 +505,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		try:
 			try:
 				# macos does not use DISPLAY. gui does not work properly on macos right now.
-				use_gui = os.environ.get("DISPLAY")# or platform.system().lower() == "darwin"
+				use_gui = platform.system().lower() == "windows" or os.environ.get("DISPLAY")
 				if self.interactive and use_gui:
 					self.show_dialog()
 

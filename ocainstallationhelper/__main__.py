@@ -114,11 +114,15 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		placeholder_regex = re.compile(r'#\@(\w+)\**#+')
 		placeholder_regex_new = re.compile(r'%([\w\-]+)%')
 
-		install_conf = os.path.join("custom", "install.conf")
+		install_conf = os.path.join(self.base_dir, "custom", "install.conf")
 		if not os.path.exists(install_conf):
-			install_conf = "install.conf"
-		for config_file in (install_conf, os.path.join("files", "opsi", "cfg", "config.ini")):
-			config_file = os.path.join(self.base_dir, config_file)
+			install_conf = os.path.join(self.base_dir, "install.conf")
+
+		for config_file in (
+			install_conf,
+			os.path.join(self.base_dir, "files", "opsi", "cfg", "config.ini"),
+			self.opsiclientd_conf
+		):
 			if not os.path.exists(config_file):
 				logger.info("Config file '%s' not found", config_file)
 				continue

@@ -12,6 +12,7 @@ import os
 import re
 import sys
 import time
+import threading
 import codecs
 import socket
 import signal
@@ -25,25 +26,12 @@ from argparse import ArgumentParser
 import shutil
 import psutil
 from zeroconf import ServiceBrowser, Zeroconf
-import PySimpleGUI.PySimpleGUI
-from rich.prompt import Prompt
 
 from ocainstallationhelper import __version__, logger
 from ocainstallationhelper.jsonrpc import JSONRPCClient, BackendAuthenticationError
+from ocainstallationhelper.console import ConsoleDialog
+from ocainstallationhelper.gui import GUIDialog
 
-SG_THEME = "Default1" # "Reddit"
-
-
-def _refresh_debugger():
-	pass
-
-def _create_error_message():
-	pass
-
-PySimpleGUI.PySimpleGUI._refresh_debugger = _refresh_debugger  # pylint: disable=protected-access
-PySimpleGUI.PySimpleGUI._create_error_message = _create_error_message  # pylint: disable=protected-access
-
-sg = PySimpleGUI.PySimpleGUI
 
 def get_resource_path(relative_path):
 	""" Get absolute path to resource, works for dev and for PyInstaller """
@@ -60,7 +48,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 	def __init__(self, cmdline_args):
 		self.cmdline_args = cmdline_args
-		self.window = None
+		# macos does not use DISPLAY. gui does not work properly on macos right now.
+		self.use_gui = platform.system().lower() == "windows" or os.environ.get("DISPLAY")
+		self.dialog = None
+		self.clear_message_timer = None
 		self.service = None
 		self.zeroconf = None
 		self.zeroconf_addresses = []
@@ -188,6 +179,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				logger.error(err, exc_info=True)
 
 	def get_cmdline_config(self):
+		if self.cmdline_args.no_gui:
+			self.use_gui = False
 		self.interactive = not self.cmdline_args.non_interactive
 		self.client_id = self.cmdline_args.client_id
 		self.service_address = self.cmdline_args.service_address
@@ -220,11 +213,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			self.service_username, "*" * len(self.service_password or "")
 		)
 
-		if self.window:
-			for attr in ("client_id", "service_address", "service_username", "service_password"):
-				self.window[attr].update(getattr(self, attr))
+		if self.dialog:
+			self.dialog.update()
 
 	def start_zeroconf(self):
+		self.show_message("Searching for opsi config services")
 		if self.zeroconf:
 			self.zeroconf.close()
 		self.zeroconf = Zeroconf()
@@ -266,9 +259,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			self.zeroconf_idx = 0
 
 		self.service_address = self.zeroconf_addresses[self.zeroconf_idx]
-		if self.window:
-			self.window['service_address'].update(self.service_address)
-			self.window.refresh()
+		if self.dialog:
+			self.dialog.update()
+
+		self.show_message(f"opsi config services found: {len(self.zeroconf_addresses)}", display_seconds=3)
+
 
 	def copy_installation_files(self):
 		dst_dir = os.path.join(self.tmp_dir)
@@ -344,11 +339,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			"-parameter", self.finalize
 		]
 
-		if os.environ.get("USER") != "root" and os.environ.get("DISPLAY"):
-			xhost_command = ["xhost", "+si:localuser:root"]
-			subprocess.call(xhost_command)
-
-		command = ["sudo", opsi_script]
+		command = [opsi_script]
 		command.extend(arg_list)
 		logger.info("Executing: %s", command)
 		subprocess.call(command)
@@ -372,9 +363,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			raise
 
 	def service_setup(self):
-		if self.window:
-			self.window['install'].update(disabled=True)
-			self.window.refresh()
+		if self.dialog:
+			self.dialog.set_button_enabled("install", False)
+
 		self.show_message("Connecting to service...")
 
 		if not self.service_address:
@@ -388,8 +379,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.show_message("Connected", "success")
 		if "." not in self.client_id:
 			self.client_id = f"{self.client_id}.{self.service.execute_rpc('getDomain')}"
-			if self.window:
-				self.window['client_id'].update(self.client_id)
+			if self.dialog:
+				self.dialog.update()
+
 		client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
 		if not client:
 			self.show_message("Create client...")
@@ -404,134 +396,81 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.client_key = client[0]["opsiHostKey"]
 		self.client_id = client[0]["id"]
 		self.show_message("Client exists", "success")
-		if self.window:
-			self.window["client_id"].update(self.client_id)
+		if self.dialog:
+			self.dialog.update()
 
-	def show_message(self, message, severity=None):
-		text_color = "black"
-		log = logger.notice
-		if severity == "success":
-			text_color = "green"
-		if severity == "error":
-			text_color = "red"
-			log = logger.error
+	def show_message(self, message, severity=None, display_seconds=0):
+		if self.clear_message_timer:
+				self.clear_message_timer.cancel()
 
-		log(message)
-		if self.window:
-			self.window['message'].update(message, text_color=text_color)
-			self.window.refresh()
+		if message:
+			log = logger.notice
+			if severity == "error":
+				log = logger.error
+			log(message)
 
-	def show_dialog(self):
-		sg.theme(SG_THEME)
-		sg.SetOptions(element_padding=((1,1),0))
-		layout = [
-			[sg.Text("Client-ID")],
-			[sg.Input(key='client_id', size=(70,1), default_text=self.client_id)],
-			[sg.Text("", font='Any 3')],
-			[sg.Text("Service")],
-			[
-				sg.Input(key='service_address', size=(55,1), default_text=self.service_address),
-				sg.Button('Zeroconf', key='zeroconf', size=(15,1))
-			],
-			[sg.Text("", font='Any 3')],
-			[sg.Text("Username")],
-			[sg.Input(key='service_username', size=(70,1), default_text=self.service_username)],
-			[sg.Text("", font='Any 3')],
-			[sg.Text("Password")],
-			[sg.Input(key='service_password', size=(70,1), default_text=self.service_password, password_char="*")],
-			[sg.Text("", font='Any 3')],
-			[sg.Text(size=(70,3), key='message')],
-			[sg.Text("", font='Any 3')],
-			[
-				sg.Text("", size=(35,1)),
-				sg.Button('Cancel', key='cancel', size=(10,1)),
-				sg.Button('Install', key="install", size=(10,1), bind_return_key=True)
-			]
-		]
+		if self.dialog:
+			self.dialog.show_message(message, severity)
+			if display_seconds > 0:
+				self.clear_message_timer = threading.Timer(display_seconds, self.show_message, args=[""])
+				self.clear_message_timer.start()
 
-		height = 350
-		icon = None
-		if platform.system().lower() == "windows":
-			height = 310
-			icon = get_resource_path("opsi.ico")
+	def on_cancel_button(self):
+		self.show_message("Canceled")
+		sys.exit(1)
 
-		logger.debug("rendering window with icon %s and layout %s", icon, layout)
-		self.window = sg.Window(
-			title="opsi client agent installation",
-			icon=icon,
-			size=(500, height),
-			layout=layout,
-			finalize=True
-		)
+	def on_install_button(self):
+		self.dialog.set_button_enabled("install", False)
+		try:
+			self.install()
+			self.show_message("Installation completed", "success")
+			for _num in range(5):
+				time.sleep(1)
+			return
+		except BackendAuthenticationError as err:
+			self.show_message("Authentication error, wrong username or password", "error")
+		except Exception as err:  # pylint: disable=broad-except
+			self.show_message(str(err), "error")
+		self.dialog.set_button_enabled("install", True)
 
-	def dialog_event_loop(self):
-		while True:
-			event, values = self.window.read(timeout=1000)
-			if event == "__TIMEOUT__":
-				continue
-
-			if values:
-				self.__dict__.update(values)
-
-			if event in (sg.WINDOW_CLOSED, 'cancel'):
-				sys.exit(1)
-			if event == "zeroconf":
-				self.service_address = None
-				self.window["service_address"].update("")
-				self.window.refresh()
-				self.start_zeroconf()
-			elif event == "install":
-				try:
-					self.install()
-					self.show_message("Installation completed", "success")
-					for _num in range(5):
-						time.sleep(1)
-					return
-				except BackendAuthenticationError as err:
-					self.show_message("Authentication error, wrong username or password", "error")
-				except Exception as err:  # pylint: disable=broad-except
-					self.show_message(str(err), "error")
-
-				self.window['install'].update(disabled=False)
-				self.window.refresh()
-
-	def rich_input(self):
-		default = self.client_id or None
-		self.client_id = Prompt.ask("Please enter the ClientID [i](fqdn)[/i]", default=default)
-		default = self.service_address or None
-		self.service_address = Prompt.ask("Please enter the service address [i](https://<url>:<port>)[/i]", default=default)
-		default = self.service_username or self.client_id or None
-		self.service_username = Prompt.ask("Please enter the service username [i](e.g. the ClientID)[/i]", default=default)
-		default = self.service_password or None
-		self.service_password = Prompt.ask("Please enter the service password [i](e.g. Host-Key)[/i]", default=default, password=True)
+	def on_zeroconf_button(self):
+		self.service_address = None
+		if self.dialog:
+			self.dialog.update()
+		self.start_zeroconf()
 
 	def run(self):
 		try:
 			try:
-				# macos does not use DISPLAY. gui does not work properly on macos right now.
-				use_gui = platform.system().lower() == "windows" or os.environ.get("DISPLAY")
-				if self.interactive and use_gui:
-					self.show_dialog()
+				if os.geteuid() != 0:
+					if self.use_gui:
+						subprocess.call(["xhost", "+si:localuser:root"])
+					print(f"{os.path.basename(sys.argv[0])} has to be run as root")
+					os.execvp("sudo", ["sudo"] + sys.argv)
+
+				if self.interactive:
+					if self.use_gui:
+						self.dialog = GUIDialog(self)
+					else:
+						self.dialog = ConsoleDialog(self)
+					self.dialog.show()
 
 				self.find_setup_script()
 				self.get_config()
-
-				if self.interactive and not use_gui:
-					self.rich_input()
 
 				if os.path.exists(self.tmp_dir):
 					shutil.rmtree(self.tmp_dir)
 				logger.debug("Create temp dir '%s'", self.tmp_dir)
 				os.makedirs(self.tmp_dir)
 
-				if self.interactive and use_gui:
-					self.dialog_event_loop()
+				if self.interactive and self.dialog:
+					self.dialog.wait()
 				else:
 					self.install()
 
 			except Exception as err:
 				self.show_message(str(err), "error")
-				if self.window:
+				if self.dialog:
 					for _num in range(3):
 						time.sleep(1)
 				raise
@@ -541,8 +480,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				shutil.rmtree(self.tmp_dir)
 
 def main():
-
-	#sg.theme_previewer()
 	parser = ArgumentParser()
 	parser.add_argument(
 		"--version",
@@ -584,6 +521,11 @@ def main():
 		"--non-interactive",
 		action="store_true",
 		help="Do not ask questions."
+	)
+	parser.add_argument(
+		"--no-gui",
+		action="store_true",
+		help="Do not use gui."
 	)
 
 	args = parser.parse_args()

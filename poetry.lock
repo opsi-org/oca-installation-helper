@@ -51,10 +51,10 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [package.extras]
+dev = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "zope.interface", "furo", "sphinx", "pre-commit"]
 docs = ["furo", "sphinx", "zope.interface"]
 tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "zope.interface"]
 tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six"]
-dev = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "zope.interface", "furo", "sphinx", "pre-commit"]
 
 [package.source]
 type = "legacy"
@@ -73,8 +73,8 @@ python-versions = "*"
 soupsieve = {version = ">1.2", markers = "python_version >= \"3.0\""}
 
 [package.extras]
-lxml = ["lxml"]
 html5lib = ["html5lib"]
+lxml = ["lxml"]
 
 [package.source]
 type = "legacy"
@@ -127,7 +127,7 @@ reference = "uib"
 name = "colorama"
 version = "0.4.4"
 description = "Cross-platform colored terminal text."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
@@ -146,22 +146,6 @@ python-versions = "*"
 
 [package.dependencies]
 colorama = {version = "*", markers = "sys_platform == \"win32\""}
-
-[package.source]
-type = "legacy"
-url = "http://pypi.uib.gmbh:8080/simple"
-reference = "uib"
-
-[[package]]
-name = "commonmark"
-version = "0.9.1"
-description = "Python parser for the CommonMark Markdown spec"
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.extras]
-test = ["flake8 (==3.7.8)", "hypothesis (==3.55.3)"]
 
 [package.source]
 type = "legacy"
@@ -254,8 +238,8 @@ python-versions = ">=3.6,<4.0"
 
 [package.extras]
 colors = ["colorama (>=0.4.3,<0.5.0)"]
-pipfile_deprecated_finder = ["pipreqs", "requirementslib"]
 requirements_deprecated_finder = ["pip-api", "pipreqs"]
+pipfile_deprecated_finder = ["pipreqs", "requirementslib"]
 
 [package.source]
 type = "legacy"
@@ -326,17 +310,17 @@ optional = false
 python-versions = ">=3.7,<4.0"
 
 [package.dependencies]
-pyyaml = ">=5.3.1,<6.0.0"
-colorlog = ">=4.1.0,<5.0.0"
-rarfile = ">=4.0,<5.0"
 bs4 = ">=0.0.1,<0.0.2"
+colorlog = ">=4.1.0,<5.0.0"
+configargparse = ">=1.2.3,<2.0.0"
+pefile = ">=2019.4.18,<2020.0.0"
+pypi-simple = ">=0.6.0,<0.7.0"
+python-gettext = ">=4.0,<5.0"
+pyyaml = ">=5.3.1,<6.0.0"
+rarfile = ">=4.0,<5.0"
+requests = ">=2.23.0,<3.0.0"
 toml = ">=0.10.0,<0.11.0"
 virustotal3 = ">=1.0.8,<2.0.0"
-requests = ">=2.23.0,<3.0.0"
-pypi-simple = ">=0.6.0,<0.7.0"
-pefile = ">=2019.4.18,<2020.0.0"
-python-gettext = ">=4.0,<5.0"
-configargparse = ">=1.2.3,<2.0.0"
 
 [package.source]
 type = "legacy"
@@ -369,6 +353,19 @@ python-versions = "*"
 
 [package.dependencies]
 future = "*"
+
+[package.source]
+type = "legacy"
+url = "http://pypi.uib.gmbh:8080/simple"
+reference = "uib"
+
+[[package]]
+name = "picotui"
+version = "1.2"
+description = "A simple text user interface (TUI) library."
+category = "main"
+optional = false
+python-versions = "*"
 
 [package.source]
 type = "legacy"
@@ -424,19 +421,6 @@ url = "http://pypi.uib.gmbh:8080/simple"
 reference = "uib"
 
 [[package]]
-name = "pygments"
-version = "2.9.0"
-description = "Pygments is a syntax highlighting package written in Python."
-category = "main"
-optional = false
-python-versions = ">=3.5"
-
-[package.source]
-type = "legacy"
-url = "http://pypi.uib.gmbh:8080/simple"
-reference = "uib"
-
-[[package]]
 name = "pyinstaller"
 version = "4.3"
 description = "PyInstaller bundles a Python application and all its dependencies into a single package."
@@ -445,16 +429,16 @@ optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
-pyinstaller-hooks-contrib = ">=2020.6"
-macholib = {version = ">=1.8", markers = "sys_platform == \"darwin\""}
 altgraph = "*"
 importlib-metadata = {version = "*", markers = "python_version < \"3.8\""}
-pywin32-ctypes = {version = ">=0.2.0", markers = "sys_platform == \"win32\""}
+macholib = {version = ">=1.8", markers = "sys_platform == \"darwin\""}
 pefile = {version = ">=2017.8.1", markers = "sys_platform == \"win32\""}
+pyinstaller-hooks-contrib = ">=2020.6"
+pywin32-ctypes = {version = ">=0.2.0", markers = "sys_platform == \"win32\""}
 
 [package.extras]
-hook_testing = ["pytest (>=2.7.3)", "execnet (>=1.5.0)", "psutil"]
 encryption = ["tinyaes (>=1.0.0)"]
+hook_testing = ["pytest (>=2.7.3)", "execnet (>=1.5.0)", "psutil"]
 
 [package.source]
 type = "legacy"
@@ -484,10 +468,10 @@ python-versions = "~=3.6"
 
 [package.dependencies]
 astroid = ">=2.5.2,<2.7"
-mccabe = ">=0.6,<0.7"
 colorama = {version = "*", markers = "sys_platform == \"win32\""}
-toml = ">=0.7.1"
 isort = ">=4.2.5,<6"
+mccabe = ">=0.6,<0.7"
+toml = ">=0.7.1"
 
 [package.extras]
 docs = ["sphinx (==3.5.1)", "python-docs-theme (==2020.12)"]
@@ -519,10 +503,10 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4"
 
 [package.dependencies]
-packaging = ">=16"
 beautifulsoup4 = ">=4.5,<5.0"
-six = ">=1.4,<2.0"
+packaging = ">=16"
 requests = ">=2.5,<3.0"
+six = ">=1.4,<2.0"
 
 [package.source]
 type = "legacy"
@@ -551,15 +535,15 @@ optional = false
 python-versions = ">=3.5"
 
 [package.dependencies]
+atomicwrites = {version = ">=1.0", markers = "sys_platform == \"win32\""}
+attrs = ">=17.4.0"
+colorama = {version = "*", markers = "sys_platform == \"win32\""}
+importlib-metadata = {version = ">=0.12", markers = "python_version < \"3.8\""}
 more-itertools = ">=4.0.0"
+packaging = "*"
+pluggy = ">=0.12,<1.0"
 py = ">=1.5.0"
 wcwidth = "*"
-packaging = "*"
-importlib-metadata = {version = ">=0.12", markers = "python_version < \"3.8\""}
-colorama = {version = "*", markers = "sys_platform == \"win32\""}
-attrs = ">=17.4.0"
-pluggy = ">=0.12,<1.0"
-atomicwrites = {version = ">=1.0", markers = "sys_platform == \"win32\""}
 
 [package.extras]
 checkqa-mypy = ["mypy (==v0.761)"]
@@ -631,36 +615,14 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [package.dependencies]
-idna = ">=2.5,<3"
 certifi = ">=2017.4.17"
 chardet = ">=3.0.2,<5"
+idna = ">=2.5,<3"
 urllib3 = ">=1.21.1,<1.27"
 
 [package.extras]
 security = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)"]
 socks = ["PySocks (>=1.5.6,!=1.5.7)", "win-inet-pton"]
-
-[package.source]
-type = "legacy"
-url = "http://pypi.uib.gmbh:8080/simple"
-reference = "uib"
-
-[[package]]
-name = "rich"
-version = "10.1.0"
-description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
-category = "main"
-optional = false
-python-versions = ">=3.6,<4.0"
-
-[package.dependencies]
-typing-extensions = ">=3.7.4,<4.0.0"
-pygments = ">=2.6.0,<3.0.0"
-colorama = ">=0.4.0,<0.5.0"
-commonmark = ">=0.9.0,<0.10.0"
-
-[package.extras]
-jupyter = ["ipywidgets (>=7.5.1,<8.0.0)"]
 
 [package.source]
 type = "legacy"
@@ -723,7 +685,7 @@ reference = "uib"
 name = "typing-extensions"
 version = "3.7.4.3"
 description = "Backported and Experimental Type Hints for Python 3.5+"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 
@@ -741,8 +703,8 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
 
 [package.extras]
-socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 secure = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "certifi", "ipaddress"]
+socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 brotli = ["brotlipy (>=0.6.0)"]
 
 [package.source]
@@ -828,7 +790,7 @@ reference = "uib"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "084c5c2e4411b5ac0958c50a6c5395a2dd844d3197f56f3a5e5b2660f5089fad"
+content-hash = "3c916eb4d4878e5070bc0c806c269c824252756794df21857f3315050204b177"
 
 [metadata.files]
 altgraph = [
@@ -870,10 +832,6 @@ colorama = [
 colorlog = [
     {file = "colorlog-4.8.0-py2.py3-none-any.whl", hash = "sha256:3dd15cb27e8119a24c1a7b5c93f9f3b455855e0f73993b1c25921b2f646f1dcd"},
     {file = "colorlog-4.8.0.tar.gz", hash = "sha256:59b53160c60902c405cdec28d38356e09d40686659048893e026ecbd589516b1"},
-]
-commonmark = [
-    {file = "commonmark-0.9.1-py2.py3-none-any.whl", hash = "sha256:da2f38c92590f83de410ba1a3cbceafbc74fee9def35f9251ba9a971d6d66fd9"},
-    {file = "commonmark-0.9.1.tar.gz", hash = "sha256:452f9dc859be7f06631ddcb328b6919c67984aca654e5fefb3914d54691aed60"},
 ]
 configargparse = [
     {file = "ConfigArgParse-1.4.tar.gz", hash = "sha256:abef9ff44fb0091f0e3bb2ee7e5b26a02b5b62d45408a5272a9bd461f5b59b4b"},
@@ -944,6 +902,9 @@ packaging = [
 pefile = [
     {file = "pefile-2019.4.18.tar.gz", hash = "sha256:a5d6e8305c6b210849b47a6174ddf9c452b2888340b8177874b862ba6c207645"},
 ]
+picotui = [
+    {file = "picotui-1.2.tar.gz", hash = "sha256:3b54993b50c2b140a3e80f3dbac3fda9321506376ff2a56ad58d2362200076d3"},
+]
 pluggy = [
     {file = "pluggy-0.13.1-py2.py3-none-any.whl", hash = "sha256:966c145cd83c96502c3c3868f50408687b38434af77734af1e9ca461a4081d2d"},
     {file = "pluggy-0.13.1.tar.gz", hash = "sha256:15b2acde666561e1298d71b523007ed7364de07029219b604cf808bfa1c765b0"},
@@ -981,10 +942,6 @@ psutil = [
 py = [
     {file = "py-1.10.0-py2.py3-none-any.whl", hash = "sha256:3b80836aa6d1feeaa108e046da6423ab8f6ceda6468545ae8d02d9d58d18818a"},
     {file = "py-1.10.0.tar.gz", hash = "sha256:21b81bda15b66ef5e1a777a21c4dcd9c20ad3efd0b3f817e7a809035269e1bd3"},
-]
-pygments = [
-    {file = "Pygments-2.9.0-py3-none-any.whl", hash = "sha256:d66e804411278594d764fc69ec36ec13d9ae9147193a1740cd34d272ca383b8e"},
-    {file = "Pygments-2.9.0.tar.gz", hash = "sha256:a18f47b506a429f6f4b9df81bb02beab9ca21d0a5fee38ed15aef65f0545519f"},
 ]
 pyinstaller = [
     {file = "pyinstaller-4.3.tar.gz", hash = "sha256:5ecf8bbc230d7298a796e52bb745b95eee12878d141f1645612c99246ecd23f2"},
@@ -1058,10 +1015,6 @@ rarfile = [
 requests = [
     {file = "requests-2.25.1-py2.py3-none-any.whl", hash = "sha256:c210084e36a42ae6b9219e00e48287def368a26d03a048ddad7bfee44f75871e"},
     {file = "requests-2.25.1.tar.gz", hash = "sha256:27973dd4a904a4f13b263a19c866c13b92a39ed1c964655f025f3f8d3d75b804"},
-]
-rich = [
-    {file = "rich-10.1.0-py3-none-any.whl", hash = "sha256:60cd6d6ea697a1704f2057e791e3062b506b5c74a6e2ad2ced71eccb37557259"},
-    {file = "rich-10.1.0.tar.gz", hash = "sha256:8f05431091601888c50341697cfc421dc398ce37b12bca0237388ef9c7e2c9e9"},
 ]
 six = [
     {file = "six-1.15.0-py2.py3-none-any.whl", hash = "sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced"},

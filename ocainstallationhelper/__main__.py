@@ -67,7 +67,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.setup_script = None
 		self.full_path = sys.argv[0]
 		self.should_stop = False
-		self.tmp_dir = os.path.join(tempfile.gettempdir(), "oca-installation-helper")
+		self.tmp_dir = os.path.join(tempfile.gettempdir(), "oca-installation-helper-tmp")
 		if not os.path.isabs(self.full_path):
 			self.full_path = os.path.abspath(os.path.join(os.path.curdir, self.full_path))
 		signal.signal(signal.SIGINT, self.signal_handler)
@@ -405,9 +405,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 		if message:
 			log = logger.notice
+			exc_info = False
 			if severity == "error":
 				log = logger.error
-			log(message)
+				exc_info = True
+			log(message, exc_info=exc_info)
 
 		if self.dialog:
 			self.dialog.show_message(message, severity)
@@ -440,6 +442,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.start_zeroconf()
 
 	def run(self):
+		error = None
 		try:
 			try:
 				if os.geteuid() != 0:
@@ -458,7 +461,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				self.find_setup_script()
 				self.get_config()
 
-				if os.path.exists(self.tmp_dir):
+				if os.path.isdir(self.tmp_dir):
 					shutil.rmtree(self.tmp_dir)
 				logger.debug("Create temp dir '%s'", self.tmp_dir)
 				os.makedirs(self.tmp_dir)
@@ -469,15 +472,20 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					self.install()
 
 			except Exception as err:
+				error = err
 				self.show_message(str(err), "error")
 				if self.dialog:
 					for _num in range(3):
 						time.sleep(1)
-				raise
 		finally:
-			if os.path.exists(self.tmp_dir):
+			if self.dialog:
+				self.dialog.close()
+			if os.path.isdir(self.tmp_dir):
 				logger.debug("Delete temp dir '%s'", self.tmp_dir)
 				shutil.rmtree(self.tmp_dir)
+		if error:
+			print(f"ERROR: {error}", file=sys.stderr)
+			sys.exit(1)
 
 def main():
 	parser = ArgumentParser()

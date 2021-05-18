@@ -50,6 +50,12 @@ class ConsoleDialog(threading.Thread):
 		self.start()
 		time.sleep(1)
 
+	def close(self):
+		Screen.goto(0, 50)
+		Screen.cursor(True)
+		Screen.deinit_tty()
+		print()
+
 	def wait(self):
 		self.join()
 

@@ -37,6 +37,9 @@ class GUIDialog(threading.Thread):
 		while not self.window:
 			time.sleep(1)
 
+	def close(self):
+		self.window.close()
+
 	def wait(self):
 		self.join()
 

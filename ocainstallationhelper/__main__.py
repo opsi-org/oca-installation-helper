@@ -438,8 +438,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		try:
 			try:
 				if platform.system().lower() != "windows" and os.geteuid() != 0:
-					if self.use_gui:
-						subprocess.call(["xhost", "+si:localuser:root"])
+					if self.use_gui and platform.system().lower() != "linux":
+						try:
+							subprocess.call(["xhost", "+si:localuser:root"])
+						except subprocess.SubprocessError as err:
+							logger.error(err)
 					print(f"{os.path.basename(sys.argv[0])} has to be run as root")
 					os.execvp("sudo", ["sudo"] + sys.argv)
 

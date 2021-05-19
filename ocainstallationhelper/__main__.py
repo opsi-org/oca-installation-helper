@@ -334,6 +334,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		command = [opsi_script]
 		command.extend(arg_list)
 		logger.info("Executing: %s", command)
+		print("\n")
 		subprocess.call(command)
 
 	def run_setup_script(self):

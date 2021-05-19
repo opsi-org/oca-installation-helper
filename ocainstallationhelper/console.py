@@ -22,7 +22,9 @@ class WDialogTextEntry(WTextEntry):
 		super().__init__(w, text)
 
 	def handle_edit_key(self, key):
-		res = super().handle_edit_key(key)
+		res = None
+		if key is not None:
+			res = super().handle_edit_key(key)
 		self.signal("changed")
 		return res
 

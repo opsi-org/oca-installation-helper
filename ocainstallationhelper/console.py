@@ -8,6 +8,7 @@
 import time
 import signal
 import threading
+import platform
 
 from picotui.widgets import *
 from picotui.menu import *
@@ -44,7 +45,8 @@ class ConsoleDialog(threading.Thread):
 		self.inst_helper = installation_helper
 		self.inputs = {}
 		self.handling_button_event = False
-		signal.signal(signal.SIGWINCH, self._sigwinch_handler)
+		if platform.system().lower() != "windows":
+			signal.signal(signal.SIGWINCH, self._sigwinch_handler)
 
 	def show(self):
 		self.start()

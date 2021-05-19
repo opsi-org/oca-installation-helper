@@ -10,7 +10,7 @@ import threading
 import platform
 import PySimpleGUI.PySimpleGUI
 
-from ocainstallationhelper import logger
+from ocainstallationhelper import logger, get_resource_path
 
 SG_THEME = "Default1" # "Reddit"
 
@@ -25,12 +25,31 @@ PySimpleGUI.PySimpleGUI._create_error_message = _create_error_message  # pylint:
 
 sg = PySimpleGUI.PySimpleGUI
 
+
+def get_icon():
+	if platform.system().lower() != "windows":
+		return None
+	return get_resource_path("opsi.ico")
+
+
+def show_message(message):
+	sg.theme(SG_THEME)
+	sg.popup_scrolled(
+		message,
+		title="opsi client agent installer",
+		icon=get_icon(),
+		auto_close=True,
+		auto_close_duration=20
+	)
+
+
 class GUIDialog(threading.Thread):
 	def __init__(self, installation_helper) -> None:
 		threading.Thread.__init__(self)
 		self.daemon = True
 		self.inst_helper = installation_helper
 		self.window = None
+		self._closed = False
 
 	def show(self):
 		self.start()
@@ -38,8 +57,8 @@ class GUIDialog(threading.Thread):
 			time.sleep(1)
 
 	def close(self):
-		self.window.close()
-
+		self._closed = True
+	
 	def wait(self):
 		self.join()
 
@@ -72,11 +91,9 @@ class GUIDialog(threading.Thread):
 		]
 
 		height = 350
-		icon = None
 		if platform.system().lower() == "windows":
 			height = 310
-			icon = self.inst_helper.get_resource_path("opsi.ico")
-
+		icon = get_icon()
 		logger.debug("rendering window with icon %s and layout %s", icon, layout)
 		self.window = sg.Window(
 			title="opsi client agent installation",
@@ -86,7 +103,7 @@ class GUIDialog(threading.Thread):
 			finalize=True
 		)
 
-		while True:
+		while not self._closed:
 			event, values = self.window.read(timeout=1000)
 			if event == "__TIMEOUT__":
 				continue
@@ -101,7 +118,6 @@ class GUIDialog(threading.Thread):
 				self.inst_helper.on_zeroconf_button()
 			elif event == "install":
 				self.inst_helper.on_install_button()
-
 
 	def update(self):
 		for attr in ("client_id", "service_address", "service_username", "service_password"):

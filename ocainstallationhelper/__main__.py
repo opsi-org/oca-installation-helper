@@ -22,7 +22,7 @@ import platform
 import subprocess
 import logging
 from configparser import ConfigParser
-from argparse import ArgumentParser
+import argparse
 import shutil
 import psutil
 from zeroconf import ServiceBrowser, Zeroconf
@@ -32,16 +32,6 @@ from ocainstallationhelper.jsonrpc import JSONRPCClient, BackendAuthenticationEr
 from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
 
-
-def get_resource_path(relative_path):
-	""" Get absolute path to resource, works for dev and for PyInstaller """
-	try:
-		# PyInstaller creates a temp folder and stores path in _MEIPASS
-		base_path = sys._MEIPASS  # pylint: disable=protected-access,no-member
-	except Exception:  # pylint: disable=broad-except
-		base_path = os.path.abspath(".")
-
-	return os.path.join(base_path, relative_path)
 
 class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	setup_script_name = "setup.opsiscript"
@@ -70,7 +60,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.tmp_dir = os.path.join(tempfile.gettempdir(), "oca-installation-helper-tmp")
 		if not os.path.isabs(self.full_path):
 			self.full_path = os.path.abspath(os.path.join(os.path.curdir, self.full_path))
-		signal.signal(signal.SIGINT, self.signal_handler)
+		#signal.signal(signal.SIGINT, self.signal_handler)
 		self.get_cmdline_config()
 
 	def signal_handler(self, sig, frame):  # pylint: disable=unused-argument,no-self-use
@@ -486,6 +476,16 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		if error:
 			print(f"ERROR: {error}", file=sys.stderr)
 			sys.exit(1)
+
+
+class ArgumentParser(argparse.ArgumentParser):
+	def _print_message(self, message, file=None):
+		if platform.system().lower() == "windows":
+			from .gui import show_message
+			show_message(message)
+		else:
+			sys.stderr.write(message)
+	
 
 def main():
 	parser = ArgumentParser()

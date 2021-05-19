@@ -420,7 +420,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			self.show_message("Installation completed", "success")
 			for _num in range(5):
 				time.sleep(1)
-			return
+			if self.dialog:
+				self.dialog.close()
 		except BackendAuthenticationError as err:
 			self.show_message("Authentication error, wrong username or password", "error")
 		except Exception as err:  # pylint: disable=broad-except

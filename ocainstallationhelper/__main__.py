@@ -169,6 +169,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				logger.error(err, exc_info=True)
 
 	def get_cmdline_config(self):
+		if self.cmdline_args.gui:
+			self.use_gui = True
 		if self.cmdline_args.no_gui:
 			self.use_gui = False
 		self.interactive = not self.cmdline_args.non_interactive
@@ -534,6 +536,11 @@ def main():
 		"--no-gui",
 		action="store_true",
 		help="Do not use gui."
+	)
+	parser.add_argument(
+		"--gui",
+		action="store_true",
+		help="Use gui."
 	)
 
 	args = parser.parse_args()

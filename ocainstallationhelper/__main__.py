@@ -207,7 +207,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			self.dialog.update()
 
 	def start_zeroconf(self):
-		self.show_message("Searching for opsi config services")
+		self.show_message("Searching for opsi config services", display_seconds=5)
 		if self.zeroconf:
 			self.zeroconf.close()
 		self.zeroconf = Zeroconf()
@@ -394,7 +394,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				self.clear_message_timer.cancel()
 
 		if message:
-			log = logger.notice
+			log = logger.info
 			exc_info = False
 			if severity == "error":
 				log = logger.error
@@ -485,7 +485,7 @@ class ArgumentParser(argparse.ArgumentParser):
 			show_message(message)
 		else:
 			sys.stderr.write(message)
-	
+
 
 def main():
 	parser = ArgumentParser()

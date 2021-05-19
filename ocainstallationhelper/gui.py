@@ -58,7 +58,7 @@ class GUIDialog(threading.Thread):
 
 	def close(self):
 		self._closed = True
-	
+
 	def wait(self):
 		self.join()
 
@@ -86,7 +86,7 @@ class GUIDialog(threading.Thread):
 			[
 				sg.Text("", size=(35,1)),
 				sg.Button('Cancel', key='cancel', size=(10,1)),
-				sg.Button('Install', key="install", size=(10,1), bind_return_key=True)
+				sg.Button('Install', key='install', size=(10,1), bind_return_key=True)
 			]
 		]
 

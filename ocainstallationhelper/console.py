@@ -27,7 +27,8 @@ class WDialogTextEntry(WTextEntry):
 		return res
 
 	def show_line(self, l, i):
-		#self.attr_color(C_WHITE, C_GRAY)
+		if l is None:
+			l = ""
 		self.attr_color(C_BLACK, C_WHITE)
 		l = l[self.margin:]
 		l = l[:self.width]
@@ -44,7 +45,7 @@ class ConsoleDialog(threading.Thread):
 		self.daemon = True
 		self.inst_helper = installation_helper
 		self.inputs = {}
-		self.handling_button_event = False
+		self.buttons = {}
 		if platform.system().lower() != "windows":
 			signal.signal(signal.SIGWINCH, self._sigwinch_handler)
 
@@ -61,14 +62,13 @@ class ConsoleDialog(threading.Thread):
 	def wait(self):
 		self.join()
 
-	def update(self, is_button_event=False):
+	def update(self):
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
 			self.inputs[attr].set(getattr(self.inst_helper, attr))
-		if not is_button_event:
-			self._redraw()
+		self._redraw()
 
 	def set_button_enabled(self, button_id, enabled):
-		pass
+		self.buttons[button_id].disabled = not enabled
 
 	def show_message(self, message, severity=None):
 		self.message.t = message
@@ -78,8 +78,10 @@ class ConsoleDialog(threading.Thread):
 		self._redraw()
 
 	def _redraw(self):
-		if not self.handling_button_event:
+		try:
 			self._screen_redraw(Screen)
+		except Exception:  # pylint: disable=broad-except
+			pass
 
 	def _screen_redraw(self, screen, allow_cursor=False):
 		#screen.attr_color(C_WHITE, C_BLUE)
@@ -92,25 +94,13 @@ class ConsoleDialog(threading.Thread):
 			setattr(self.inst_helper, attr, self.inputs[attr].get())
 
 	def _on_cancel(self, _widget):
-		self.handling_button_event = True
-		try:
-			self.inst_helper.on_cancel_button()
-		finally:
-			self.handling_button_event = False
+		self.inst_helper.on_cancel_button()
 
 	def _on_install(self, _widget):
-		self.handling_button_event = True
-		try:
-			self.inst_helper.on_install_button()
-		finally:
-			self.handling_button_event = False
+		self.inst_helper.on_install_button()
 
 	def _on_zeroconf(self, _widget):
-		self.handling_button_event = True
-		try:
-			self.inst_helper.on_zeroconf_button()
-		finally:
-			self.handling_button_event = False
+		self.inst_helper.on_zeroconf_button()
 
 	def run(self):
 		with Context():
@@ -145,17 +135,17 @@ class ConsoleDialog(threading.Thread):
 			self.message = WLabel(w=width-padding*2, text="")
 			self.dialog.add(x=padding, y=8, widget=self.message)
 
-			zeroconf_button = WButton(w=button_w, text="Zeroconf")
-			self.dialog.add(x=padding, y=button_y, widget=zeroconf_button)
-			zeroconf_button.on("click", self._on_zeroconf)
+			self.buttons["zeroconf"] = WButton(w=button_w, text="Zeroconf")
+			self.dialog.add(x=padding, y=button_y, widget=self.buttons["zeroconf"])
+			self.buttons["zeroconf"].on("click", self._on_zeroconf)
 
-			cancel_button = WButton(w=button_w, text="Cancel")
-			self.dialog.add(x=width-padding-button_w*2-1, y=button_y, widget=cancel_button)
-			cancel_button.on("click", self._on_cancel)
+			self.buttons["cancel"] = WButton(w=button_w, text="Cancel")
+			self.dialog.add(x=width-padding-button_w*2-1, y=button_y, widget=self.buttons["cancel"])
+			self.buttons["cancel"].on("click", self._on_cancel)
 
-			install_button = WButton(w=button_w, text="Install")
-			self.dialog.add(x=width-padding-button_w, y=button_y, widget=install_button)
-			install_button.on("click", self._on_install)
+			self.buttons["install"] = WButton(w=button_w, text="Install")
+			self.dialog.add(x=width-padding-button_w, y=button_y, widget=self.buttons["install"])
+			self.buttons["install"].on("click", self._on_install)
 
 			self._redraw()
 			Screen.set_screen_redraw(self._screen_redraw)

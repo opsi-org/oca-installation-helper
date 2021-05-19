@@ -438,7 +438,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		try:
 			try:
 				if platform.system().lower() != "windows" and os.geteuid() != 0:
-					if self.use_gui and platform.system().lower() != "linux":
+					if self.use_gui and platform.system().lower() == "linux":
 						try:
 							subprocess.call(["xhost", "+si:localuser:root"])
 						except subprocess.SubprocessError as err:

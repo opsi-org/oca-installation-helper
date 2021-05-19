@@ -68,11 +68,12 @@ class ConsoleDialog(threading.Thread):
 
 	def update(self):
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
-			self.inputs[attr].set(getattr(self.inst_helper, attr))
+			self.inputs[attr].set(getattr(self.inst_helper, attr) or "")
 		self._redraw()
 
 	def set_button_enabled(self, button_id, enabled):
 		self.buttons[button_id].disabled = not enabled
+		self._redraw()
 
 	def show_message(self, message, severity=None):
 		self.message.t = message

@@ -48,6 +48,7 @@ class ConsoleDialog(threading.Thread):
 		self.inst_helper = installation_helper
 		self.inputs = {}
 		self.buttons = {}
+		self._closed = False
 		if platform.system().lower() != "windows":
 			signal.signal(signal.SIGWINCH, self._sigwinch_handler)
 
@@ -56,6 +57,7 @@ class ConsoleDialog(threading.Thread):
 		time.sleep(1)
 
 	def close(self):
+		self._closed = True
 		Screen.goto(0, 50)
 		Screen.cursor(True)
 		Screen.deinit_tty()
@@ -152,4 +154,8 @@ class ConsoleDialog(threading.Thread):
 			self._redraw()
 			Screen.set_screen_redraw(self._screen_redraw)
 
-			self.dialog.loop()
+			while not self._closed:
+				try:
+					self.dialog.loop()
+				except Exception as err:  # pylint: disable=broad-except
+					logger.error(err, exc_info=True)

@@ -155,8 +155,7 @@ class ConsoleDialog(threading.Thread):
 			self._redraw()
 			Screen.set_screen_redraw(self._screen_redraw)
 
-			while not self._closed:
-				try:
-					self.dialog.loop()
-				except Exception as err:  # pylint: disable=broad-except
-					logger.error(err, exc_info=True)
+			try:
+				self.dialog.loop()
+			except Exception as err:  # pylint: disable=broad-except
+				logger.error(err, exc_info=True)

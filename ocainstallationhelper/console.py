@@ -107,6 +107,13 @@ class ConsoleDialog(threading.Thread):
 	def _on_zeroconf(self, _widget):
 		self.inst_helper.on_zeroconf_button()
 
+	def custom_loop(self):
+		while not self._closed:		#True
+			key = self.dialog.get_input()
+			res = self.dialog.handle_input(key)
+			if res is not None and res is not True:
+				return res
+
 	def run(self):
 		with Context():
 			width = 80
@@ -156,6 +163,8 @@ class ConsoleDialog(threading.Thread):
 			Screen.set_screen_redraw(self._screen_redraw)
 
 			try:
-				self.dialog.loop()
+				#cannot use Dialog.loop, as it waits for a control key from Dialog.get_input()
+				#self.dialog.loop()
+				self.custom_loop()
 			except Exception as err:  # pylint: disable=broad-except
 				logger.error(err, exc_info=True)

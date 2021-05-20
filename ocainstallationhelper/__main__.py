@@ -315,7 +315,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			opsi_script = os.path.join(self.base_dir, "files", "opsi-script.app", "Contents", "MacOS", "opsi-script")
 			productid = "opsi-mac-client-agent"
 		else:
-			raise ValueError("'run_setup_script_posix' can only be executed on linux or macos!")
+			raise RuntimeError("'run_setup_script_posix' can only be executed on linux or macos!")
 
 		log_dir = "/var/log"
 		if not os.path.exists(log_dir):

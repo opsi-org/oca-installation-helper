@@ -345,8 +345,20 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			return self.run_setup_script_posix()
 		raise NotImplementedError(f"Not implemented for {platform.system()}")
 
+	def check_values(self):
+		if not self.service_address:
+			raise ValueError("Service address undefined")
+
+		if not self.client_id:
+			raise ValueError("Client id undefined")
+
+		for part in self.client_id.split("."):
+			if len(part) < 1 or len(part) > 63:
+				raise ValueError("Invalid client id")
+
 	def install(self):
 		try:
+			self.check_values()
 			self.service_setup()
 			if self.full_path.startswith("\\\\"):
 				self.copy_installation_files()
@@ -360,9 +372,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			self.dialog.set_button_enabled("install", False)
 
 		self.show_message("Connecting to service...")
-
-		if not self.service_address:
-			raise ValueError("Invalid service address")
 
 		self.service = JSONRPCClient(
 			address=self.service_address,

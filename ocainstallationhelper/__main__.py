@@ -356,6 +356,20 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			if len(part) < 1 or len(part) > 63:
 				raise ValueError("Invalid client id")
 
+	def evaluate_success(self):
+		self.show_message("Evaluating script result")
+		if platform.system().lower() == 'windows':
+			product_id = "opsi-client-agent"
+		elif platform.system().lower() == 'linux':
+			product_id = "opsi-linux-client-agent"
+		elif platform.system().lower() == 'darwin':
+			product_id = "opsi-mac-client-agent"
+		product_on_client = self.service.execute_rpc("productOnClient_getObjects", [[], {"productId": product_id, "clientId": self.client_id}])
+		if not product_on_client or not product_on_client[0]:
+			raise ValueError(f"product {product_id} not found on client {self.client_id}")
+		if not product_on_client[0].get("installationStatus") == "installed":
+			raise ValueError(f"Installation of {product_id} on client {self.client_id} unsuccessfull")
+
 	def install(self):
 		try:
 			self.check_values()
@@ -363,6 +377,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			if self.full_path.startswith("\\\\"):
 				self.copy_installation_files()
 			self.run_setup_script()
+			self.evaluate_success()
 		except Exception as err:
 			logger.error(err, exc_info=True)
 			raise

@@ -368,7 +368,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		if not product_on_client or not product_on_client[0]:
 			raise ValueError(f"product {product_id} not found on client {self.client_id}")
 		if not product_on_client[0].get("installationStatus") == "installed":
-			raise ValueError(f"Installation of {product_id} on client {self.client_id} unsuccessfull")
+			raise ValueError(f"Installation of {product_id} on client {self.client_id} unsuccessful")
 
 	def install(self):
 		try:

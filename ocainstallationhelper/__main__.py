@@ -364,9 +364,12 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			product_id = "opsi-linux-client-agent"
 		elif platform.system().lower() == 'darwin':
 			product_id = "opsi-mac-client-agent"
+		else:
+			raise ValueError(f"Platform {platform.system().lower()} unknown. Aborting.")
+
 		product_on_client = self.service.execute_rpc("productOnClient_getObjects", [[], {"productId": product_id, "clientId": self.client_id}])
 		if not product_on_client or not product_on_client[0]:
-			raise ValueError(f"product {product_id} not found on client {self.client_id}")
+			raise ValueError(f"Product {product_id} not found on client {self.client_id}")
 		if not product_on_client[0].get("installationStatus") == "installed":
 			raise ValueError(f"Installation of {product_id} on client {self.client_id} unsuccessful")
 

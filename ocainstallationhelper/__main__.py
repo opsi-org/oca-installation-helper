@@ -340,10 +340,29 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	def run_setup_script(self):
 		self.show_message("Running setup script")
 		if platform.system().lower() == 'windows':
+			self.set_poc_to_installing("opsi-client-agent")
 			return self.run_setup_script_windows()
-		if platform.system().lower() in ('linux', 'darwin'):
+		if platform.system().lower() == 'linux':
+			self.set_poc_to_installing("opsi-linux-client-agent")
 			return self.run_setup_script_posix()
+		if platform.system().lower() == 'darwin':
+			self.set_poc_to_installing("opsi-mac-client-agent")
+			return self.run_setup_script_posix()
+
 		raise NotImplementedError(f"Not implemented for {platform.system()}")
+
+	def set_poc_to_installing(self, product_id):
+		self.service.execute_rpc("productOnClient_createObjects", [
+			[{
+				"type": "ProductOnClient",
+				"productType": "LocalbootProduct",
+				"clientId": self.client_id,
+				"productId": product_id,
+				"installationStatus": "unknown",
+				"actionRequest": "none",
+				"actionProgress": "installing",
+			}]
+		])
 
 	def check_values(self):
 		if not self.service_address:

@@ -212,12 +212,15 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.show_message("Searching for opsi config services", display_seconds=5)
 		if self.zeroconf:
 			self.zeroconf.close()
-		self.zeroconf = Zeroconf()
-		ServiceBrowser(
-			zc=self.zeroconf,
-			type_="_opsics._tcp.local.",
-			handlers=[self.zeroconf_handler]
-		)
+		try:
+			self.zeroconf = Zeroconf()
+			ServiceBrowser(
+				zc=self.zeroconf,
+				type_="_opsics._tcp.local.",
+				handlers=[self.zeroconf_handler]
+			)
+		except Exception as err:  # pylint: disable=broad-except
+			logger.error("Failed to start zeroconf: %s", err, exc_info=True)
 
 	def zeroconf_handler(self, zeroconf, service_type, name, state_change):  # pylint: disable=unused-argument
 		info = zeroconf.get_service_info(service_type, name)

@@ -287,7 +287,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		opsi_script = os.path.join(self.base_dir, "files", "opsi-script", "opsi-script.exe")
 		log_dir = r"c:\opsi.org\log"
 		if not os.path.exists(log_dir):
-			os.makedirs(log_dir)
+			try:
+				os.makedirs(log_dir)
+			except Exception as exc:
+				logger.error("Could not create log directory %s due to %s\n still trying to continue", exc, log_dir, exc_info=True)
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
 		arg_list = [
 			self.setup_script, log_file, "/servicebatch",

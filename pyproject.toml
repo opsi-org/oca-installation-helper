@@ -17,6 +17,7 @@ zeroconf = "^0.29.0"
 pysimplegui = "^4.39.1"
 psutil = "^5.8.0"
 picotui = "^1.2"
+netifaces = "^0.11.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

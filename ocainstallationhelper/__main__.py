@@ -26,6 +26,7 @@ import argparse
 import shutil
 import psutil
 from zeroconf import ServiceBrowser, Zeroconf
+import netifaces
 
 from ocainstallationhelper import __version__, logger
 from ocainstallationhelper.jsonrpc import JSONRPCClient, BackendAuthenticationError
@@ -50,6 +51,18 @@ def decode_password(cipher):
 		key_c = KEY[num % len(KEY)]
 		cleartext += chr((ord(char) - ord(key_c) + 256) % 256)
 	return cleartext
+
+def get_mac_address():
+	gateways = netifaces.gateways()
+	logger.debug("Gateways: %s", gateways)
+	if not "default" in gateways:
+		return None
+	default_if = list(gateways["default"].values())[0][1]
+	logger.info("Default interface: %s", default_if)
+	addrs = netifaces.ifaddresses(default_if)
+	mac = addrs[netifaces.AF_LINK][0]["addr"]
+	logger.info("Default mac address: %s", mac)
+	return mac
 
 class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-many-public-methods
 	setup_script_name = "setup.opsiscript"
@@ -451,7 +464,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			self.show_message("Create client...")
 			# id, opsiHostKey, description, notes, hardwareAddress, ipAddress,
 			# inventoryNumber, oneTimePassword, created, lastSeen
-			client = [self.client_id]
+			client = [self.client_id, None, None, None, get_mac_address()]
 			logger.info("Creating client: %s", client)
 			self.service.execute_rpc("host_createOpsiClient", client)
 			self.show_message("Client created", "success")

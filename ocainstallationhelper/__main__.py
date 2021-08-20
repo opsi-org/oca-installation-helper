@@ -15,7 +15,7 @@ import time
 import threading
 import codecs
 import socket
-import signal
+import base64
 import ipaddress
 import tempfile
 import platform
@@ -33,7 +33,25 @@ from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
 
 
-class InstallationHelper:  # pylint: disable=too-many-instance-attributes
+KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
+
+def encode_password(cleartext):
+	cipher = ""
+	for num, char in enumerate(cleartext):
+		key_c = KEY[num % len(KEY)]
+		cipher += chr((ord(char) + ord(key_c)) % 256)
+	return base64.urlsafe_b64encode(cipher.encode("utf-8")).decode("ascii")
+
+def decode_password(cipher):
+	cipher = cipher.replace("{crypt}", "")
+	cleartext = ""
+	cipher = base64.urlsafe_b64decode(cipher).decode("utf-8")
+	for num, char in enumerate(cipher):
+		key_c = KEY[num % len(KEY)]
+		cleartext += chr((ord(char) - ord(key_c) + 256) % 256)
+	return cleartext
+
+class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-many-public-methods
 	setup_script_name = "setup.opsiscript"
 
 	def __init__(self, cmdline_args):
@@ -413,10 +431,14 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 		self.show_message("Connecting to service...")
 
+		password = self.service_password
+		if password.startswith("{cipher}"):
+			password = decode_password(password)
+
 		self.service = JSONRPCClient(
 			address=self.service_address,
 			username=self.service_username,
-			password=self.service_password
+			password=password
 		)
 		self.show_message("Connected", "success")
 		if "." not in self.client_id:
@@ -596,8 +618,17 @@ def main():
 		action="store_true",
 		help="Use gui."
 	)
+	parser.add_argument(
+		"--encode-password",
+		action="store",
+		metavar="PASSWORD",
+		help="Encode PASSWORD."
+	)
 
 	args = parser.parse_args()
+	if args.encode_password:
+		print("{crypt}" + encode_password(args.encode_password))
+		return
 
 	log_level = args.log_level.upper()
 	if log_level == "TRACE":

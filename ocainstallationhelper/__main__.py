@@ -189,7 +189,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.read_config_files()
 
 		if not self.client_id:
-			self.client_id = socket.getfqdn()
+			self.client_id = socket.getfqdn().rstrip(".")
 
 		if not self.service_address:
 			self.start_zeroconf()

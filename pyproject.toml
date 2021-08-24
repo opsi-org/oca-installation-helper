@@ -6,6 +6,9 @@ homepage = "https://www.opsi.org"
 license = "AGPL-3.0"
 authors = ["uib GmbH <info@uib.de>"]
 maintainers = ["uib GmbH <info@uib.de>"]
+packages = [
+    { include = "ocainstallationhelper" }
+]
 
 [[tool.poetry.source]]
 name = "uib"

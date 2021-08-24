@@ -445,7 +445,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.show_message("Connecting to service...")
 
 		password = self.service_password
-		if password.startswith("{cipher}"):
+		if password.startswith("{crypt}"):
 			password = decode_password(password)
 
 		self.service = JSONRPCClient(

@@ -53,14 +53,14 @@ def decode_password(cipher):
 	return cleartext
 
 def get_mac_address():
-	gateways = netifaces.gateways()
+	gateways = netifaces.gateways()  # pylint: disable=c-extension-no-member
 	logger.debug("Gateways: %s", gateways)
 	if not "default" in gateways:
 		return None
 	default_if = list(gateways["default"].values())[0][1]
 	logger.info("Default interface: %s", default_if)
-	addrs = netifaces.ifaddresses(default_if)
-	mac = addrs[netifaces.AF_LINK][0]["addr"]
+	addrs = netifaces.ifaddresses(default_if)  # pylint: disable=c-extension-no-member
+	mac = addrs[netifaces.AF_LINK][0]["addr"]  # pylint: disable=c-extension-no-member
 	logger.info("Default mac address: %s", mac)
 	return mac
 
@@ -478,7 +478,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 
 	def show_message(self, message, severity=None, display_seconds=0):
 		if self.clear_message_timer:
-				self.clear_message_timer.cancel()
+			self.clear_message_timer.cancel()
 
 		if message:
 			log = logger.info
@@ -519,7 +519,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			self.dialog.update()
 		self.start_zeroconf()
 
-	def run(self):
+	def run(self):  # pylint: disable=too-many-branches
 		error = None
 		try:
 			try:
@@ -552,7 +552,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				else:
 					self.install()
 
-			except Exception as err:
+			except Exception as err:  # pylint: disable=broad-except
 				error = err
 				self.show_message(str(err), "error")
 				if self.dialog:
@@ -569,13 +569,16 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			sys.exit(1)
 
 
+def show_message(message):
+	if platform.system().lower() == "windows":
+		from .gui import show_message as _show_message  # pylint: disable=import-outside-toplevel
+		_show_message(message)
+	else:
+		sys.stdout.write(message)
+
 class ArgumentParser(argparse.ArgumentParser):
 	def _print_message(self, message, file=None):
-		if platform.system().lower() == "windows":
-			from .gui import show_message
-			show_message(message)
-		else:
-			sys.stderr.write(message)
+		show_message(message)
 
 
 def main():
@@ -640,7 +643,7 @@ def main():
 
 	args = parser.parse_args()
 	if args.encode_password:
-		print("{crypt}" + encode_password(args.encode_password))
+		show_message("{crypt}" + encode_password(args.encode_password))
 		return
 
 	log_level = args.log_level.upper()

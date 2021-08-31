@@ -453,6 +453,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			username=self.service_username,
 			password=password
 		)
+		self.service_address = self.service.base_url
+
 		self.show_message("Connected", "success")
 		if "." not in self.client_id:
 			self.client_id = f"{self.client_id}.{self.service.execute_rpc('getDomain')}"

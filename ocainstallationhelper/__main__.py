@@ -318,7 +318,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		opsi_script = os.path.join(self.base_dir, "files", "opsi-script", "opsi-script.exe")
 		log_dir = r"c:\opsi.org\log"
 		if not os.path.exists(log_dir):
-			os.makedirs(log_dir)
+			try:
+				os.makedirs(log_dir)
+			except Exception as exc:
+				logger.error("Could not create log directory %s due to %s\n still trying to continue", exc, log_dir, exc_info=True)
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
 		arg_list = [
 			self.setup_script, log_file, "/servicebatch",
@@ -430,7 +433,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		try:
 			self.check_values()
 			self.service_setup()
-			if self.full_path.startswith("\\\\"):
+			#if self.full_path.startswith("\\\\"):		#changed to catch also shares mapped to a drive Letter
+			if platform.system().lower() == 'windows' and not self.full_path.lower().startswith("c:"):
 				self.copy_installation_files()
 			self.run_setup_script()
 			self.evaluate_success()
@@ -560,12 +564,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				if self.dialog:
 					for _num in range(3):
 						time.sleep(1)
+			else:
+				if os.path.isdir(self.tmp_dir):
+					logger.debug("Delete temp dir '%s'", self.tmp_dir)
+					shutil.rmtree(self.tmp_dir)
 		finally:
 			if self.dialog:
 				self.dialog.close()
-			if os.path.isdir(self.tmp_dir):
-				logger.debug("Delete temp dir '%s'", self.tmp_dir)
-				shutil.rmtree(self.tmp_dir)
 		if error:
 			print(f"ERROR: {error}", file=sys.stderr)
 			sys.exit(1)

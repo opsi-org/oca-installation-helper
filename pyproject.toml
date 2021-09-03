@@ -1,11 +1,14 @@
 [tool.poetry]
 name = "oca-installation-helper"
-version = "4.2.0.1"
+version = "4.2.0.3"
 description = "opsi-client-agent installation helper"
 homepage = "https://www.opsi.org"
 license = "AGPL-3.0"
 authors = ["uib GmbH <info@uib.de>"]
 maintainers = ["uib GmbH <info@uib.de>"]
+packages = [
+    { include = "ocainstallationhelper" }
+]
 
 [[tool.poetry.source]]
 name = "uib"
@@ -17,6 +20,7 @@ zeroconf = "^0.29.0"
 pysimplegui = "^4.39.1"
 psutil = "^5.8.0"
 picotui = "^1.2"
+netifaces = "^0.11.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

@@ -15,7 +15,7 @@ import time
 import threading
 import codecs
 import socket
-import signal
+import base64
 import ipaddress
 import tempfile
 import platform
@@ -26,6 +26,7 @@ import argparse
 import shutil
 import psutil
 from zeroconf import ServiceBrowser, Zeroconf
+import netifaces
 
 from ocainstallationhelper import __version__, logger
 from ocainstallationhelper.jsonrpc import JSONRPCClient, BackendAuthenticationError
@@ -33,7 +34,37 @@ from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
 
 
-class InstallationHelper:  # pylint: disable=too-many-instance-attributes
+KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
+
+def encode_password(cleartext):
+	cipher = ""
+	for num, char in enumerate(cleartext):
+		key_c = KEY[num % len(KEY)]
+		cipher += chr((ord(char) + ord(key_c)) % 256)
+	return base64.urlsafe_b64encode(cipher.encode("utf-8")).decode("ascii")
+
+def decode_password(cipher):
+	cipher = cipher.replace("{crypt}", "")
+	cleartext = ""
+	cipher = base64.urlsafe_b64decode(cipher).decode("utf-8")
+	for num, char in enumerate(cipher):
+		key_c = KEY[num % len(KEY)]
+		cleartext += chr((ord(char) - ord(key_c) + 256) % 256)
+	return cleartext
+
+def get_mac_address():
+	gateways = netifaces.gateways()  # pylint: disable=c-extension-no-member
+	logger.debug("Gateways: %s", gateways)
+	if not "default" in gateways:
+		return None
+	default_if = list(gateways["default"].values())[0][1]
+	logger.info("Default interface: %s", default_if)
+	addrs = netifaces.ifaddresses(default_if)  # pylint: disable=c-extension-no-member
+	mac = addrs[netifaces.AF_LINK][0]["addr"]  # pylint: disable=c-extension-no-member
+	logger.info("Default mac address: %s", mac)
+	return mac
+
+class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-many-public-methods
 	setup_script_name = "setup.opsiscript"
 
 	def __init__(self, cmdline_args):
@@ -189,7 +220,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.read_config_files()
 
 		if not self.client_id:
-			self.client_id = socket.getfqdn()
+			self.client_id = socket.getfqdn().rstrip(".")
 
 		if not self.service_address:
 			self.start_zeroconf()
@@ -323,7 +354,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		else:
 			raise RuntimeError("'run_setup_script_posix' can only be executed on linux or macos!")
 
-		log_dir = "/var/log/opsi-client-agent/opsi-script"
+		log_dir = "/var/log/opsi-script"
 		if not os.path.exists(log_dir):
 			os.makedirs(log_dir)
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
@@ -417,11 +448,17 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 		self.show_message("Connecting to service...")
 
+		password = self.service_password
+		if password.startswith("{crypt}"):
+			password = decode_password(password)
+
 		self.service = JSONRPCClient(
 			address=self.service_address,
 			username=self.service_username,
-			password=self.service_password
+			password=password
 		)
+		self.service_address = self.service.base_url
+
 		self.show_message("Connected", "success")
 		if "." not in self.client_id:
 			self.client_id = f"{self.client_id}.{self.service.execute_rpc('getDomain')}"
@@ -433,7 +470,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			self.show_message("Create client...")
 			# id, opsiHostKey, description, notes, hardwareAddress, ipAddress,
 			# inventoryNumber, oneTimePassword, created, lastSeen
-			client = [self.client_id]
+			client = [self.client_id, None, None, None, get_mac_address()]
 			logger.info("Creating client: %s", client)
 			self.service.execute_rpc("host_createOpsiClient", client)
 			self.show_message("Client created", "success")
@@ -447,7 +484,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 	def show_message(self, message, severity=None, display_seconds=0):
 		if self.clear_message_timer:
-				self.clear_message_timer.cancel()
+			self.clear_message_timer.cancel()
 
 		if message:
 			log = logger.info
@@ -488,7 +525,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			self.dialog.update()
 		self.start_zeroconf()
 
-	def run(self):
+	def run(self):  # pylint: disable=too-many-branches
 		error = None
 		try:
 			try:
@@ -521,7 +558,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				else:
 					self.install()
 
-			except Exception as err:
+			except Exception as err:  # pylint: disable=broad-except
 				error = err
 				self.show_message(str(err), "error")
 				if self.dialog:
@@ -539,13 +576,16 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			sys.exit(1)
 
 
+def show_message(message):
+	if platform.system().lower() == "windows":
+		from .gui import show_message as _show_message  # pylint: disable=import-outside-toplevel
+		_show_message(message)
+	else:
+		sys.stdout.write(message)
+
 class ArgumentParser(argparse.ArgumentParser):
 	def _print_message(self, message, file=None):
-		if platform.system().lower() == "windows":
-			from .gui import show_message
-			show_message(message)
-		else:
-			sys.stderr.write(message)
+		show_message(message)
 
 
 def main():
@@ -601,8 +641,17 @@ def main():
 		action="store_true",
 		help="Use gui."
 	)
+	parser.add_argument(
+		"--encode-password",
+		action="store",
+		metavar="PASSWORD",
+		help="Encode PASSWORD."
+	)
 
 	args = parser.parse_args()
+	if args.encode_password:
+		show_message("{crypt}" + encode_password(args.encode_password))
+		return
 
 	log_level = args.log_level.upper()
 	if log_level == "TRACE":

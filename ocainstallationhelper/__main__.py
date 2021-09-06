@@ -321,7 +321,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if not os.path.exists(log_dir):
 			try:
 				os.makedirs(log_dir)
-			except Exception as exc:
+			except Exception as exc:  # pylint: disable=broad-except
 				logger.error("Could not create log directory %s due to %s\n still trying to continue", exc, log_dir, exc_info=True)
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
 		arg_list = [

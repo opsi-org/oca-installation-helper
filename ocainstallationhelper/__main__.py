@@ -93,6 +93,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			self.full_path = os.path.abspath(os.path.join(os.path.curdir, self.full_path))
 		#signal.signal(signal.SIGINT, self.signal_handler)
 		self.get_cmdline_config()
+		logger.info("Installation helper running from '%s', working dir '%s'", self.full_path, os.path.curdir)
 
 	def signal_handler(self, sig, frame):  # pylint: disable=unused-argument,no-self-use
 		logger.info("Signal: %s", sig)
@@ -433,8 +434,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		try:
 			self.check_values()
 			self.service_setup()
-			#if self.full_path.startswith("\\\\"):		#changed to catch also shares mapped to a drive Letter
-			if platform.system().lower() == 'windows' and not self.full_path.lower().startswith("c:"):
+			if (
+				platform.system().lower() == 'windows' and
+				not self.full_path.lower().startswith(os.path.splitdrive(tempfile.gettempdir())[0].lower())
+			):
 				self.copy_installation_files()
 			self.run_setup_script()
 			self.evaluate_success()

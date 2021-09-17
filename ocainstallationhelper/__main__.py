@@ -221,7 +221,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.read_config_files()
 
 		if not self.client_id:
-			self.client_id = socket.getfqdn().rstrip(".")
+			self.client_id = socket.getfqdn().rstrip(".").lower()
 
 		if not self.service_address:
 			self.start_zeroconf()
@@ -409,6 +409,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if not self.client_id:
 			raise ValueError("Client id undefined")
 
+		self.client_id = self.client_id.lower()
+
 		for part in self.client_id.split("."):
 			if len(part) < 1 or len(part) > 63:
 				raise ValueError("Invalid client id")
@@ -478,6 +480,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			self.service.execute_rpc("host_createOpsiClient", client)
 			self.show_message("Client created", "success")
 			client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
+			if not client:
+				raise RuntimeError(f"Failed to create client {client}")
 
 		self.client_key = client[0]["opsiHostKey"]
 		self.client_id = client[0]["id"]

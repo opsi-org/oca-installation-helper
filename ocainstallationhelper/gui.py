@@ -69,7 +69,7 @@ class GUIDialog(threading.Thread):
 			[sg.Text("Client-ID")],
 			[sg.Input(key='client_id', size=(70,1), default_text=self.inst_helper.client_id)],
 			[sg.Text("", font='Any 3')],
-			[sg.Text("Service")],
+			[sg.Text("Opsi Service url")],
 			[
 				sg.Input(key='service_address', size=(55,1), default_text=self.inst_helper.service_address),
 				sg.Button('Zeroconf', key='zeroconf', size=(15,1))

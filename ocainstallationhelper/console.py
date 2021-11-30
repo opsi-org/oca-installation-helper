@@ -130,7 +130,7 @@ class ConsoleDialog(threading.Thread):
 
 			self.dialog.add(x=padding, y=2, widget=WLabel(w=label_width, text="Client-ID:"))
 			self.dialog.add(x=padding+label_width+1, y=2, widget=self.inputs["client_id"])
-			self.dialog.add(x=padding, y=3, widget=WLabel(w=label_width, text="Service:"))
+			self.dialog.add(x=padding, y=3, widget=WLabel(w=label_width, text="Opsi Service url:"))
 			self.dialog.add(x=padding+label_width+1, y=3, widget=self.inputs["service_address"])
 			self.dialog.add(x=padding, y=4, widget=WLabel(w=label_width, text="Username:"))
 			self.dialog.add(x=padding+label_width+1, y=4, widget=self.inputs["service_username"])

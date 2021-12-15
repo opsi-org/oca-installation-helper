@@ -39,6 +39,16 @@ _LZ4_COMPRESSION = 'lz4'
 _DEFAULT_HTTP_PORT = 4444
 _DEFAULT_HTTPS_PORT = 4447
 
+
+class OpsiRpcError(Exception):
+	ExceptionShortDescription = "Opsi rpc error"
+
+class BackendAuthenticationError(Exception):
+	ExceptionShortDescription = "Backend authentication error"
+
+class BackendPermissionDeniedError(Exception):
+	ExceptionShortDescription = "Backend permission denied error"
+
 def no_export(func):
 	func.no_export = True
 	return func
@@ -411,19 +421,27 @@ class JSONRPCClient:  # pylint: disable=too-many-instance-attributes
 		else:
 			data = json.loads(data)
 
+		error_cls = None
 		error_msg = None
 		if response.status_code != 200:
+			error_cls = OpsiRpcError
 			error_msg = str(response.status_code)
+			if response.status_code == 401:
+				error_cls = BackendAuthenticationError
+			if response.status_code == 403:
+				error_cls = BackendPermissionDeniedError
 
 		if data.get('error'):
 			logger.debug('JSONRPC-response contains error')
+			if not error_cls:
+				error_cls = OpsiRpcError
 			if isinstance(data['error'], dict) and data['error'].get('message'):
 				error_msg = data['error']['message']
 			else:
 				error_msg = str(data['error'])
 
-		if error_msg:
-			raise ConnectionError(f"{error_msg} (error on server)")
+		if error_cls:
+			raise error_cls(f"{error_msg} (error on server)")
 
 		return data.get('result')
 

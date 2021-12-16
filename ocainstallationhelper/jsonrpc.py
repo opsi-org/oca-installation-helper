@@ -152,7 +152,8 @@ class JSONRPCClient:  # pylint: disable=too-many-instance-attributes
 		})
 		if session_id:
 			if "=" in session_id:
-				logger.confidential("Using session id passed: %s", session_id)
+				#no confidential in standard logger
+				#logger.confidential("Using session id passed: %s", session_id)
 				cookie_name, cookie_value = session_id.split("=")
 				self._session.cookies.set(
 					cookie_name, cookie_value, domain=self.hostname
@@ -380,12 +381,12 @@ class JSONRPCClient:  # pylint: disable=too-many-instance-attributes
 					compression = _LZ4_COMPRESSION
 
 			if compression == _LZ4_COMPRESSION:
-				logger.trace("Compressing data with lz4")
+				logger.debug("Compressing data with lz4")
 				headers['Content-Encoding'] = 'lz4'
 				headers['Accept-Encoding'] = 'lz4'
 				data = lz4.frame.compress(data, compression_level=0, block_linked=True)
 			elif compression == _GZIP_COMPRESSION:
-				logger.trace("Compressing data with gzip")
+				logger.debug("Compressing data with gzip")
 				headers['Content-Encoding'] = 'gzip'
 				headers['Accept-Encoding'] = 'gzip'
 				data = gzip.compress(data)
@@ -413,7 +414,7 @@ class JSONRPCClient:  # pylint: disable=too-many-instance-attributes
 		data = response.content
 		# gzip and deflate transfer-encodings are automatically decoded
 		if "lz4" in content_encoding:
-			logger.trace("Decompressing data with lz4")
+			logger.debug("Decompressing data with lz4")
 			data = lz4.frame.decompress(data)
 
 		if content_type == "application/msgpack":
@@ -487,12 +488,12 @@ class JSONRPCClient:  # pylint: disable=too-many-instance-attributes
 				arg_string = ', '.join(arg_string)
 				call_string = ', '.join(call_string)
 
-				logger.trace("%s: arg string is: %s", method_name, arg_string)
-				logger.trace("%s: call string is: %s", method_name, call_string)
+				logger.debug("%s: arg string is: %s", method_name, arg_string)
+				logger.debug("%s: call string is: %s", method_name, call_string)
 				exec(f'def {method_name}(self, {arg_string}): return self.execute_rpc("{method_name}", [{call_string}])')  # pylint: disable=exec-used
 				setattr(self, method_name, types.MethodType(eval(method_name), self))  # pylint: disable=eval-used
 			except Exception as err:  # pylint: disable=broad-except
-				logger.critical("Failed to create instance method '%s': %s", method, err)
+				logger.error("Failed to create instance method '%s': %s", method, err)
 
 	@no_export
 	def connect(self):

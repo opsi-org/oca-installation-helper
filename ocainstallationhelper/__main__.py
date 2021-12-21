@@ -316,6 +316,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 
 	def copy_installation_files(self):
 		dst_dir = os.path.join(self.tmp_dir)
+		os.makedirs(dst_dir, exist_ok=True)
 		self.show_message(f"Copy installation files from '{self.base_dir}' to '{dst_dir}'")
 		if os.path.exists(dst_dir):
 			shutil.rmtree(dst_dir)

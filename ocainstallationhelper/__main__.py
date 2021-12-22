@@ -359,14 +359,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 
 		arg_list = ",".join([f'"{arg}"' for arg in arg_list])
 		ps_script = f'Start-Process -Verb runas -FilePath "{opsi_script}" -ArgumentList {arg_list} -Wait'
-		logger.debug(ps_script)
-		ps_script_file = os.path.join(self.tmp_dir, "setup.ps1")
-		with codecs.open(ps_script_file, "w", "windows-1252") as file:
-			file.write(f"{ps_script}\r\n")
-
-		command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-File", ps_script_file]
+		command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-File", ps_script]
 		logger.info("Executing: %s", command)
-		subprocess.call(command)
+		process = subprocess.Popen(command, stdin=subprocess.PIPE)
+		logger.info("transmitting opsi-script call via stdin")
+		process.communicate(ps_script)
+		logger.info("transmitting exit via stdin")
+		process.communicate("exit")
 
 	def run_setup_script_posix(self):
 		if platform.system().lower() == "linux":

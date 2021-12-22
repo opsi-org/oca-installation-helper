@@ -359,7 +359,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 
 		arg_list = ",".join([f'"{arg}"' for arg in arg_list])
 		ps_script = f'Start-Process -Verb runas -FilePath "{opsi_script}" -ArgumentList {arg_list} -Wait'
-		command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-File", ps_script]
+		command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden"]
 		logger.info("Executing: %s", command)
 		process = subprocess.Popen(command, stdin=subprocess.PIPE)
 		logger.info("transmitting opsi-script call via stdin")

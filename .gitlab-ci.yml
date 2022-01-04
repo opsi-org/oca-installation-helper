@@ -1,4 +1,4 @@
-image: docker.uib.gmbh/opsi/dev/pybuilder:uib-python-default
+image: docker.uib.gmbh/opsi/dev/pybuilder:uib-python-3.9
 
 stages:
   - test
@@ -27,7 +27,6 @@ test:pytest-darwin:
     expire_in: 3 days
 
 test:pytest-windows:
-  #when: manual
   stage: test
   tags:
     - win10
@@ -44,7 +43,6 @@ test:pytest-windows:
     expire_in: 3 days
 
 test:pytest-linux:
-  #when: manual
   stage: test
   script:
     - poetry install
@@ -61,7 +59,6 @@ test:pytest-linux:
     expire_in: 3 days
 
 test:pylint-pytest:
-  #when: manual
   stage: test
   needs:
     # We want to combine test coverage from all test jobs

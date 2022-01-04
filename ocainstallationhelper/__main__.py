@@ -28,8 +28,9 @@ import psutil
 from zeroconf import ServiceBrowser, Zeroconf
 import netifaces
 
+from opsicommon.client.jsonrpc import JSONRPCClient
+from opsicommon.exceptions import BackendAuthenticationError
 from ocainstallationhelper import __version__, logger
-from ocainstallationhelper.jsonrpc import JSONRPCClient, BackendAuthenticationError
 from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
 

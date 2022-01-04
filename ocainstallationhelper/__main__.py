@@ -613,8 +613,7 @@ class ArgumentParser(argparse.ArgumentParser):
 	def _print_message(self, message, file=None):
 		show_message(message)
 
-
-def main():
+def parse_args(args=sys.argv):
 	parser = ArgumentParser()
 	parser.add_argument(
 		"--version",
@@ -674,7 +673,10 @@ def main():
 		help="Encode PASSWORD."
 	)
 
-	args = parser.parse_args()
+	return parser.parse_args(args)
+
+def main():
+	args = parse_args()
 	if args.encode_password:
 		show_message("{crypt}" + encode_password(args.encode_password))
 		return

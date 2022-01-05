@@ -30,30 +30,9 @@ import netifaces
 
 from opsicommon.client.jsonrpc import JSONRPCClient
 from opsicommon.exceptions import BackendAuthenticationError
-from ocainstallationhelper import __version__, logger
+from ocainstallationhelper import __version__, logger, monkeypatch_subprocess_for_frozen
 from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
-
-
-def monkeypatch_subprocess_for_frozen():
-	from subprocess import Popen as Popen_orig		# pylint: disable=import-outside-toplevel
-	class Popen_patched(Popen_orig):
-		def __init__(self, *args, **kwargs):
-			if kwargs.get("env") is None:
-				kwargs["env"] = os.environ.copy()
-			lp_orig = kwargs["env"].get("LD_LIBRARY_PATH_ORIG")
-			if lp_orig is not None:
-				# Restore the original, unmodified value
-				kwargs["env"]["LD_LIBRARY_PATH"] = lp_orig
-			else:
-				# This happens when LD_LIBRARY_PATH was not set.
-				# Remove the env var as a last resort
-				kwargs["env"].pop("LD_LIBRARY_PATH", None)
-
-			super().__init__(*args, **kwargs)
-
-	subprocess.Popen = Popen_patched
-
 
 monkeypatch_subprocess_for_frozen()
 

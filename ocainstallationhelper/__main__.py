@@ -427,7 +427,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		product_on_client = self.service.execute_rpc("productOnClient_getObjects", [[], {"productId": product_id, "clientId": self.client_id}])
 		if not product_on_client or not product_on_client[0]:
 			raise ValueError(f"Product {product_id} not found on client {self.client_id}")
-		if not product_on_client[0].get("installationStatus") == "installed":
+		if not product_on_client[0].installationStatus == "installed":
 			raise ValueError(f"Installation of {product_id} on client {self.client_id} unsuccessful")
 
 	def install(self):
@@ -468,7 +468,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			if self.dialog:
 				self.dialog.update()
 
-		logger.debug("checking client %s for existence", self.client_id)
 		client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
 		if not client:
 			self.show_message("Create client...")
@@ -483,8 +482,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				raise RuntimeError(f"Failed to create client {client}")
 
 		logger.debug("got client objects %s", client)
-		self.client_key = client[0]["opsiHostKey"]
-		self.client_id = client[0]["id"]
+		self.client_key = client[0].opsiHostKey
+		self.client_id = client[0].id
 		self.show_message("Client exists", "success")
 		if self.dialog:
 			self.dialog.update()

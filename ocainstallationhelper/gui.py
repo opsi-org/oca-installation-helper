@@ -14,7 +14,8 @@ import threading
 import platform
 import PySimpleGUI.PySimpleGUI
 
-from ocainstallationhelper import logger, get_resource_path
+from ocainstallationhelper import get_resource_path
+from opsicommon.logging import logger
 
 SG_THEME = "Default1" # "Reddit"
 

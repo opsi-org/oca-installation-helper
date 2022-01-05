@@ -11,13 +11,9 @@ opsi-client-agent installation_helper
 
 import os
 import sys
-import logging
 import subprocess
 
 __version__ = "4.2.0.11"
-
-logger = logging
-logger.notice = logger.info
 
 def monkeypatch_subprocess_for_frozen():
 	from subprocess import Popen as Popen_orig		# pylint: disable=import-outside-toplevel

@@ -8,6 +8,7 @@
 opsi-client-agent installation_helper
 """
 
+from logging import log
 import os
 import re
 import sys
@@ -20,7 +21,6 @@ import ipaddress
 import tempfile
 import platform
 import subprocess
-import logging
 from configparser import ConfigParser
 import argparse
 import shutil
@@ -28,9 +28,11 @@ import psutil
 from zeroconf import ServiceBrowser, Zeroconf
 import netifaces
 
+import opsicommon
 from opsicommon.client.jsonrpc import JSONRPCClient
 from opsicommon.exceptions import BackendAuthenticationError
-from ocainstallationhelper import __version__, logger, monkeypatch_subprocess_for_frozen
+from opsicommon.logging import logger, logging_config
+from ocainstallationhelper import __version__, monkeypatch_subprocess_for_frozen
 from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
 
@@ -668,13 +670,10 @@ def main():
 		log_level = "DEBUG"
 
 	if log_level != "NONE":
-		logging.basicConfig(
-			level=getattr(logging, log_level),
-			format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
-			handlers=[
-				logging.FileHandler(filename=args.log_file, mode="w", encoding="utf-8")
-				#logging.StreamHandler(stream=sys.stderr)
-			]
+		logging_config(
+			file_level=getattr(opsicommon.logging, 'LOG_'+log_level),
+			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
+			log_file=args.log_file
 		)
 
 	InstallationHelper(args).run()

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "oca-installation-helper"
-version = "4.2.0.10"
+version = "4.2.0.11"
 description = "opsi-client-agent installation helper"
 homepage = "https://www.opsi.org"
 license = "AGPL-3.0"
@@ -16,19 +16,21 @@ url = "http://pypi.uib.gmbh:8080/simple/"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-zeroconf = "^0.29.0"
+zeroconf = "^0.38.0"
 pysimplegui = "^4.39.1"
 psutil = "^5.8.0"
 picotui = "^1.2"
 netifaces = "^0.11.0"
 msgpack = "^1.0.3"
 lz4 = "^3.1.10"
+python-opsi-common = "^4.2.0"
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.2"
+pytest = "^6.2"
 opsi-dev-tools = "^1.0.43"
 pyinstaller = "^4.0"
 pylint = "^2.6.0"
+pytest-cov = "^3.0.0"
 
 [build-system]
 requires = ["poetry>=0.12"]

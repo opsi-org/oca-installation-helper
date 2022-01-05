@@ -5,6 +5,10 @@
 # All rights reserved.
 # License: AGPL-3.0
 
+"""
+opsi-client-agent installation_helper
+"""
+
 import sys
 import traceback
 
@@ -18,7 +22,7 @@ if __name__ == "__main__":
 	except KeyboardInterrupt:
 		print("Interrupted", file=sys.stderr)
 		sys.exit(1)
-	except Exception as e:
+	except Exception as e:   # pylint: disable=broad-except
 		# Do not let pyinstaller handle exceptions and print:
 		# "Failed to execute script"
 		traceback.print_exc()

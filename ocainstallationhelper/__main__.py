@@ -20,7 +20,6 @@ import ipaddress
 import tempfile
 import platform
 import subprocess
-import logging
 from configparser import ConfigParser
 import argparse
 import shutil
@@ -28,31 +27,13 @@ import psutil
 from zeroconf import ServiceBrowser, Zeroconf
 import netifaces
 
-from ocainstallationhelper import __version__, logger
-from ocainstallationhelper.jsonrpc import JSONRPCClient, BackendAuthenticationError
+import opsicommon
+from opsicommon.client.jsonrpc import JSONRPCClient
+from opsicommon.exceptions import BackendAuthenticationError
+from opsicommon.logging import logger, logging_config
+from ocainstallationhelper import __version__, monkeypatch_subprocess_for_frozen
 from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
-
-
-def monkeypatch_subprocess_for_frozen():
-	from subprocess import Popen as Popen_orig
-	class Popen_patched(Popen_orig):
-		def __init__(self, *args, **kwargs):
-			if kwargs.get("env") is None:
-				kwargs["env"] = os.environ.copy()
-			lp_orig = kwargs["env"].get("LD_LIBRARY_PATH_ORIG")
-			if lp_orig is not None:
-				# Restore the original, unmodified value
-				kwargs["env"]["LD_LIBRARY_PATH"] = lp_orig
-			else:
-				# This happens when LD_LIBRARY_PATH was not set.
-				# Remove the env var as a last resort
-				kwargs["env"].pop("LD_LIBRARY_PATH", None)
-
-			super().__init__(*args, **kwargs)
-
-	subprocess.Popen = Popen_patched
-
 
 monkeypatch_subprocess_for_frozen()
 
@@ -447,7 +428,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		product_on_client = self.service.execute_rpc("productOnClient_getObjects", [[], {"productId": product_id, "clientId": self.client_id}])
 		if not product_on_client or not product_on_client[0]:
 			raise ValueError(f"Product {product_id} not found on client {self.client_id}")
-		if not product_on_client[0].get("installationStatus") == "installed":
+		if not product_on_client[0].installationStatus == "installed":
 			raise ValueError(f"Installation of {product_id} on client {self.client_id} unsuccessful")
 
 	def install(self):
@@ -461,7 +442,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				self.copy_installation_files()
 			self.run_setup_script()
 			self.evaluate_success()
-		except Exception as err:
+		except Exception as err:  # pylint: disable=broad-except
 			logger.error(err, exc_info=True)
 			raise
 
@@ -483,7 +464,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.service_address = self.service.base_url
 
 		self.show_message("Connected", "success")
-		if "." not in self.client_id:
+		if "." not in self.client_id:		# pylint: disable=unsupported-membership-test
 			self.client_id = f"{self.client_id}.{self.service.execute_rpc('getDomain')}"
 			if self.dialog:
 				self.dialog.update()
@@ -501,8 +482,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			if not client:
 				raise RuntimeError(f"Failed to create client {client}")
 
-		self.client_key = client[0]["opsiHostKey"]
-		self.client_id = client[0]["id"]
+		logger.debug("got client objects %s", client)
+		self.client_key = client[0].opsiHostKey
+		self.client_id = client[0].id
 		self.show_message("Client exists", "success")
 		if self.dialog:
 			self.dialog.update()
@@ -538,7 +520,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				time.sleep(1)
 			if self.dialog:
 				self.dialog.close()
-		except BackendAuthenticationError as err:
+		except BackendAuthenticationError:
 			self.show_message("Authentication error, wrong username or password", "error")
 		except Exception as err:  # pylint: disable=broad-except
 			self.show_message(str(err), "error")
@@ -612,8 +594,9 @@ class ArgumentParser(argparse.ArgumentParser):
 	def _print_message(self, message, file=None):
 		show_message(message)
 
-
-def main():
+def parse_args(args=None):
+	if args is None:
+		args = sys.argv[1:]	# executable path is not processed
 	parser = ArgumentParser()
 	parser.add_argument(
 		"--version",
@@ -673,7 +656,10 @@ def main():
 		help="Encode PASSWORD."
 	)
 
-	args = parser.parse_args()
+	return parser.parse_args(args)
+
+def main():
+	args = parse_args()
 	if args.encode_password:
 		show_message("{crypt}" + encode_password(args.encode_password))
 		return
@@ -683,13 +669,10 @@ def main():
 		log_level = "DEBUG"
 
 	if log_level != "NONE":
-		logging.basicConfig(
-			level=getattr(logging, log_level),
-			format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
-			handlers=[
-				logging.FileHandler(filename=args.log_file, mode="w", encoding="utf-8")
-				#logging.StreamHandler(stream=sys.stderr)
-			]
+		logging_config(
+			file_level=getattr(opsicommon.logging, 'LOG_'+log_level),
+			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
+			log_file=args.log_file
 		)
 
 	InstallationHelper(args).run()

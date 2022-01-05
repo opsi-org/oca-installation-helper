@@ -5,12 +5,17 @@
 # All rights reserved.
 # License: AGPL-3.0
 
+"""
+opsi-client-agent installation_helper gui component
+"""
+
 import time
 import threading
 import platform
 import PySimpleGUI.PySimpleGUI
 
-from ocainstallationhelper import logger, get_resource_path
+from opsicommon.logging import logger
+from ocainstallationhelper import get_resource_path
 
 SG_THEME = "Default1" # "Reddit"
 

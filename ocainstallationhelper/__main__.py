@@ -463,11 +463,12 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.service_address = self.service.base_url
 
 		self.show_message("Connected", "success")
-		if "." not in f"{self.client_id}":
+		if "." not in self.client_id:		# pylint: disable=unsupported-membership-test
 			self.client_id = f"{self.client_id}.{self.service.execute_rpc('getDomain')}"
 			if self.dialog:
 				self.dialog.update()
 
+		logger.debug("checking client %s for existence", self.client_id)
 		client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
 		if not client:
 			self.show_message("Create client...")
@@ -481,6 +482,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			if not client:
 				raise RuntimeError(f"Failed to create client {client}")
 
+		logger.debug("got client objects %s", client)
 		self.client_key = client[0]["opsiHostKey"]
 		self.client_id = client[0]["id"]
 		self.show_message("Client exists", "success")

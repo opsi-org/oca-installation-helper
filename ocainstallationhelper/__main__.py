@@ -462,7 +462,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				self.copy_installation_files()
 			self.run_setup_script()
 			self.evaluate_success()
-		except Exception as err:
+		except Exception as err:  # pylint: disable=broad-except
 			logger.error(err, exc_info=True)
 			raise
 

@@ -5,16 +5,18 @@
 # All rights reserved.
 # License: AGPL-3.0
 
+"""
+opsi-client-agent installation_helper console output component
+"""
+
 import time
 import signal
 import threading
 import platform
 
-from picotui.widgets import *
-from picotui.menu import *
+from picotui.widgets import WTextEntry, WLabel, WButton, Dialog, C_BLACK, C_WHITE
+from picotui.menu import Screen
 from picotui.context import Context
-
-from ocainstallationhelper import logger
 
 class WDialogTextEntry(WTextEntry):
 	def __init__(self, w, text):
@@ -49,6 +51,8 @@ class ConsoleDialog(threading.Thread):
 		self.inputs = {}
 		self.buttons = {}
 		self._closed = False
+		self.dialog = None
+		self.message = None
 		if platform.system().lower() != "windows":
 			signal.signal(signal.SIGWINCH, self._sigwinch_handler)
 
@@ -75,11 +79,11 @@ class ConsoleDialog(threading.Thread):
 		self.buttons[button_id].disabled = not enabled
 		self._redraw()
 
-	def show_message(self, message, severity=None):
+	def show_message(self, message, severity=None):		# pylint: disable=unused-argument
 		self.message.t = message
 		self._redraw()
 
-	def _sigwinch_handler(self, *args):
+	def _sigwinch_handler(self, *args):		# pylint: disable=unused-argument
 		self._redraw()
 
 	def _redraw(self):
@@ -88,23 +92,23 @@ class ConsoleDialog(threading.Thread):
 		except Exception:  # pylint: disable=broad-except
 			pass
 
-	def _screen_redraw(self, screen, allow_cursor=False):
+	def _screen_redraw(self, screen, allow_cursor=False):	# pylint: disable=unused-argument
 		#screen.attr_color(C_WHITE, C_BLUE)
 		screen.cls()
 		screen.attr_reset()
 		self.dialog.redraw()
 
-	def _on_change(self, _widget):
+	def _on_change(self, _widget):		# pylint: disable=unused-argument
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
 			setattr(self.inst_helper, attr, self.inputs[attr].get())
 
-	def _on_cancel(self, _widget):
+	def _on_cancel(self, _widget):		# pylint: disable=unused-argument
 		self.inst_helper.on_cancel_button()
 
-	def _on_install(self, _widget):
+	def _on_install(self, _widget):		# pylint: disable=unused-argument
 		self.inst_helper.on_install_button()
 
-	def _on_zeroconf(self, _widget):
+	def _on_zeroconf(self, _widget):	# pylint: disable=unused-argument
 		self.inst_helper.on_zeroconf_button()
 
 	def run(self):

@@ -5,6 +5,10 @@
 # All rights reserved.
 # License: AGPL-3.0
 
+"""
+opsi-client-agent installation_helper
+"""
+
 import os
 import sys
 import logging

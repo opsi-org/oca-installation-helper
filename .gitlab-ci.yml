@@ -14,7 +14,7 @@ test:pytest-darwin:
     # runner ALL=(ALL) NOPASSWD: ALL
     - source $HOME/.poetry/env
     - poetry install
-    - sudo poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov oca-installation-helper --cov-report term --cov-report xml -v tests
+    - sudo poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - mv .coverage coverage_darwin
   after_script:
     - sudo chown -R $USER .
@@ -32,7 +32,7 @@ test:pytest-windows:
     - win10
   script:
     - poetry install
-    - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov oca-installation-helper --cov-report term --cov-report xml -v tests
+    - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - Rename-Item -Path .coverage -NewName coverage_windows
   artifacts:
     name: 'oca-installation-helper_test_windows'
@@ -46,7 +46,7 @@ test:pytest-linux:
   stage: test
   script:
     - poetry install
-    - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov oca-installation-helper --cov-report term --cov-report xml -v tests
+    - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - mv .coverage coverage_linux
   artifacts:
     name: 'oca-installation-helper_test_linux'
@@ -72,7 +72,7 @@ test:pylint-pytest:
     - apt-get update
     - apt-get --yes install sqlite3
     - poetry install
-    - poetry run pylint --disable=R,fixme,invalid-name oca-installation-helper
+    - poetry run pylint --disable=R,fixme,invalid-name ocainstallationhelper
     - for db in coverage_*; do sqlite3 $db 'update file set path=replace(substr(path,instr(path,"oca-installation-helper")),"\","/");'; done
     - echo -e '[run]\nrelative_files = True\n' > .coveragerc
     - poetry run coverage combine coverage_*

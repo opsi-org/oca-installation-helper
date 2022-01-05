@@ -36,7 +36,7 @@ from ocainstallationhelper.gui import GUIDialog
 
 
 def monkeypatch_subprocess_for_frozen():
-	from subprocess import Popen as Popen_orig
+	from subprocess import Popen as Popen_orig		# pylint: disable=import-outside-toplevel
 	class Popen_patched(Popen_orig):
 		def __init__(self, *args, **kwargs):
 			if kwargs.get("env") is None:
@@ -484,7 +484,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.service_address = self.service.base_url
 
 		self.show_message("Connected", "success")
-		if "." not in self.client_id:
+		if "." not in f"{self.client_id}":
 			self.client_id = f"{self.client_id}.{self.service.execute_rpc('getDomain')}"
 			if self.dialog:
 				self.dialog.update()
@@ -539,7 +539,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				time.sleep(1)
 			if self.dialog:
 				self.dialog.close()
-		except BackendAuthenticationError as err:
+		except BackendAuthenticationError:
 			self.show_message("Authentication error, wrong username or password", "error")
 		except Exception as err:  # pylint: disable=broad-except
 			self.show_message(str(err), "error")
@@ -613,7 +613,9 @@ class ArgumentParser(argparse.ArgumentParser):
 	def _print_message(self, message, file=None):
 		show_message(message)
 
-def parse_args(args=sys.argv):
+def parse_args(args=None):
+	if args is None:
+		args = sys.argv
 	parser = ArgumentParser()
 	parser.add_argument(
 		"--version",

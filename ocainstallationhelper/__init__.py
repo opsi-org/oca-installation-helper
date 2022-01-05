@@ -13,7 +13,7 @@ import os
 import sys
 import logging
 
-__version__ = "4.2.0.10"
+__version__ = "4.2.0.11"
 
 logger = logging
 logger.notice = logger.info

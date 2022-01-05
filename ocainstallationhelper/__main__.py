@@ -615,7 +615,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
 def parse_args(args=None):
 	if args is None:
-		args = sys.argv
+		args = sys.argv[1:]	# executable path is not processed
 	parser = ArgumentParser()
 	parser.add_argument(
 		"--version",

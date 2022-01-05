@@ -8,7 +8,6 @@
 opsi-client-agent installation_helper
 """
 
-from logging import log
 import os
 import re
 import sys

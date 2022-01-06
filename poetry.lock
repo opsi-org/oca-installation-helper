@@ -1527,8 +1527,8 @@ python-gettext = [
     {file = "python-gettext-4.0.tar.gz", hash = "sha256:626b501a51ac892fc3460cf550e60dca121f544eaa46eb69c90ce4682fc7ec02"},
 ]
 python-opsi-common = [
-    {file = "python-opsi-common-4.2.0.263.tar.gz", hash = "sha256:159208cc53c213a32b8802bdfb33a5dfba0b2ab9fbe32465a84e474b67a2f1b3"},
-    {file = "python_opsi_common-4.2.0.263-py3-none-any.whl", hash = "sha256:88a409b4fc0e6d8e03a07d8b1fce130a8a57bb1089bc9a5454131ffc9d6bd9d9"},
+    {file = "python-opsi-common-4.2.0.263.tar.gz", hash = "sha256:da43c9afbc57109377bf01e89df8db5263b9769ee3677602d040e8435b1f24d6"},
+    {file = "python_opsi_common-4.2.0.263-py3-none-any.whl", hash = "sha256:11213d74941410077c586346cf9cb3dc34ee2f57de0f976db39fe6f30b6830d5"},
 ]
 pywin32 = [
     {file = "pywin32-227-cp27-cp27m-win32.whl", hash = "sha256:371fcc39416d736401f0274dd64c2302728c9e034808e37381b5e1b22be4a6b0"},

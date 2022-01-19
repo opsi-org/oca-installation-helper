@@ -15,7 +15,6 @@ import time
 import threading
 import codecs
 import socket
-import base64
 import ipaddress
 import tempfile
 import platform
@@ -25,47 +24,17 @@ import argparse
 import shutil
 import psutil
 from zeroconf import ServiceBrowser, Zeroconf
-import netifaces
 
 import opsicommon
-from opsicommon.client.jsonrpc import JSONRPCClient
 from opsicommon.exceptions import BackendAuthenticationError
-from opsicommon.logging import logger, logging_config
-from ocainstallationhelper import __version__, monkeypatch_subprocess_for_frozen
+from opsicommon.logging import logging_config
+from ocainstallationhelper import __version__, monkeypatch_subprocess_for_frozen, logger, encode_password, decode_password
 from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
+from ocainstallationhelper.backend import Backend
 
 monkeypatch_subprocess_for_frozen()
 
-KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
-
-def encode_password(cleartext):
-	cipher = ""
-	for num, char in enumerate(cleartext):
-		key_c = KEY[num % len(KEY)]
-		cipher += chr((ord(char) + ord(key_c)) % 256)
-	return base64.urlsafe_b64encode(cipher.encode("utf-8")).decode("ascii")
-
-def decode_password(cipher):
-	cipher = cipher.replace("{crypt}", "")
-	cleartext = ""
-	cipher = base64.urlsafe_b64decode(cipher).decode("utf-8")
-	for num, char in enumerate(cipher):
-		key_c = KEY[num % len(KEY)]
-		cleartext += chr((ord(char) - ord(key_c) + 256) % 256)
-	return cleartext
-
-def get_mac_address():
-	gateways = netifaces.gateways()  # pylint: disable=c-extension-no-member
-	logger.debug("Gateways: %s", gateways)
-	if not "default" in gateways:
-		return None
-	default_if = list(gateways["default"].values())[0][1]
-	logger.info("Default interface: %s", default_if)
-	addrs = netifaces.ifaddresses(default_if)  # pylint: disable=c-extension-no-member
-	mac = addrs[netifaces.AF_LINK][0]["addr"]  # pylint: disable=c-extension-no-member
-	logger.info("Default mac address: %s", mac)
-	return mac
 
 class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-many-public-methods
 	setup_script_name = "setup.opsiscript"
@@ -76,7 +45,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.use_gui = platform.system().lower() == "windows" or os.environ.get("DISPLAY")
 		self.dialog = None
 		self.clear_message_timer = None
-		self.service = None
+		self.backend = None
 		self.zeroconf = None
 		self.zeroconf_addresses = []
 		self.zeroconf_idx = -1
@@ -213,11 +182,14 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.service_address = self.cmdline_args.service_address
 		self.service_username = self.cmdline_args.service_username
 		self.service_password = self.cmdline_args.service_password
+		self.depot = self.cmdline_args.depot
+		self.group = self.cmdline_args.group
 		logger.debug(
 			"Config from cmdline: interactive=%s, client_id=%s, "
-			"service_address=%s, service_username=%s, service_password=%s",
+			"service_address=%s, service_username=%s, service_password=%s, depot=%s, group=%s",
 			self.interactive, self.client_id, self.service_address,
-			self.service_username, "*" * len(self.service_password or "")
+			self.service_username, "*" * len(self.service_password or ""),
+			self.depot, self.group
 		)
 
 	def get_config(self):
@@ -376,30 +348,18 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 
 	def run_setup_script(self):
 		self.show_message("Running setup script")
+
 		if platform.system().lower() == 'windows':
-			self.set_poc_to_installing("opsi-client-agent")
+			self.backend.set_poc_to_installing("opsi-client-agent", self.client_id)
 			return self.run_setup_script_windows()
 		if platform.system().lower() == 'linux':
-			self.set_poc_to_installing("opsi-linux-client-agent")
+			self.backend.set_poc_to_installing("opsi-linux-client-agent", self.client_id)
 			return self.run_setup_script_posix()
 		if platform.system().lower() == 'darwin':
-			self.set_poc_to_installing("opsi-mac-client-agent")
+			self.backend.set_poc_to_installing("opsi-mac-client-agent", self.client_id)
 			return self.run_setup_script_posix()
 
 		raise NotImplementedError(f"Not implemented for {platform.system()}")
-
-	def set_poc_to_installing(self, product_id):
-		self.service.execute_rpc("productOnClient_createObjects", [
-			[{
-				"type": "ProductOnClient",
-				"productType": "LocalbootProduct",
-				"clientId": self.client_id,
-				"productId": product_id,
-				"installationStatus": "unknown",
-				"actionRequest": "none",
-				"actionProgress": "installing",
-			}]
-		])
 
 	def check_values(self):
 		if not self.service_address:
@@ -414,23 +374,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			if len(part) < 1 or len(part) > 63:
 				raise ValueError("Invalid client id")
 
-	def evaluate_success(self):
-		self.show_message("Evaluating script result")
-		if platform.system().lower() == 'windows':
-			product_id = "opsi-client-agent"
-		elif platform.system().lower() == 'linux':
-			product_id = "opsi-linux-client-agent"
-		elif platform.system().lower() == 'darwin':
-			product_id = "opsi-mac-client-agent"
-		else:
-			raise ValueError(f"Platform {platform.system().lower()} unknown. Aborting.")
-
-		product_on_client = self.service.execute_rpc("productOnClient_getObjects", [[], {"productId": product_id, "clientId": self.client_id}])
-		if not product_on_client or not product_on_client[0]:
-			raise ValueError(f"Product {product_id} not found on client {self.client_id}")
-		if not product_on_client[0].installationStatus == "installed":
-			raise ValueError(f"Installation of {product_id} on client {self.client_id} unsuccessful")
-
 	def install(self):
 		try:
 			self.check_values()
@@ -441,7 +384,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			):
 				self.copy_installation_files()
 			self.run_setup_script()
-			self.evaluate_success()
+			self.show_message("Evaluating script result")
+			self.backend.evaluate_success(self.client_id)
 		except Exception as err:  # pylint: disable=broad-except
 			logger.error(err, exc_info=True)
 			raise
@@ -456,36 +400,33 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if password.startswith("{crypt}"):
 			password = decode_password(password)
 
-		self.service = JSONRPCClient(
+		print(password, type(password), password.__str__(), password.__repr__())
+		print(password.encode("utf-8"))
+
+		self.backend = Backend(
 			address=self.service_address,
 			username=self.service_username,
 			password=password
 		)
-		self.service_address = self.service.base_url
 
 		self.show_message("Connected", "success")
 		if "." not in self.client_id:		# pylint: disable=unsupported-membership-test
-			self.client_id = f"{self.client_id}.{self.service.execute_rpc('getDomain')}"
+			self.client_id = f"{self.client_id}.{self.backend.get_domain()}"
 			if self.dialog:
 				self.dialog.update()
 
-		client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
-		if not client:
-			self.show_message("Create client...")
-			# id, opsiHostKey, description, notes, hardwareAddress, ipAddress,
-			# inventoryNumber, oneTimePassword, created, lastSeen
-			client = [self.client_id, None, None, None, get_mac_address()]
-			logger.info("Creating client: %s", client)
-			self.service.execute_rpc("host_createOpsiClient", client)
-			self.show_message("Client created", "success")
-			client = self.service.execute_rpc("host_getObjects", [[], {"id": self.client_id}])
-			if not client:
-				raise RuntimeError(f"Failed to create client {client}")
-
-		logger.debug("got client objects %s", client)
+		client = self.backend.get_or_create_client(self.client_id)
 		self.client_key = client[0].opsiHostKey
 		self.client_id = client[0].id
 		self.show_message("Client exists", "success")
+		if self.depot:
+			if self.client_id == self.service_username:
+				raise PermissionError("Authorization error: Need opsi admin privileges to assign to depot", "error")
+			self.backend.assign_client_to_depot(self.client_id, self.depot)
+		if self.group:
+			if self.client_id == self.service_username:
+				raise PermissionError("Authorization error: Need opsi admin privileges to add to hostgroup", "error")
+			self.backend.put_client_into_group(self.client_id, self.group)
 		if self.dialog:
 			self.dialog.update()
 
@@ -654,6 +595,16 @@ def parse_args(args=None):
 		action="store",
 		metavar="PASSWORD",
 		help="Encode PASSWORD."
+	)
+	parser.add_argument(
+		"--depot",
+		help="Assign client to specified depot.",
+		metavar="DEPOT"
+	)
+	parser.add_argument(
+		"--group",
+		help="Insert client into specified host group.",
+		metavar="HOSTGROUP"
 	)
 
 	return parser.parse_args(args)

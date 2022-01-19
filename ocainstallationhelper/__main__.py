@@ -473,6 +473,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			self.dialog.update()
 		self.start_zeroconf()
 
+	def cleanup(self):
+		if os.path.isdir(self.tmp_dir):
+			logger.debug("Delete temp dir '%s'", self.tmp_dir)
+			shutil.rmtree(self.tmp_dir)
+
 	def run(self):  # pylint: disable=too-many-branches
 		error = None
 		try:
@@ -496,8 +501,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				self.find_setup_script()
 				self.get_config()
 
-				if os.path.isdir(self.tmp_dir):
-					shutil.rmtree(self.tmp_dir)
+				self.cleanup()
 				logger.debug("Create temp dir '%s'", self.tmp_dir)
 				os.makedirs(self.tmp_dir)
 
@@ -513,9 +517,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 					for _num in range(3):
 						time.sleep(1)
 			else:
-				if os.path.isdir(self.tmp_dir):
-					logger.debug("Delete temp dir '%s'", self.tmp_dir)
-					shutil.rmtree(self.tmp_dir)
+				self.cleanup()
 		finally:
 			if self.dialog:
 				self.dialog.close()

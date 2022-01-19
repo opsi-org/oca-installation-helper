@@ -1,6 +1,6 @@
 import re
 
-from ocainstallationhelper import encode_password, decode_password, get_mac_address
+from ocainstallationhelper import encode_password, decode_password, get_mac_address, get_resource_path
 
 def test_encode_decode_password():
 	text = r"asdf1234.,+-!'§$%&/()=?{[]}"
@@ -10,3 +10,10 @@ def test_encode_decode_password():
 def test_get_mac_address():
 	address = get_mac_address()
 	assert re.match("^"+r"[a-fA-F0-9]{2}:"*5+"[a-fA-F0-9]{2}$", address)
+
+def test_get_mac_address():
+	address = get_mac_address()
+	assert re.match("^"+r"[a-fA-F0-9]{2}:"*5+"[a-fA-F0-9]{2}$", address)
+
+def test_get_resource_path():
+	assert "oca-installation-helper" in get_resource_path(".")

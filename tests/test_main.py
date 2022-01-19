@@ -33,3 +33,17 @@ def test_get_config(installation_helper):
 	assert installation_helper.service_address
 	assert installation_helper.service_username
 	assert installation_helper.service_password
+	installation_helper.check_values()
+
+def test_copy_files(installation_helper):
+	installation_helper.base_dir = os.path.join(os.path.abspath("."), "tests", "test_data")
+	installation_helper.get_config()
+	installation_helper.copy_installation_files()
+	assert os.path.exists(os.path.join(installation_helper.tmp_dir, "install.conf"))
+	installation_helper.cleanup()
+	assert not os.path.exists(os.path.join(installation_helper.tmp_dir, "install.conf"))
+
+def test_zeroconf(installation_helper):
+	# starts zeroconf in asyncio loop - doesnt find anything in test
+	installation_helper.start_zeroconf()
+	#print(installation_helper.service_address)

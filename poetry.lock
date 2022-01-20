@@ -795,11 +795,11 @@ reference = "uib"
 
 [[package]]
 name = "python-opsi-common"
-version = "4.2.0.263"
+version = "4.2.0.267"
 description = "The opsi python common library"
 category = "main"
 optional = false
-python-versions = ">=3.7,<4.0"
+python-versions = ">=3.7,<3.11"
 
 [package.dependencies]
 colorlog = ">=6.6.0,<7.0.0"
@@ -1052,8 +1052,8 @@ reference = "uib"
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.7"
-content-hash = "619d48b7203eeab3a0a1d477fdf4b781e218fc0d92a32f2ff00d9a40217a50d5"
+python-versions = "^3.7,<3.11"
+content-hash = "4af2d11205dae2d38d272a400e4b74640bced150fe5287433ee9f7c86c25ed18"
 
 [metadata.files]
 altgraph = [
@@ -1421,6 +1421,11 @@ psutil = [
     {file = "psutil-5.9.0-cp310-cp310-manylinux_2_12_x86_64.manylinux2010_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:742c34fff804f34f62659279ed5c5b723bb0195e9d7bd9907591de9f8f6558e2"},
     {file = "psutil-5.9.0-cp310-cp310-win32.whl", hash = "sha256:8293942e4ce0c5689821f65ce6522ce4786d02af57f13c0195b40e1edb1db61d"},
     {file = "psutil-5.9.0-cp310-cp310-win_amd64.whl", hash = "sha256:9b51917c1af3fa35a3f2dabd7ba96a2a4f19df3dec911da73875e1edaf22a40b"},
+    {file = "psutil-5.9.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:e9805fed4f2a81de98ae5fe38b75a74c6e6ad2df8a5c479594c7629a1fe35f56"},
+    {file = "psutil-5.9.0-cp36-cp36m-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:c51f1af02334e4b516ec221ee26b8fdf105032418ca5a5ab9737e8c87dafe203"},
+    {file = "psutil-5.9.0-cp36-cp36m-manylinux_2_12_x86_64.manylinux2010_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:32acf55cb9a8cbfb29167cd005951df81b567099295291bcfd1027365b36591d"},
+    {file = "psutil-5.9.0-cp36-cp36m-win32.whl", hash = "sha256:e5c783d0b1ad6ca8a5d3e7b680468c9c926b804be83a3a8e95141b05c39c9f64"},
+    {file = "psutil-5.9.0-cp36-cp36m-win_amd64.whl", hash = "sha256:d62a2796e08dd024b8179bd441cb714e0f81226c352c802fca0fd3f89eeacd94"},
     {file = "psutil-5.9.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:3d00a664e31921009a84367266b35ba0aac04a2a6cad09c550a89041034d19a0"},
     {file = "psutil-5.9.0-cp37-cp37m-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:7779be4025c540d1d65a2de3f30caeacc49ae7a2152108adeaf42c7534a115ce"},
     {file = "psutil-5.9.0-cp37-cp37m-manylinux_2_12_x86_64.manylinux2010_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:072664401ae6e7c1bfb878c65d7282d4b4391f1bc9a56d5e03b5a490403271b5"},
@@ -1527,8 +1532,8 @@ python-gettext = [
     {file = "python-gettext-4.0.tar.gz", hash = "sha256:626b501a51ac892fc3460cf550e60dca121f544eaa46eb69c90ce4682fc7ec02"},
 ]
 python-opsi-common = [
-    {file = "python-opsi-common-4.2.0.263.tar.gz", hash = "sha256:da43c9afbc57109377bf01e89df8db5263b9769ee3677602d040e8435b1f24d6"},
-    {file = "python_opsi_common-4.2.0.263-py3-none-any.whl", hash = "sha256:11213d74941410077c586346cf9cb3dc34ee2f57de0f976db39fe6f30b6830d5"},
+    {file = "python-opsi-common-4.2.0.267.tar.gz", hash = "sha256:8dcdc29e8dc813c84aea486e747d51f79ad0e2067e88dffbaf810d9b37be3af1"},
+    {file = "python_opsi_common-4.2.0.267-py3-none-any.whl", hash = "sha256:bf23deeaef61565ced841e1dee4eb2d57ac4c9b5c1fc1c31b20e932e352cec10"},
 ]
 pywin32 = [
     {file = "pywin32-227-cp27-cp27m-win32.whl", hash = "sha256:371fcc39416d736401f0274dd64c2302728c9e034808e37381b5e1b22be4a6b0"},

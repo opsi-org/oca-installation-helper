@@ -2,25 +2,16 @@
 main tests
 """
 
-import re
 import os
 import pytest
 
-from ocainstallationhelper.__main__ import InstallationHelper, parse_args, encode_password, decode_password, get_mac_address
+from ocainstallationhelper.__main__ import InstallationHelper, parse_args
 
 @pytest.fixture
 def installation_helper():
 	args = []
 	return InstallationHelper(parse_args(args))
 
-def test_encode_decode_password():
-	text = r"asdf1234.,+-!'§$%&/()=?{[]}"
-	assert text != encode_password(text)
-	assert text == decode_password(encode_password(text))
-
-def test_get_mac_address():
-	address = get_mac_address()
-	assert re.match("^"+r"[a-fA-F0-9]{2}:"*5+"[a-fA-F0-9]{2}$", address)
 
 def test_helper_object(installation_helper):
 	ocdconf = installation_helper.opsiclientd_conf
@@ -42,3 +33,17 @@ def test_get_config(installation_helper):
 	assert installation_helper.service_address
 	assert installation_helper.service_username
 	assert installation_helper.service_password
+	installation_helper.check_values()
+
+def test_copy_files(installation_helper):
+	installation_helper.base_dir = os.path.join(os.path.abspath("."), "tests", "test_data")
+	installation_helper.get_config()
+	installation_helper.copy_installation_files()
+	assert os.path.exists(os.path.join(installation_helper.tmp_dir, "install.conf"))
+	installation_helper.cleanup()
+	assert not os.path.exists(os.path.join(installation_helper.tmp_dir, "install.conf"))
+
+# starts zeroconf in asyncio loop - doesnt find anything in test
+#def test_zeroconf(installation_helper):
+#	installation_helper.start_zeroconf()
+#	print(installation_helper.service_address)

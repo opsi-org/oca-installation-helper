@@ -11,9 +11,30 @@ opsi-client-agent installation_helper
 
 import os
 import sys
+import base64
 import subprocess
+import netifaces
+
+from opsicommon.logging import logger
 
 __version__ = "4.2.0.11"
+KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
+
+def encode_password(cleartext):
+	cipher = ""
+	for num, char in enumerate(cleartext):
+		key_c = KEY[num % len(KEY)]
+		cipher += chr((ord(char) + ord(key_c)) % 256)
+	return base64.urlsafe_b64encode(cipher.encode("utf-8")).decode("ascii")
+
+def decode_password(cipher):
+	cipher = cipher.replace("{crypt}", "")
+	cleartext = ""
+	cipher = base64.urlsafe_b64decode(cipher).decode("utf-8")
+	for num, char in enumerate(cipher):
+		key_c = KEY[num % len(KEY)]
+		cleartext += chr((ord(char) - ord(key_c) + 256) % 256)
+	return cleartext
 
 def monkeypatch_subprocess_for_frozen():
 	from subprocess import Popen as Popen_orig		# pylint: disable=import-outside-toplevel
@@ -43,3 +64,15 @@ def get_resource_path(relative_path):
 		base_path = os.path.abspath(".")
 
 	return os.path.join(base_path, relative_path)
+
+def get_mac_address():
+	gateways = netifaces.gateways()  # pylint: disable=c-extension-no-member
+	logger.debug("Gateways: %s", gateways)
+	if not "default" in gateways:
+		return None
+	default_if = list(gateways["default"].values())[0][1]
+	logger.info("Default interface: %s", default_if)
+	addrs = netifaces.ifaddresses(default_if)  # pylint: disable=c-extension-no-member
+	mac = addrs[netifaces.AF_LINK][0]["addr"]  # pylint: disable=c-extension-no-member
+	logger.info("Default mac address: %s", mac)
+	return mac

@@ -43,6 +43,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.cmdline_args = cmdline_args
 		# macos does not use DISPLAY. gui does not work properly on macos right now.
 		self.use_gui = platform.system().lower() == "windows" or os.environ.get("DISPLAY")
+		self.depot = None
+		self.group = None
 		self.dialog = None
 		self.clear_message_timer = None
 		self.backend = None
@@ -99,6 +101,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		placeholder_regex = re.compile(r'#\@(\w+)\**#+')
 		placeholder_regex_new = re.compile(r'%([\w\-]+)%')
 
+		def get_value_from_config_file(key_tuples):
+			for (section, key) in key_tuples:
+				result = config.get(section, key, fallback=None)
+				if result and not placeholder_regex.search(result) and not placeholder_regex_new.search(result):
+					return result
+			return None
+
 		install_conf = os.path.join(self.base_dir, "custom", "install.conf")
 		if not os.path.exists(install_conf):
 			install_conf = os.path.join(self.base_dir, "install.conf")
@@ -120,47 +129,31 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 						data = "[install]\n" + data
 					config.read_string(data)
 
-					if not self.client_id:
-						val = config.get(
-							"install", "client_id", # install.conf, config.ini
-							fallback=config.get("global", "host_id", # opsiclientd.conf
-								fallback=None
-							)
-						)
-						if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
-							self.client_id = val
-					if not self.service_address:
-						val = config.get(
-							"install", "service_address", # install.conf, config.ini
-							fallback=config.get("config_service", "url", # opsiclientd.conf
-								fallback=None
-							)
-						)
-						if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
-							self.service_address = val
-					if not self.service_username:
-						val = config.get(
-							"install", "service_username", # install.conf
-							fallback=config.get("install", "client_id", # config.ini
-								fallback=config.get("global", "host_id", # opsiclientd.conf
-									fallback=None
-								)
-							)
-						)
-						if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
-							self.service_username = val
-					if not self.service_password:
-						val = config.get(
-							"install", "service_password", # install.conf
-							fallback=config.get("install", "client_key", # config.ini
-								fallback=config.get("global", "opsi_host_key", # opsiclientd.conf
-									fallback=None
-								)
-							)
-						)
-						if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
-							self.service_password = val
-					val = config.get("install", "interactive", fallback=None) # install.conf
+					self.client_id = self.client_id or get_value_from_config_file([
+						("install", "client_id"),		# install.conf, config.ini
+						("global", "host_id")			# opsiclientd.conf
+					])
+					self.service_address = self.service_address or get_value_from_config_file([
+						("install", "service_address"),		# install.conf, config.ini
+						("config_service", "url")			# opsiclientd.conf
+					])
+					self.service_username = self.service_username or get_value_from_config_file([
+						("install", "service_username"),		# install.conf
+						("install", "client_id"),				# config.ini
+						("global", "host_id")					# opsiclientd.conf
+					])
+					self.service_password = self.service_password or get_value_from_config_file([
+						("install", "service_password"),		# install.conf
+						("install", "client_key"),				# config.ini
+						("global", "opsi_host_key")				# opsiclientd.conf
+					])
+					self.depot = self.depot or get_value_from_config_file([
+						("install", "depot"),		# install.conf
+					])
+					self.group = self.group or get_value_from_config_file([
+						("install", "group"),		# install.conf
+					])
+					val = config.get("install", "interactive", fallback=None)  # install.conf
 					if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
 						self.interactive = val.lower().strip() in ("yes", "true", "on", "1")
 					logger.debug(

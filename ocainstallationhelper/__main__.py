@@ -400,9 +400,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if password.startswith("{crypt}"):
 			password = decode_password(password)
 
-		print(password, type(password), password.__str__(), password.__repr__())
-		print(password.encode("utf-8"))
-
 		self.backend = Backend(
 			address=self.service_address,
 			username=self.service_username,

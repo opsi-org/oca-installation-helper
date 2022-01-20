@@ -43,7 +43,7 @@ def test_copy_files(installation_helper):
 	installation_helper.cleanup()
 	assert not os.path.exists(os.path.join(installation_helper.tmp_dir, "install.conf"))
 
-def test_zeroconf(installation_helper):
-	# starts zeroconf in asyncio loop - doesnt find anything in test
-	installation_helper.start_zeroconf()
-	#print(installation_helper.service_address)
+# starts zeroconf in asyncio loop - doesnt find anything in test
+#def test_zeroconf(installation_helper):
+#	installation_helper.start_zeroconf()
+#	print(installation_helper.service_address)

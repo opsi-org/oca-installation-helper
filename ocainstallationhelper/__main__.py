@@ -393,6 +393,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if password.startswith("{crypt}"):
 			password = decode_password(password)
 
+		logger.devel("environment: %s", os.environ())
+		import requests  # pylint: disable=import-outside-toplevel
+		try:
+			requests.get(self.service_address)
+		except Exception:  # pylint: disable=broad-except
+			logger.devel("request failed")
+
 		self.backend = Backend(
 			address=self.service_address,
 			username=self.service_username,

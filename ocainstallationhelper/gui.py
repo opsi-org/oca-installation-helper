@@ -17,13 +17,16 @@ import PySimpleGUI.PySimpleGUI
 from opsicommon.logging import logger
 from ocainstallationhelper import get_resource_path
 
-SG_THEME = "Default1" # "Reddit"
+SG_THEME = "Default1"  # "Reddit"
+
 
 def _refresh_debugger():
 	pass
 
+
 def _create_error_message():
 	pass
+
 
 PySimpleGUI.PySimpleGUI._refresh_debugger = _refresh_debugger  # pylint: disable=protected-access
 PySimpleGUI.PySimpleGUI._create_error_message = _create_error_message  # pylint: disable=protected-access
@@ -69,29 +72,29 @@ class GUIDialog(threading.Thread):
 
 	def run(self):
 		sg.theme(SG_THEME)
-		sg.SetOptions(element_padding=((1,1),0))
+		sg.SetOptions(element_padding=((1, 1), 0))
 		layout = [
 			[sg.Text("Client-ID")],
-			[sg.Input(key='client_id', size=(70,1), default_text=self.inst_helper.client_id)],
+			[sg.Input(key='client_id', size=(70, 1), default_text=self.inst_helper.client_id)],
 			[sg.Text("", font='Any 3')],
 			[sg.Text("Opsi Service url")],
 			[
-				sg.Input(key='service_address', size=(55,1), default_text=self.inst_helper.service_address),
-				sg.Button('Zeroconf', key='zeroconf', size=(15,1))
+				sg.Input(key='service_address', size=(55, 1), default_text=self.inst_helper.service_address),
+				sg.Button('Zeroconf', key='zeroconf', size=(15, 1))
 			],
 			[sg.Text("", font='Any 3')],
 			[sg.Text("Username")],
-			[sg.Input(key='service_username', size=(70,1), default_text=self.inst_helper.service_username)],
+			[sg.Input(key='service_username', size=(70, 1), default_text=self.inst_helper.service_username)],
 			[sg.Text("", font='Any 3')],
 			[sg.Text("Password")],
-			[sg.Input(key='service_password', size=(70,1), default_text=self.inst_helper.service_password, password_char="*")],
+			[sg.Input(key='service_password', size=(70, 1), default_text=self.inst_helper.service_password, password_char="*")],
 			[sg.Text("", font='Any 3')],
-			[sg.Text(size=(70,3), key='message')],
+			[sg.Text(size=(70, 3), key='message')],
 			[sg.Text("", font='Any 3')],
 			[
-				sg.Text("", size=(35,1)),
-				sg.Button('Cancel', key='cancel', size=(10,1)),
-				sg.Button('Install', key='install', size=(10,1), bind_return_key=True)
+				sg.Text("", size=(35, 1)),
+				sg.Button('Cancel', key='cancel', size=(10, 1)),
+				sg.Button('Install', key='install', size=(10, 1), bind_return_key=True)
 			]
 		]
 

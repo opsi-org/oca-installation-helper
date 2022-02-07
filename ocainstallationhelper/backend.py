@@ -33,7 +33,6 @@ class Backend:
 		except Exception as err:  # pylint: disable=broad-except
 			logger.warning("Adding %s to group %s failed: %s", client_id, group, err)
 
-
 	def assign_client_to_depot(self, client_id, depot):
 		try:
 			self.service.execute_rpc("configState_createObjects", [{

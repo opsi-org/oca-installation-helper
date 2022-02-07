@@ -1,11 +1,15 @@
 """
+oca-installation-helper tests
+
 main tests
 """
 
 import os
+from pathlib import Path
 import pytest
 
 from ocainstallationhelper.__main__ import InstallationHelper, parse_args
+
 
 @pytest.fixture
 def installation_helper():
@@ -15,19 +19,24 @@ def installation_helper():
 
 def test_helper_object(installation_helper):
 	ocdconf = installation_helper.opsiclientd_conf
-	assert ocdconf.endswith("opsiclientd.conf")
+	assert ocdconf.name == "opsiclientd.conf"
+
 
 def test_get_config(installation_helper):
 	with pytest.raises(RuntimeError):
 		installation_helper.find_setup_script()
-	os.makedirs(os.path.join(os.path.abspath("."), "tests", "no_data"), exist_ok=True)
-	installation_helper.base_dir = os.path.join(os.path.abspath("."), "tests", "no_data")
+	base_dir = Path(".") / "tests" / "no_data"
+	base_dir.mkdir(exist_ok=True)
+	installation_helper.base_dir = base_dir
 
 	installation_helper.get_config()
 	assert installation_helper.client_id
-	os.rmdir(os.path.join(os.path.abspath("."), "tests", "no_data"))
+	base_dir = Path(".") / "tests" / "no_data"
+	base_dir.rmdir()
 
-	installation_helper.base_dir = os.path.join(os.path.abspath("."), "tests", "test_data")
+	base_dir = Path(".") / "tests" / "test_data"
+	base_dir.mkdir(exist_ok=True)
+	installation_helper.base_dir = base_dir
 	installation_helper.get_config()
 	assert installation_helper.client_id
 	assert installation_helper.service_address
@@ -35,15 +44,19 @@ def test_get_config(installation_helper):
 	assert installation_helper.service_password
 	installation_helper.check_values()
 
+
 def test_copy_files(installation_helper):
-	installation_helper.base_dir = os.path.join(os.path.abspath("."), "tests", "test_data")
+	base_dir = Path(".") / "tests" / "test_data"
+	base_dir.mkdir(exist_ok=True)
+	installation_helper.base_dir = base_dir
 	installation_helper.get_config()
 	installation_helper.copy_installation_files()
 	assert os.path.exists(os.path.join(installation_helper.tmp_dir, "install.conf"))
 	installation_helper.cleanup()
 	assert not os.path.exists(os.path.join(installation_helper.tmp_dir, "install.conf"))
 
+
 # starts zeroconf in asyncio loop - doesnt find anything in test
-#def test_zeroconf(installation_helper):
+# def test_zeroconf(installation_helper):
 #	installation_helper.start_zeroconf()
 #	print(installation_helper.service_address)

@@ -28,6 +28,8 @@ from zeroconf import ServiceBrowser, Zeroconf
 import opsicommon
 from opsicommon.exceptions import BackendAuthenticationError
 from opsicommon.logging import logging_config
+from opsicommon.types import forceHostId
+
 from ocainstallationhelper import __version__, monkeypatch_subprocess_for_frozen, logger, encode_password, decode_password
 from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
@@ -361,11 +363,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if not self.client_id:
 			raise ValueError("Client id undefined")
 
-		self.client_id = self.client_id.lower()
-
-		for part in self.client_id.split("."):
-			if len(part) < 1 or len(part) > 63:
-				raise ValueError("Invalid client id")
+		self.client_id = forceHostId(self.client_id)
 
 	def install(self):
 		try:
@@ -613,7 +611,7 @@ def main():
 
 	if log_level != "NONE":
 		logging_config(
-			file_level=getattr(opsicommon.logging, 'LOG_'+log_level),
+			file_level=getattr(opsicommon.logging, f'LOG_{log_level}'),
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
 			log_file=args.log_file
 		)

@@ -393,7 +393,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			password = decode_password(password)
 
 		if platform.system().lower() == "darwin":
-			os.environ["DYLD_LIBRARY_PATH"] = f'{Path(".").absolute() / "files" / "opsi-script.app" / "Contents" / "Frameworks"}'
+			os.environ["DYLD_FRAMEWORK_PATH"] = f'{Path(".").absolute() / "files" / "opsi-script.app" / "Contents" / "Frameworks"}'
 			logger.devel("patched environment: %s", os.environ)
 			import requests  # pylint: disable=import-outside-toplevel
 			try:

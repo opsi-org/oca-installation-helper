@@ -12,18 +12,21 @@ opsi-client-agent installation_helper gui component
 import time
 import threading
 import platform
-import PySimpleGUI.PySimpleGUI
+import PySimpleGUI.PySimpleGUI  # type: ignore[import]
 
-from opsicommon.logging import logger
+from opsicommon.logging import logger  # type: ignore[import]
 from ocainstallationhelper import get_resource_path
 
-SG_THEME = "Default1" # "Reddit"
+SG_THEME = "Default1"  # "Reddit"
+
 
 def _refresh_debugger():
 	pass
 
+
 def _create_error_message():
 	pass
+
 
 PySimpleGUI.PySimpleGUI._refresh_debugger = _refresh_debugger  # pylint: disable=protected-access
 PySimpleGUI.PySimpleGUI._create_error_message = _create_error_message  # pylint: disable=protected-access
@@ -39,13 +42,7 @@ def get_icon():
 
 def show_message(message):
 	sg.theme(SG_THEME)
-	sg.popup_scrolled(
-		message,
-		title="opsi client agent installer",
-		icon=get_icon(),
-		auto_close=True,
-		auto_close_duration=20
-	)
+	sg.popup_scrolled(message, title="opsi client agent installer", icon=get_icon(), auto_close=True, auto_close_duration=20)
 
 
 class GUIDialog(threading.Thread):
@@ -69,30 +66,30 @@ class GUIDialog(threading.Thread):
 
 	def run(self):
 		sg.theme(SG_THEME)
-		sg.SetOptions(element_padding=((1,1),0))
+		sg.SetOptions(element_padding=((1, 1), 0))
 		layout = [
 			[sg.Text("Client-ID")],
-			[sg.Input(key='client_id', size=(70,1), default_text=self.inst_helper.client_id)],
-			[sg.Text("", font='Any 3')],
+			[sg.Input(key="client_id", size=(70, 1), default_text=self.inst_helper.client_id)],
+			[sg.Text("", font="Any 3")],
 			[sg.Text("Opsi Service url")],
 			[
-				sg.Input(key='service_address', size=(55,1), default_text=self.inst_helper.service_address),
-				sg.Button('Zeroconf', key='zeroconf', size=(15,1))
+				sg.Input(key="service_address", size=(55, 1), default_text=self.inst_helper.service_address),
+				sg.Button("Zeroconf", key="zeroconf", size=(15, 1)),
 			],
-			[sg.Text("", font='Any 3')],
+			[sg.Text("", font="Any 3")],
 			[sg.Text("Username")],
-			[sg.Input(key='service_username', size=(70,1), default_text=self.inst_helper.service_username)],
-			[sg.Text("", font='Any 3')],
+			[sg.Input(key="service_username", size=(70, 1), default_text=self.inst_helper.service_username)],
+			[sg.Text("", font="Any 3")],
 			[sg.Text("Password")],
-			[sg.Input(key='service_password', size=(70,1), default_text=self.inst_helper.service_password, password_char="*")],
-			[sg.Text("", font='Any 3')],
-			[sg.Text(size=(70,3), key='message')],
-			[sg.Text("", font='Any 3')],
+			[sg.Input(key="service_password", size=(70, 1), default_text=self.inst_helper.service_password, password_char="*")],
+			[sg.Text("", font="Any 3")],
+			[sg.Text(size=(70, 3), key="message")],
+			[sg.Text("", font="Any 3")],
 			[
-				sg.Text("", size=(35,1)),
-				sg.Button('Cancel', key='cancel', size=(10,1)),
-				sg.Button('Install', key='install', size=(10,1), bind_return_key=True)
-			]
+				sg.Text("", size=(35, 1)),
+				sg.Button("Cancel", key="cancel", size=(10, 1)),
+				sg.Button("Install", key="install", size=(10, 1), bind_return_key=True),
+			],
 		]
 
 		height = 350
@@ -100,13 +97,7 @@ class GUIDialog(threading.Thread):
 			height = 310
 		icon = get_icon()
 		logger.debug("rendering window with icon %s and layout %s", icon, layout)
-		self.window = sg.Window(
-			title="opsi client agent installation",
-			icon=icon,
-			size=(500, height),
-			layout=layout,
-			finalize=True
-		)
+		self.window = sg.Window(title="opsi client agent installation", icon=icon, size=(500, height), layout=layout, finalize=True)
 
 		while not self._closed:
 			event, values = self.window.read(timeout=1000)
@@ -117,7 +108,7 @@ class GUIDialog(threading.Thread):
 				for key, val in values.items():
 					setattr(self.inst_helper, key, val)
 
-			if event in (sg.WINDOW_CLOSED, 'cancel'):
+			if event in (sg.WINDOW_CLOSED, "cancel"):
 				self.inst_helper.on_cancel_button()
 			elif event == "zeroconf":
 				self.inst_helper.on_zeroconf_button()
@@ -140,5 +131,5 @@ class GUIDialog(threading.Thread):
 		if severity == "error":
 			text_color = "red"
 
-		self.window['message'].update(message, text_color=text_color)
+		self.window["message"].update(message, text_color=text_color)
 		self.window.refresh()

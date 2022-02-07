@@ -1,11 +1,11 @@
-"""
-main tests
-"""
+"""test main"""
 
 import os
 import pytest
 
+
 from ocainstallationhelper.__main__ import InstallationHelper, parse_args
+
 
 @pytest.fixture
 def installation_helper():
@@ -13,11 +13,12 @@ def installation_helper():
 	return InstallationHelper(parse_args(args))
 
 
-def test_helper_object(installation_helper):
+def test_helper_object(installation_helper):  # pylint: disable=redefined-outer-name
 	ocdconf = installation_helper.opsiclientd_conf
 	assert ocdconf.endswith("opsiclientd.conf")
 
-def test_get_config(installation_helper):
+
+def test_get_config(installation_helper):  # pylint: disable=redefined-outer-name
 	with pytest.raises(RuntimeError):
 		installation_helper.find_setup_script()
 	os.makedirs(os.path.join(os.path.abspath("."), "tests", "no_data"), exist_ok=True)
@@ -35,7 +36,8 @@ def test_get_config(installation_helper):
 	assert installation_helper.service_password
 	installation_helper.check_values()
 
-def test_copy_files(installation_helper):
+
+def test_copy_files(installation_helper):  # pylint: disable=redefined-outer-name
 	installation_helper.base_dir = os.path.join(os.path.abspath("."), "tests", "test_data")
 	installation_helper.get_config()
 	installation_helper.copy_installation_files()
@@ -43,7 +45,8 @@ def test_copy_files(installation_helper):
 	installation_helper.cleanup()
 	assert not os.path.exists(os.path.join(installation_helper.tmp_dir, "install.conf"))
 
+
 # starts zeroconf in asyncio loop - doesnt find anything in test
-#def test_zeroconf(installation_helper):
-#	installation_helper.start_zeroconf()
-#	print(installation_helper.service_address)
+# def test_zeroconf(installation_helper):
+# 	installation_helper.start_zeroconf()
+# 	print(installation_helper.service_address)

@@ -25,10 +25,10 @@ import shutil
 import psutil
 from zeroconf import ServiceBrowser, Zeroconf
 
-import opsicommon
-from opsicommon.exceptions import BackendAuthenticationError
-from opsicommon.logging import logging_config
-from opsicommon.types import forceHostId
+import opsicommon  # type: ignore[import]
+from opsicommon.exceptions import BackendAuthenticationError  # type: ignore[import]
+from opsicommon.logging import logging_config  # type: ignore[import]
+from opsicommon.types import forceHostId  # type: ignore[import]
 
 from ocainstallationhelper import __version__, monkeypatch_subprocess_for_frozen, logger, encode_password, decode_password
 from ocainstallationhelper.console import ConsoleDialog
@@ -59,7 +59,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.service_address = None
 		self.service_username = None
 		self.service_password = None
-		self.finalize = "noreboot"	# or reboot or shutdown
+		self.finalize = "noreboot"  # or reboot or shutdown
 		self.base_dir = None
 		self.setup_script = None
 		self.full_path = sys.argv[0]
@@ -67,7 +67,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.tmp_dir = os.path.join(tempfile.gettempdir(), "oca-installation-helper-tmp")
 		if not os.path.isabs(self.full_path):
 			self.full_path = os.path.abspath(os.path.join(os.path.curdir, self.full_path))
-		#signal.signal(signal.SIGINT, self.signal_handler)
+		# signal.signal(signal.SIGINT, self.signal_handler)
 		self.get_cmdline_config()
 		logger.info("Installation helper running from '%s', working dir '%s'", self.full_path, os.path.curdir)
 
@@ -77,12 +77,15 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 
 	@property
 	def opsiclientd_conf(self):
-		if platform.system().lower() == 'windows':
+		if platform.system().lower() == "windows":
 			return os.path.join(
 				os.environ.get("PROGRAMFILES(X86)") or os.environ.get("PROGRAMFILES"),
-				"opsi.org", "opsi-client-agent", "opsiclientd", "opsiclientd.conf"
+				"opsi.org",
+				"opsi-client-agent",
+				"opsiclientd",
+				"opsiclientd.conf",
 			)
-		if platform.system().lower() in ('linux', 'darwin'):
+		if platform.system().lower() in ("linux", "darwin"):
 			return "/etc/opsi-client-agent/opsiclientd.conf"
 		return None
 
@@ -94,14 +97,14 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				try:
 					netmask = snic.netmask
 					if ":" in netmask:
-						netmask = netmask.lower().count('f') * 4
+						netmask = netmask.lower().count("f") * 4
 					yield ipaddress.ip_interface(f"{snic.address.split('%')[0]}/{netmask}")
 				except ValueError:
 					continue
 
 	def read_config_files(self):  # pylint: disable=too-many-branches
-		placeholder_regex = re.compile(r'#\@(\w+)\**#+')
-		placeholder_regex_new = re.compile(r'%([\w\-]+)%')
+		placeholder_regex = re.compile(r"#\@(\w+)\**#+")
+		placeholder_regex_new = re.compile(r"%([\w\-]+)%")
 
 		def get_value_from_config_file(key_tuples):
 			for (section, key) in key_tuples:
@@ -114,11 +117,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if not os.path.exists(install_conf):
 			install_conf = os.path.join(self.base_dir, "install.conf")
 
-		for config_file in (
-			install_conf,
-			os.path.join(self.base_dir, "files", "opsi", "cfg", "config.ini"),
-			self.opsiclientd_conf
-		):
+		for config_file in (install_conf, os.path.join(self.base_dir, "files", "opsi", "cfg", "config.ini"), self.opsiclientd_conf):
 			if not os.path.exists(config_file):
 				logger.info("Config file '%s' not found", config_file)
 				continue
@@ -127,42 +126,52 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				config = ConfigParser()
 				with codecs.open(config_file, "r", "utf-8") as file:
 					data = file.read().replace("\r\n", "\n")
-					if os.path.basename(config_file) == "install.conf" and not "[install]" in data:
+					if os.path.basename(config_file) == "install.conf" and "[install]" not in data:
 						data = "[install]\n" + data
 					config.read_string(data)
 
-					self.client_id = self.client_id or get_value_from_config_file([
-						("install", "client_id"),		# install.conf, config.ini
-						("global", "host_id")			# opsiclientd.conf
-					])
-					self.service_address = self.service_address or get_value_from_config_file([
-						("install", "service_address"),		# install.conf, config.ini
-						("config_service", "url")			# opsiclientd.conf
-					])
-					self.service_username = self.service_username or get_value_from_config_file([
-						("install", "service_username"),		# install.conf
-						("install", "client_id"),				# config.ini
-						("global", "host_id")					# opsiclientd.conf
-					])
-					self.service_password = self.service_password or get_value_from_config_file([
-						("install", "service_password"),		# install.conf
-						("install", "client_key"),				# config.ini
-						("global", "opsi_host_key")				# opsiclientd.conf
-					])
-					self.depot = self.depot or get_value_from_config_file([
-						("install", "depot"),		# install.conf
-					])
-					self.group = self.group or get_value_from_config_file([
-						("install", "group"),		# install.conf
-					])
+					self.client_id = self.client_id or get_value_from_config_file(
+						[("install", "client_id"), ("global", "host_id")]  # install.conf, config.ini  # opsiclientd.conf
+					)
+					self.service_address = self.service_address or get_value_from_config_file(
+						[("install", "service_address"), ("config_service", "url")]  # install.conf, config.ini  # opsiclientd.conf
+					)
+					self.service_username = self.service_username or get_value_from_config_file(
+						[
+							("install", "service_username"),  # install.conf
+							("install", "client_id"),  # config.ini
+							("global", "host_id"),  # opsiclientd.conf
+						]
+					)
+					self.service_password = self.service_password or get_value_from_config_file(
+						[
+							("install", "service_password"),  # install.conf
+							("install", "client_key"),  # config.ini
+							("global", "opsi_host_key"),  # opsiclientd.conf
+						]
+					)
+					self.depot = self.depot or get_value_from_config_file(
+						[
+							("install", "depot"),  # install.conf
+						]
+					)
+					self.group = self.group or get_value_from_config_file(
+						[
+							("install", "group"),  # install.conf
+						]
+					)
 					val = config.get("install", "interactive", fallback=None)  # install.conf
 					if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
 						self.interactive = val.lower().strip() in ("yes", "true", "on", "1")
 					logger.debug(
 						"Config after reading '%s': interactive=%s, client_id=%s, "
 						"service_address=%s, service_username=%s, service_password=%s",
-						config_file, self.interactive, self.client_id, self.service_address,
-						self.service_username, "*" * len(self.service_password or "")
+						config_file,
+						self.interactive,
+						self.client_id,
+						self.service_address,
+						self.service_username,
+						"*" * len(self.service_password or ""),
 					)
 			except Exception as err:  # pylint: disable=broad-except
 				logger.error(err, exc_info=True)
@@ -182,9 +191,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		logger.debug(
 			"Config from cmdline: interactive=%s, client_id=%s, "
 			"service_address=%s, service_username=%s, service_password=%s, depot=%s, group=%s",
-			self.interactive, self.client_id, self.service_address,
-			self.service_username, "*" * len(self.service_password or ""),
-			self.depot, self.group
+			self.interactive,
+			self.client_id,
+			self.service_address,
+			self.service_username,
+			"*" * len(self.service_password or ""),
+			self.depot,
+			self.group,
 		)
 
 	def get_config(self):
@@ -201,10 +214,12 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				time.sleep(1)
 
 		logger.debug(
-			"Config: interactive=%s, client_id=%s, "
-			"service_address=%s, service_username=%s, service_password=%s",
-			self.interactive, self.client_id, self.service_address,
-			self.service_username, "*" * len(self.service_password or "")
+			"Config: interactive=%s, client_id=%s, " "service_address=%s, service_username=%s, service_password=%s",
+			self.interactive,
+			self.client_id,
+			self.service_address,
+			self.service_username,
+			"*" * len(self.service_password or ""),
 		)
 
 		if self.dialog:
@@ -216,11 +231,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			self.zeroconf.close()
 		try:
 			self.zeroconf = Zeroconf()
-			ServiceBrowser(
-				zc=self.zeroconf,
-				type_="_opsics._tcp.local.",
-				handlers=[self.zeroconf_handler]
-			)
+			ServiceBrowser(zc=self.zeroconf, type_="_opsics._tcp.local.", handlers=[self.zeroconf_handler])
 		except Exception as err:  # pylint: disable=broad-except
 			logger.error("Failed to start zeroconf: %s", err, exc_info=True)
 
@@ -228,7 +239,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		info = zeroconf.get_service_info(service_type, name)
 		logger.info(
 			"opsi config service detected: server=%s, port=%s, version=%s",
-			info.server, info.port, info.properties.get(b'version', b'').decode()
+			info.server,
+			info.port,
+			info.properties.get(b"version", b"").decode(),
 		)
 		logger.debug(info)
 
@@ -236,7 +249,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			return
 
 		ifaces = list(self.get_ip_interfaces())
-		logger.info("Local ip interfaces: %s", [iface.compressed for iface in  ifaces])
+		logger.info("Local ip interfaces: %s", [iface.compressed for iface in ifaces])
 		for service_address in info.parsed_addresses():
 			logger.info("Service address: %s", service_address)
 			try:
@@ -247,7 +260,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				if service_address in iface.network:
 					logger.info("Service address '%s' in network '%s'", service_address, iface.network)
 					service_url = f"https://{service_address}:{info.port}"
-					if not service_url in self.zeroconf_addresses:
+					if service_url not in self.zeroconf_addresses:
 						self.zeroconf_addresses.append(service_url)
 				logger.debug("Service address '%s' not in network '%s'", service_address, iface.network)
 
@@ -260,7 +273,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			self.dialog.update()
 
 		self.show_message(f"opsi config services found: {len(self.zeroconf_addresses)}", display_seconds=3)
-
 
 	def copy_installation_files(self):
 		dst_dir = os.path.join(self.tmp_dir)
@@ -296,13 +308,21 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				logger.error("Could not create log directory %s due to %s\n still trying to continue", exc, log_dir, exc_info=True)
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
 		arg_list = [
-			self.setup_script, log_file, "/servicebatch",
-			"/productid", "opsi-client-agent",
-			"/opsiservice", self.service_address,
-			"/clientid", self.client_id,
-			"/username", self.client_id,
-			"/password", self.client_key,
-			"/parameter", self.finalize
+			self.setup_script,
+			log_file,
+			"/servicebatch",
+			"/productid",
+			"opsi-client-agent",
+			"/opsiservice",
+			self.service_address,
+			"/clientid",
+			self.client_id,
+			"/username",
+			self.client_id,
+			"/password",
+			self.client_key,
+			"/parameter",
+			self.finalize,
 		]
 
 		arg_list = ",".join([f'"{arg}"' for arg in arg_list])
@@ -326,13 +346,21 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			os.makedirs(log_dir)
 		log_file = os.path.join(log_dir, "opsi-client-agent.log")
 		arg_list = [
-			"-servicebatch", self.setup_script, log_file,
-			"-productid", productid,
-			"-opsiservice", self.service_address,
-			"-clientid", self.client_id,
-			"-username", self.client_id,
-			"-password", self.client_key,
-			"-parameter", self.finalize
+			"-servicebatch",
+			self.setup_script,
+			log_file,
+			"-productid",
+			productid,
+			"-opsiservice",
+			self.service_address,
+			"-clientid",
+			self.client_id,
+			"-username",
+			self.client_id,
+			"-password",
+			self.client_key,
+			"-parameter",
+			self.finalize,
 		]
 
 		command = [opsi_script]
@@ -344,13 +372,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 	def run_setup_script(self):
 		self.show_message("Running setup script")
 
-		if platform.system().lower() == 'windows':
+		if platform.system().lower() == "windows":
 			self.backend.set_poc_to_installing("opsi-client-agent", self.client_id)
 			return self.run_setup_script_windows()
-		if platform.system().lower() == 'linux':
+		if platform.system().lower() == "linux":
 			self.backend.set_poc_to_installing("opsi-linux-client-agent", self.client_id)
 			return self.run_setup_script_posix()
-		if platform.system().lower() == 'darwin':
+		if platform.system().lower() == "darwin":
 			self.backend.set_poc_to_installing("opsi-mac-client-agent", self.client_id)
 			return self.run_setup_script_posix()
 
@@ -369,9 +397,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		try:
 			self.check_values()
 			self.service_setup()
-			if (
-				platform.system().lower() == 'windows' and
-				not self.full_path.lower().startswith(os.path.splitdrive(tempfile.gettempdir())[0].lower())
+			if platform.system().lower() == "windows" and not self.full_path.lower().startswith(
+				os.path.splitdrive(tempfile.gettempdir())[0].lower()
 			):
 				self.copy_installation_files()
 			self.run_setup_script()
@@ -391,14 +418,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if password.startswith("{crypt}"):
 			password = decode_password(password)
 
-		self.backend = Backend(
-			address=self.service_address,
-			username=self.service_username,
-			password=password
-		)
+		self.backend = Backend(address=self.service_address, username=self.service_username, password=password)
 
 		self.show_message("Connected", "success")
-		if "." not in self.client_id:		# pylint: disable=unsupported-membership-test
+		if "." not in self.client_id:  # pylint: disable=unsupported-membership-test
 			self.client_id = f"{self.client_id}.{self.backend.get_domain()}"
 			if self.dialog:
 				self.dialog.update()
@@ -517,87 +540,37 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 def show_message(message):
 	if platform.system().lower() == "windows":
 		from .gui import show_message as _show_message  # pylint: disable=import-outside-toplevel
+
 		_show_message(message)
 	else:
 		sys.stdout.write(message)
+
 
 class ArgumentParser(argparse.ArgumentParser):
 	def _print_message(self, message, file=None):
 		show_message(message)
 
+
 def parse_args(args=None):
 	if args is None:
-		args = sys.argv[1:]	# executable path is not processed
+		args = sys.argv[1:]  # executable path is not processed
 	parser = ArgumentParser()
-	parser.add_argument(
-		"--version",
-		action="version",
-		version=__version__
-	)
-	parser.add_argument(
-		"--log-file",
-		default=os.path.join(
-			tempfile.gettempdir(), "oca-installation-helper.log"
-		)
-	)
-	parser.add_argument(
-		"--log-level",
-		default="warning",
-		choices=["none", "debug", "info", "warning", "error", "critical"]
-	)
-	parser.add_argument(
-		"--service-address",
-		default=None,
-		help="Service address to use."
-	)
-	parser.add_argument(
-		"--service-username",
-		default=None,
-		help="Username to use for service connection."
-	)
-	parser.add_argument(
-		"--service-password",
-		default=None,
-		help="Password to use for service connection."
-	)
-	parser.add_argument(
-		"--client-id",
-		default=None,
-		help="Client id to use."
-	)
-	parser.add_argument(
-		"--non-interactive",
-		action="store_true",
-		help="Do not ask questions."
-	)
-	parser.add_argument(
-		"--no-gui",
-		action="store_true",
-		help="Do not use gui."
-	)
-	parser.add_argument(
-		"--gui",
-		action="store_true",
-		help="Use gui."
-	)
-	parser.add_argument(
-		"--encode-password",
-		action="store",
-		metavar="PASSWORD",
-		help="Encode PASSWORD."
-	)
-	parser.add_argument(
-		"--depot",
-		help="Assign client to specified depot.",
-		metavar="DEPOT"
-	)
-	parser.add_argument(
-		"--group",
-		help="Insert client into specified host group.",
-		metavar="HOSTGROUP"
-	)
+	parser.add_argument("--version", action="version", version=__version__)
+	parser.add_argument("--log-file", default=os.path.join(tempfile.gettempdir(), "oca-installation-helper.log"))
+	parser.add_argument("--log-level", default="warning", choices=["none", "debug", "info", "warning", "error", "critical"])
+	parser.add_argument("--service-address", default=None, help="Service address to use.")
+	parser.add_argument("--service-username", default=None, help="Username to use for service connection.")
+	parser.add_argument("--service-password", default=None, help="Password to use for service connection.")
+	parser.add_argument("--client-id", default=None, help="Client id to use.")
+	parser.add_argument("--non-interactive", action="store_true", help="Do not ask questions.")
+	parser.add_argument("--no-gui", action="store_true", help="Do not use gui.")
+	parser.add_argument("--gui", action="store_true", help="Use gui.")
+	parser.add_argument("--encode-password", action="store", metavar="PASSWORD", help="Encode PASSWORD.")
+	parser.add_argument("--depot", help="Assign client to specified depot.", metavar="DEPOT")
+	parser.add_argument("--group", help="Insert client into specified host group.", metavar="HOSTGROUP")
 
 	return parser.parse_args(args)
+
 
 def main():
 	args = parse_args()
@@ -611,9 +584,9 @@ def main():
 
 	if log_level != "NONE":
 		logging_config(
-			file_level=getattr(opsicommon.logging, f'LOG_{log_level}'),
+			file_level=getattr(opsicommon.logging, f"LOG_{log_level}"),
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
-			log_file=args.log_file
+			log_file=args.log_file,
 		)
 
 	InstallationHelper(args).run()

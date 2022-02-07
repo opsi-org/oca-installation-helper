@@ -13,12 +13,14 @@ import os
 import sys
 import base64
 import subprocess
-import netifaces
+import netifaces  # type: ignore[import]
 
-from opsicommon.logging import logger
+from opsicommon.logging import logger  # type: ignore[import]
 
 __version__ = "4.2.0.11"
+
 KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
+
 
 def encode_password(cleartext):
 	cipher = ""
@@ -26,6 +28,7 @@ def encode_password(cleartext):
 		key_c = KEY[num % len(KEY)]
 		cipher += chr((ord(char) + ord(key_c)) % 256)
 	return base64.urlsafe_b64encode(cipher.encode("utf-8")).decode("ascii")
+
 
 def decode_password(cipher):
 	cipher = cipher.replace("{crypt}", "")
@@ -36,8 +39,10 @@ def decode_password(cipher):
 		cleartext += chr((ord(char) - ord(key_c) + 256) % 256)
 	return cleartext
 
+
 def monkeypatch_subprocess_for_frozen():
-	from subprocess import Popen as Popen_orig		# pylint: disable=import-outside-toplevel
+	from subprocess import Popen as Popen_orig  # pylint: disable=import-outside-toplevel
+
 	class PopenPatched(Popen_orig):
 		def __init__(self, *args, **kwargs):
 			if kwargs.get("env") is None:
@@ -55,8 +60,9 @@ def monkeypatch_subprocess_for_frozen():
 
 	subprocess.Popen = PopenPatched
 
+
 def get_resource_path(relative_path):
-	""" Get absolute path to resource, works for dev and for PyInstaller """
+	"""Get absolute path to resource, works for dev and for PyInstaller"""
 	try:
 		# PyInstaller creates a temp folder and stores path in _MEIPASS
 		base_path = sys._MEIPASS  # pylint: disable=protected-access,no-member
@@ -65,10 +71,11 @@ def get_resource_path(relative_path):
 
 	return os.path.join(base_path, relative_path)
 
+
 def get_mac_address():
 	gateways = netifaces.gateways()  # pylint: disable=c-extension-no-member
 	logger.debug("Gateways: %s", gateways)
-	if not "default" in gateways:
+	if "default" not in gateways:
 		return None
 	default_if = list(gateways["default"].values())[0][1]
 	logger.info("Default interface: %s", default_if)

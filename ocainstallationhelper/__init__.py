@@ -10,15 +10,19 @@ opsi-client-agent installation_helper
 """
 
 import os
+from pathlib import Path
 import sys
+from typing import Union, Generator
+import socket
+import ipaddress
 import base64
 import subprocess
+import psutil
 import netifaces  # type: ignore[import]
 
 from opsicommon.logging import logger  # type: ignore[import]
 
-__version__ = "4.2.0.11"
-
+__version__ = "4.2.0.13"
 KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
 
 
@@ -67,7 +71,7 @@ def get_resource_path(relative_path):
 		# PyInstaller creates a temp folder and stores path in _MEIPASS
 		base_path = sys._MEIPASS  # pylint: disable=protected-access,no-member
 	except Exception:  # pylint: disable=broad-except
-		base_path = os.path.abspath(".")
+		base_path = Path(".").absolute()
 
 	return os.path.join(base_path, relative_path)
 
@@ -83,3 +87,18 @@ def get_mac_address():
 	mac = addrs[netifaces.AF_LINK][0]["addr"]  # pylint: disable=c-extension-no-member
 	logger.info("Default mac address: %s", mac)
 	return mac
+
+
+def get_ip_interfaces() -> Generator[Union[ipaddress.IPv4Interface, ipaddress.IPv6Interface], None, None]:
+	for snics in psutil.net_if_addrs().values():
+		for snic in snics:
+			if snic.family not in (socket.AF_INET, socket.AF_INET6) or not snic.address or not snic.netmask:
+				continue
+			try:
+				netmask = snic.netmask
+				if ":" in netmask:
+					yield ipaddress.ip_interface(f"{snic.address.split('%')[0]}/{netmask.lower().count('f') * 4}")
+				else:
+					yield ipaddress.ip_interface(f"{snic.address.split('%')[0]}/{netmask}")
+			except ValueError:
+				continue

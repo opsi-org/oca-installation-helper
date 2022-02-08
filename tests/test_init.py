@@ -1,4 +1,9 @@
-"""test init"""
+"""
+oca-installation-helper tests
+
+test for utility functions
+"""
+
 import re
 
 from ocainstallationhelper import encode_password, decode_password, get_mac_address, get_resource_path

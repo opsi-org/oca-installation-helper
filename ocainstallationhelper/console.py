@@ -118,7 +118,7 @@ class ConsoleDialog(threading.Thread):
 			width = 80
 			height = 13
 			padding = 3
-			label_width = 10
+			label_width = 18
 			button_y = 11
 			button_w = 14
 

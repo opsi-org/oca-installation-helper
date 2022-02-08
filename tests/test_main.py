@@ -1,6 +1,11 @@
-"""test main"""
+"""
+oca-installation-helper tests
 
-import os
+main tests
+"""
+# pylint: disable=redefined-outer-name
+
+from pathlib import Path
 import pytest
 
 
@@ -15,20 +20,24 @@ def installation_helper():
 
 def test_helper_object(installation_helper):  # pylint: disable=redefined-outer-name
 	ocdconf = installation_helper.opsiclientd_conf
-	assert ocdconf.endswith("opsiclientd.conf")
+	assert ocdconf.name == "opsiclientd.conf"
 
 
 def test_get_config(installation_helper):  # pylint: disable=redefined-outer-name
 	with pytest.raises(RuntimeError):
 		installation_helper.find_setup_script()
-	os.makedirs(os.path.join(os.path.abspath("."), "tests", "no_data"), exist_ok=True)
-	installation_helper.base_dir = os.path.join(os.path.abspath("."), "tests", "no_data")
+	base_dir = Path(".") / "tests" / "no_data"
+	base_dir.mkdir(exist_ok=True)
+	installation_helper.base_dir = base_dir
 
 	installation_helper.get_config()
 	assert installation_helper.client_id
-	os.rmdir(os.path.join(os.path.abspath("."), "tests", "no_data"))
+	base_dir = Path(".") / "tests" / "no_data"
+	base_dir.rmdir()
 
-	installation_helper.base_dir = os.path.join(os.path.abspath("."), "tests", "test_data")
+	base_dir = Path(".") / "tests" / "test_data"
+	base_dir.mkdir(exist_ok=True)
+	installation_helper.base_dir = base_dir
 	installation_helper.get_config()
 	assert installation_helper.client_id
 	assert installation_helper.service_address
@@ -37,13 +46,15 @@ def test_get_config(installation_helper):  # pylint: disable=redefined-outer-nam
 	installation_helper.check_values()
 
 
-def test_copy_files(installation_helper):  # pylint: disable=redefined-outer-name
-	installation_helper.base_dir = os.path.join(os.path.abspath("."), "tests", "test_data")
+def test_copy_files(installation_helper):
+	base_dir = Path(".") / "tests" / "test_data"
+	base_dir.mkdir(exist_ok=True)
+	installation_helper.base_dir = base_dir
 	installation_helper.get_config()
 	installation_helper.copy_installation_files()
-	assert os.path.exists(os.path.join(installation_helper.tmp_dir, "install.conf"))
+	assert (installation_helper.tmp_dir / "install.conf").exists()
 	installation_helper.cleanup()
-	assert not os.path.exists(os.path.join(installation_helper.tmp_dir, "install.conf"))
+	assert not (installation_helper.tmp_dir / "install.conf").exists()
 
 
 # starts zeroconf in asyncio loop - doesnt find anything in test

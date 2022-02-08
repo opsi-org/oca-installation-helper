@@ -10,4 +10,8 @@ pyinstaller-poetry:
       dst: .
   icon: opsi.ico
   extra_args:
-    - "--noconsole"
+    all:
+      - "--noconsole"
+    darwin:
+      - --exclude-module
+      - tkinter

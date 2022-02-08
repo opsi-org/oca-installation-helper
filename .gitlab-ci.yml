@@ -96,7 +96,7 @@ build:pyinstaller-darwin-x64:
     - source $HOME/.poetry/env
     - poetry install
     - poetry run opsi-dev-tool -l info --pyinstaller-poetry-build
-    - ./dist/oca-installation-helper --version
+    #- ./dist/oca-installation-helper --version
     - '[ "$CI_COMMIT_TAG" = "" ] && poetry run opsi-dev-tool -l info --binary-push dist/oca-installation-helper "$CI_JOB_ID"'
     - '[ "$CI_COMMIT_TAG" = "" ] || poetry run opsi-dev-tool -l info --binary-push dist/oca-installation-helper'
 
@@ -105,12 +105,13 @@ build:pyinstaller-linux-x64:
   script:
     - poetry install
     - poetry run opsi-dev-tool -l info --pyinstaller-poetry-build
-    - ./dist/oca-installation-helper --version
+    #- ./dist/oca-installation-helper --version
     - '[ "$CI_COMMIT_TAG" = "" ] && opsi-dev-tool -l info --binary-push dist/oca-installation-helper "$CI_JOB_ID"'
     - '[ "$CI_COMMIT_TAG" = "" ] || opsi-dev-tool -l info --binary-push dist/oca-installation-helper'
 
 build:pyinstaller-windows-x86:
   stage: build
+  when: manual
   tags:
     - win10
   script:

@@ -8,7 +8,7 @@ stages:
 test:pytest-darwin:
   stage: test
   tags:
-    - macos
+    - macos-catalina
   script:
     # /etc/sudoers
     # runner ALL=(ALL) NOPASSWD: ALL
@@ -91,7 +91,7 @@ test:pylint-pytest:
 build:pyinstaller-darwin-x64:
   stage: build
   tags:
-    - macos
+    - macos-catalina
   script:
     - source $HOME/.poetry/env
     - poetry install

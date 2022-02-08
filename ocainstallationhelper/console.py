@@ -11,12 +11,13 @@ opsi-client-agent installation_helper console output component
 
 import time
 import signal
+from typing import Dict
 import threading
 import platform
 
-from picotui.widgets import WTextEntry, WLabel, WButton, Dialog, C_BLACK, C_WHITE
-from picotui.menu import Screen
-from picotui.context import Context
+from picotui.widgets import WTextEntry, WLabel, WButton, Dialog, C_BLACK, C_WHITE  # type: ignore[import]
+from picotui.menu import Screen  # type: ignore[import]
+from picotui.context import Context  # type: ignore[import]
 
 
 class WDialogTextEntry(WTextEntry):
@@ -35,8 +36,8 @@ class WDialogTextEntry(WTextEntry):
 		if l is None:
 			l = ""  # noqa: E741
 		self.attr_color(C_BLACK, C_WHITE)
-		l = l[self.margin:]  # noqa: E741
-		l = l[:self.width]  # noqa: E741
+		l = l[self.margin :]  # noqa: E741
+		l = l[: self.width]  # noqa: E741
 		if self.password_char is not None:
 			l = self.password_char * len(l)  # noqa: E741
 		self.wr(l)
@@ -49,8 +50,8 @@ class ConsoleDialog(threading.Thread):
 		threading.Thread.__init__(self)
 		self.daemon = True
 		self.inst_helper = installation_helper
-		self.inputs = {}
-		self.buttons = {}
+		self.inputs: Dict[str, WTextEntry] = {}
+		self.buttons: Dict[str, WButton] = {}
 		self._closed = False
 		self.dialog = None
 		self.message = None
@@ -80,11 +81,11 @@ class ConsoleDialog(threading.Thread):
 		self.buttons[button_id].disabled = not enabled
 		self._redraw()
 
-	def show_message(self, message, severity=None):		# pylint: disable=unused-argument
+	def show_message(self, message, severity=None):  # pylint: disable=unused-argument
 		self.message.t = message
 		self._redraw()
 
-	def _sigwinch_handler(self, *args):		# pylint: disable=unused-argument
+	def _sigwinch_handler(self, *args):  # pylint: disable=unused-argument
 		self._redraw()
 
 	def _redraw(self):

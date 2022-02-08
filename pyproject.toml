@@ -15,7 +15,7 @@ name = "uib"
 url = "http://pypi.uib.gmbh:8080/simple/"
 
 [tool.poetry.dependencies]
-python = "^3.7,<3.11"
+python = ">=3.7,<3.11"
 zeroconf = "^0.38.0"
 pysimplegui = "^4.39.1"
 psutil = "^5.8.0"
@@ -31,7 +31,15 @@ opsi-dev-tools = "^1.0.43"
 pyinstaller = "^4.0"
 pylint = "^2.6.0"
 pytest-cov = "^3.0.0"
+tan = "^21.14"
 flake8 = "^4.0.1"
+mypy = "^0.931"
+types-psutil = "^5.8.20"
+
+[tool.black]
+line-length = 140
+target-version = ['py39', 'py310']
+use-tabs = true
 
 [build-system]
 requires = ["poetry>=0.12"]

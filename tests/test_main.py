@@ -4,9 +4,9 @@ oca-installation-helper tests
 main tests
 """
 
-import os
 from pathlib import Path
 import pytest
+
 
 from ocainstallationhelper.__main__ import InstallationHelper, parse_args
 
@@ -17,12 +17,12 @@ def installation_helper():
 	return InstallationHelper(parse_args(args))
 
 
-def test_helper_object(installation_helper):
+def test_helper_object(installation_helper):  # pylint: disable=redefined-outer-name
 	ocdconf = installation_helper.opsiclientd_conf
 	assert ocdconf.name == "opsiclientd.conf"
 
 
-def test_get_config(installation_helper):
+def test_get_config(installation_helper):  # pylint: disable=redefined-outer-name
 	with pytest.raises(RuntimeError):
 		installation_helper.find_setup_script()
 	base_dir = Path(".") / "tests" / "no_data"
@@ -51,12 +51,12 @@ def test_copy_files(installation_helper):
 	installation_helper.base_dir = base_dir
 	installation_helper.get_config()
 	installation_helper.copy_installation_files()
-	assert os.path.exists(os.path.join(installation_helper.tmp_dir, "install.conf"))
+	assert (installation_helper.tmp_dir / "install.conf").exists()
 	installation_helper.cleanup()
-	assert not os.path.exists(os.path.join(installation_helper.tmp_dir, "install.conf"))
+	assert not (installation_helper.tmp_dir / "install.conf").exists()
 
 
 # starts zeroconf in asyncio loop - doesnt find anything in test
 # def test_zeroconf(installation_helper):
-#	installation_helper.start_zeroconf()
-#	print(installation_helper.service_address)
+# 	installation_helper.start_zeroconf()
+# 	print(installation_helper.service_address)

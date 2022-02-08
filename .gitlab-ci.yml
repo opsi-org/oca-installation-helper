@@ -8,11 +8,8 @@ stages:
 test:pytest-darwin:
   stage: test
   tags:
-    - macos-catalina
+    - macos_catalina
   script:
-    # /etc/sudoers
-    # runner ALL=(ALL) NOPASSWD: ALL
-    - source $HOME/.poetry/env
     - poetry install
     - sudo poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - mv .coverage coverage_darwin
@@ -91,9 +88,8 @@ test:pylint-pytest:
 build:pyinstaller-darwin-x64:
   stage: build
   tags:
-    - macos-catalina
+    - macos_catalina
   script:
-    - source $HOME/.poetry/env
     - poetry install
     - poetry run opsi-dev-tool -l info --pyinstaller-poetry-build
     #- ./dist/oca-installation-helper --version

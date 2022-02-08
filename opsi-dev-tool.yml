@@ -10,5 +10,4 @@ pyinstaller-poetry:
       dst: .
   icon: opsi.ico
   extra_args:
-    all:
-      - "--noconsole"
+    - "--noconsole"

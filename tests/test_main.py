@@ -3,6 +3,7 @@ oca-installation-helper tests
 
 main tests
 """
+# pylint: disable=redefined-outer-name
 
 from pathlib import Path
 import pytest

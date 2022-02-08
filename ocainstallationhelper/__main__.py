@@ -23,7 +23,7 @@ from pathlib import Path
 from configparser import ConfigParser
 import argparse
 import shutil
-from typing import IO, List, Optional
+from typing import IO, Any, Optional
 from zeroconf import ServiceBrowser, Zeroconf
 
 import opsicommon  # type: ignore[import]
@@ -52,14 +52,14 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 	def __init__(self, cmdline_args):
 		self.cmdline_args = cmdline_args
 		# macos does not use DISPLAY. gui does not work properly on macos right now.
-		self.use_gui = platform.system().lower() == "windows" or os.environ.get("DISPLAY") in (None, "")
+		self.use_gui = platform.system().lower() == "windows" or os.environ.get("DISPLAY") not in (None, "")
 		self.depot = None
 		self.group = None
 		self.dialog = None
 		self.clear_message_timer = None
 		self.backend = None
 		self.zeroconf = None
-		self.zeroconf_addresses: List = []
+		self.zeroconf_addresses = []
 		self.zeroconf_idx = -1
 		self.interactive = True
 		self.client_id = None
@@ -224,9 +224,12 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		except Exception as err:  # pylint: disable=broad-except
 			logger.error("Failed to start zeroconf: %s", err, exc_info=True)
 
-	# TODO: type hints
-	def zeroconf_handler(self, zeroconf, service_type, name, state_change) -> None:  # pylint: disable=unused-argument
+	def zeroconf_handler(
+		self, zeroconf: Zeroconf, service_type: str, name: str, state_change: Any  # pylint: disable=unused-argument
+	) -> None:
 		info = zeroconf.get_service_info(service_type, name)
+		if not info:
+			return
 		logger.info(
 			"opsi config service detected: server=%s, port=%s, version=%s",
 			info.server,

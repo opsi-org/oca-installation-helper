@@ -11,10 +11,8 @@ test:pytest-darwin:
     - macos_catalina
   script:
     - poetry install
-    - sudo poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
+    - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - mv .coverage coverage_darwin
-  after_script:
-    - sudo chown -R $USER .
   artifacts:
     name: 'oca-installation-helper_test_darwin'
     paths:

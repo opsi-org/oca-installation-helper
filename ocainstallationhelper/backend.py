@@ -85,14 +85,14 @@ class Backend:
 		if not product_on_client[0].installationStatus == "installed":
 			raise ValueError(f"Installation of {product_id} on client {client_id} unsuccessful")
 
-	def get_or_create_client(self, client_id):
+	def get_or_create_client(self, client_id, force_create=False):
 		client = self.service.execute_rpc("host_getObjects", [[], {"id": client_id}])
-		if not client:
+		if not client or force_create:
 			# id, opsiHostKey, description, notes, hardwareAddress, ipAddress,
 			# inventoryNumber, oneTimePassword, created, lastSeen
-			client = [client_id, None, None, None, get_mac_address()]
-			logger.info("Creating client: %s", client)
-			self.service.execute_rpc("host_createOpsiClient", client)
+			client_config = [client_id, None, None, None, get_mac_address()]
+			logger.info("Creating client: %s", client_config)
+			self.service.execute_rpc("host_createOpsiClient", client_config)
 			client = self.service.execute_rpc("host_getObjects", [[], {"id": client_id}])
 			if not client:
 				raise RuntimeError(f"Failed to create client {client}")

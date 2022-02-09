@@ -55,6 +55,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.use_gui = platform.system().lower() == "windows" or os.environ.get("DISPLAY") not in (None, "")
 		self.depot = None
 		self.group = None
+		self.force_recreate_client = False
 		self.dialog = None
 		self.clear_message_timer = None
 		self.backend = None
@@ -177,9 +178,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.service_password = self.cmdline_args.service_password
 		self.depot = self.cmdline_args.depot
 		self.group = self.cmdline_args.group
+		self.force_recreate_client = self.cmdline_args.force_recreate_client
 		logger.debug(
-			"Config from cmdline: interactive=%s, client_id=%s, "
-			"service_address=%s, service_username=%s, service_password=%s, depot=%s, group=%s",
+			"Config from cmdline: interactive=%s, client_id=%s, service_address=%s, "
+			"service_username=%s, service_password=%s, depot=%s, group=%s, force_recreate_client=%s",
 			self.interactive,
 			self.client_id,
 			self.service_address,
@@ -187,6 +189,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			"*" * len(self.service_password or ""),
 			self.depot,
 			self.group,
+			self.force_recreate_client,
 		)
 
 	def get_config(self) -> None:
@@ -558,6 +561,7 @@ def parse_args(args=None):
 	parser.add_argument("--encode-password", action="store", metavar="PASSWORD", help="Encode PASSWORD.")
 	parser.add_argument("--depot", help="Assign client to specified depot.", metavar="DEPOT")
 	parser.add_argument("--group", help="Insert client into specified host group.", metavar="HOSTGROUP")
+	parser.add_argument("--force-recreate-client", action="store_true", help="Always call host_createOpsiClient, even if it exists.")
 
 	return parser.parse_args(args)
 

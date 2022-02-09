@@ -23,7 +23,7 @@ from pathlib import Path
 from configparser import ConfigParser
 import argparse
 import shutil
-from typing import IO, Any, Optional
+from typing import IO, Any, List, Optional
 from zeroconf import ServiceBrowser, Zeroconf
 
 import opsicommon  # type: ignore[import]
@@ -419,8 +419,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				self.dialog.update()
 
 		client = self.backend.get_or_create_client(self.client_id)
-		self.client_key = client[0].opsiHostKey
-		self.client_id = client[0].id
+		self.client_key = client.opsiHostKey
+		self.client_id = client.id
 		self.show_message("Client exists", "success")
 		if self.depot:
 			if self.client_id == self.service_username:
@@ -433,7 +433,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if self.dialog:
 			self.dialog.update()
 
-	def show_message(self, message, severity=None, display_seconds=0) -> None:
+	def show_message(self, message: str, severity: str = None, display_seconds: float = 0) -> None:
 		if self.clear_message_timer:
 			self.clear_message_timer.cancel()
 
@@ -544,7 +544,7 @@ class ArgumentParser(argparse.ArgumentParser):
 		show_message(message)
 
 
-def parse_args(args=None):
+def parse_args(args: List[str] = None):
 	if args is None:
 		args = sys.argv[1:]  # executable path is not processed
 	parser = ArgumentParser()
@@ -577,6 +577,8 @@ def main() -> None:
 		log_level = "DEBUG"
 
 	if log_level != "NONE":
+		if args.log_file.exists():
+			args.log_file.unlink()
 		logging_config(
 			file_level=getattr(opsicommon.logging, f"LOG_{log_level}"),
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",

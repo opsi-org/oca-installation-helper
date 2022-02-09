@@ -3,8 +3,8 @@ opsi-client-agent installation_helper backend class
 """
 
 import platform
-from typing import Dict
 
+from opsicommon.objects import OpsiClient  # type: ignore[import]
 from opsicommon.client.jsonrpc import JSONRPCClient  # type: ignore[import]
 
 from ocainstallationhelper import logger, get_mac_address
@@ -86,7 +86,7 @@ class Backend:
 		if not product_on_client[0].installationStatus == "installed":
 			raise ValueError(f"Installation of {product_id} on client {client_id} unsuccessful")
 
-	def get_or_create_client(self, client_id: str, force_create: bool = False) -> Dict[str, str]:
+	def get_or_create_client(self, client_id: str, force_create: bool = False) -> OpsiClient:
 		client = self.service.execute_rpc("host_getObjects", [[], {"id": client_id}])
 		if not client or force_create:
 			# id, opsiHostKey, description, notes, hardwareAddress, ipAddress,

@@ -4,20 +4,21 @@ opsi-client-agent installation_helper backend class
 
 import platform
 
+from opsicommon.objects import OpsiClient  # type: ignore[import]
 from opsicommon.client.jsonrpc import JSONRPCClient  # type: ignore[import]
 
 from ocainstallationhelper import logger, get_mac_address
 
 
 class Backend:
-	def __init__(self, address=None, username=None, password=None):
-		self.service = JSONRPCClient(address=address, username=username, password=password)
-		self.service_address = self.service.base_url
+	def __init__(self, address: str = None, username: str = None, password: str = None) -> None:
+		self.service: JSONRPCClient = JSONRPCClient(address=address, username=username, password=password)
+		self.service_address: str = self.service.base_url
 
-	def get_domain(self):
+	def get_domain(self) -> str:
 		return self.service.execute_rpc("getDomain")
 
-	def put_client_into_group(self, client_id, group):
+	def put_client_into_group(self, client_id: str, group: str) -> None:
 		try:
 			self.service.execute_rpc(
 				"objectToGroup_createObjects",
@@ -34,7 +35,7 @@ class Backend:
 		except Exception as err:  # pylint: disable=broad-except
 			logger.warning("Adding %s to group %s failed: %s", client_id, group, err)
 
-	def assign_client_to_depot(self, client_id, depot):
+	def assign_client_to_depot(self, client_id: str, depot: str) -> None:
 		try:
 			self.service.execute_rpc(
 				"configState_createObjects",
@@ -51,7 +52,7 @@ class Backend:
 		except Exception as err:  # pylint: disable=broad-except
 			logger.warning("Assigning %s to depot %s failed: %s", client_id, depot, err)
 
-	def set_poc_to_installing(self, product_id, client_id):
+	def set_poc_to_installing(self, product_id: str, client_id: str) -> None:
 		self.service.execute_rpc(
 			"productOnClient_createObjects",
 			[
@@ -69,7 +70,7 @@ class Backend:
 			],
 		)
 
-	def evaluate_success(self, client_id):
+	def evaluate_success(self, client_id: str) -> None:
 		if platform.system().lower() == "windows":
 			product_id = "opsi-client-agent"
 		elif platform.system().lower() == "linux":
@@ -85,18 +86,18 @@ class Backend:
 		if not product_on_client[0].installationStatus == "installed":
 			raise ValueError(f"Installation of {product_id} on client {client_id} unsuccessful")
 
-	def get_or_create_client(self, client_id):
+	def get_or_create_client(self, client_id: str, force_create: bool = False) -> OpsiClient:
 		client = self.service.execute_rpc("host_getObjects", [[], {"id": client_id}])
-		if not client:
+		if not client or force_create:
 			# id, opsiHostKey, description, notes, hardwareAddress, ipAddress,
 			# inventoryNumber, oneTimePassword, created, lastSeen
-			client = [client_id, None, None, None, get_mac_address()]
-			logger.info("Creating client: %s", client)
-			self.service.execute_rpc("host_createOpsiClient", client)
+			client_config = [client_id, None, None, None, get_mac_address()]
+			logger.info("Creating client: %s", client_config)
+			self.service.execute_rpc("host_createOpsiClient", client_config)
 			client = self.service.execute_rpc("host_getObjects", [[], {"id": client_id}])
 			if not client:
 				raise RuntimeError(f"Failed to create client {client}")
 			logger.info("Client created")
 
 		logger.debug("got client objects %s", client)
-		return client
+		return client[0]

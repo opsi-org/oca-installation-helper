@@ -23,7 +23,7 @@ from pathlib import Path
 from configparser import ConfigParser
 import argparse
 import shutil
-from typing import IO, Any, Optional
+from typing import IO, Any, List, Optional
 from zeroconf import ServiceBrowser, Zeroconf
 
 import opsicommon  # type: ignore[import]
@@ -55,6 +55,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.use_gui = platform.system().lower() == "windows" or os.environ.get("DISPLAY") not in (None, "")
 		self.depot = None
 		self.group = None
+		self.force_recreate_client = False
 		self.dialog = None
 		self.clear_message_timer = None
 		self.backend = None
@@ -177,9 +178,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.service_password = self.cmdline_args.service_password
 		self.depot = self.cmdline_args.depot
 		self.group = self.cmdline_args.group
+		self.force_recreate_client = self.cmdline_args.force_recreate_client
 		logger.debug(
-			"Config from cmdline: interactive=%s, client_id=%s, "
-			"service_address=%s, service_username=%s, service_password=%s, depot=%s, group=%s",
+			"Config from cmdline: interactive=%s, client_id=%s, service_address=%s, "
+			"service_username=%s, service_password=%s, depot=%s, group=%s, force_recreate_client=%s",
 			self.interactive,
 			self.client_id,
 			self.service_address,
@@ -187,6 +189,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			"*" * len(self.service_password or ""),
 			self.depot,
 			self.group,
+			self.force_recreate_client,
 		)
 
 	def get_config(self) -> None:
@@ -416,8 +419,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				self.dialog.update()
 
 		client = self.backend.get_or_create_client(self.client_id)
-		self.client_key = client[0].opsiHostKey
-		self.client_id = client[0].id
+		self.client_key = client.opsiHostKey
+		self.client_id = client.id
 		self.show_message("Client exists", "success")
 		if self.depot:
 			if self.client_id == self.service_username:
@@ -430,7 +433,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if self.dialog:
 			self.dialog.update()
 
-	def show_message(self, message, severity=None, display_seconds=0) -> None:
+	def show_message(self, message: str, severity: str = None, display_seconds: float = 0) -> None:
 		if self.clear_message_timer:
 			self.clear_message_timer.cancel()
 
@@ -541,7 +544,7 @@ class ArgumentParser(argparse.ArgumentParser):
 		show_message(message)
 
 
-def parse_args(args=None):
+def parse_args(args: List[str] = None):
 	if args is None:
 		args = sys.argv[1:]  # executable path is not processed
 	parser = ArgumentParser()
@@ -558,6 +561,7 @@ def parse_args(args=None):
 	parser.add_argument("--encode-password", action="store", metavar="PASSWORD", help="Encode PASSWORD.")
 	parser.add_argument("--depot", help="Assign client to specified depot.", metavar="DEPOT")
 	parser.add_argument("--group", help="Insert client into specified host group.", metavar="HOSTGROUP")
+	parser.add_argument("--force-recreate-client", action="store_true", help="Always call host_createOpsiClient, even if it exists.")
 
 	return parser.parse_args(args)
 
@@ -573,6 +577,8 @@ def main() -> None:
 		log_level = "DEBUG"
 
 	if log_level != "NONE":
+		if args.log_file.exists():
+			args.log_file.unlink()
 		logging_config(
 			file_level=getattr(opsicommon.logging, f"LOG_{log_level}"),
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",

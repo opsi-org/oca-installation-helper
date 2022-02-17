@@ -418,7 +418,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			if self.dialog:
 				self.dialog.update()
 
-		client = self.backend.get_or_create_client(self.client_id)
+		client = self.backend.get_or_create_client(self.client_id, force_create=self.force_recreate_client)
 		self.client_key = client.opsiHostKey
 		self.client_id = client.id
 		self.show_message("Client exists", "success")

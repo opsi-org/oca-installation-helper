@@ -23,7 +23,7 @@ def test_helper_object(installation_helper):  # pylint: disable=redefined-outer-
 	assert ocdconf.name == "opsiclientd.conf"
 
 
-def test_get_config(installation_helper):  # pylint: disable=redefined-outer-name
+def test_without_config(installation_helper):  # pylint: disable=redefined-outer-name
 	with pytest.raises(RuntimeError):
 		installation_helper.find_setup_script()
 	base_dir = Path(".") / "tests" / "no_data"
@@ -32,17 +32,18 @@ def test_get_config(installation_helper):  # pylint: disable=redefined-outer-nam
 
 	installation_helper.get_config()
 	assert installation_helper.client_id
-	base_dir = Path(".") / "tests" / "no_data"
 	base_dir.rmdir()
 
+
+def test_get_config(installation_helper):  # pylint: disable=redefined-outer-name
 	base_dir = Path(".") / "tests" / "test_data"
-	base_dir.mkdir(exist_ok=True)
 	installation_helper.base_dir = base_dir
 	installation_helper.get_config()
-	assert installation_helper.client_id
-	assert installation_helper.service_address
-	assert installation_helper.service_username
-	assert installation_helper.service_password
+	print(installation_helper.client_id, installation_helper.service_address)
+	assert installation_helper.client_id == "dummy.domain.local"
+	assert installation_helper.service_address == "https://192.168.0.1:4447/rpc"
+	assert installation_helper.service_username == "dummyuser"
+	assert installation_helper.service_password == "dummypassword"
 	installation_helper.check_values()
 
 

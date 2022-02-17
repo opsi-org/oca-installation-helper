@@ -68,7 +68,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.service_address = None
 		self.service_username = None
 		self.service_password = None
-		self.finalize = "noreboot"  # or reboot or shutdown
+		self.finalize = None
+		self.dns_domain = None
 		self.base_dir = None
 		self.setup_script = None
 		self.full_path = Path(sys.argv[0])
@@ -150,18 +151,25 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 							("install", "group"),  # install.conf
 						]
 					)
+					self.dns_domain = self.dns_domain or get_value_from_config_file(
+						[
+							("install", "dns_domain"),  # install.conf
+							("general", "dnsdomain"),  # config.ini
+						]
+					)
 					val = config.get("install", "interactive", fallback=None)  # install.conf
 					if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
 						self.interactive = val.lower().strip() in ("yes", "true", "on", "1")
 					logger.debug(
-						"Config after reading '%s': interactive=%s, client_id=%s, "
-						"service_address=%s, service_username=%s, service_password=%s",
+						"Config after reading '%s': interactive=%s, client_id=%s, service_address=%s, "
+						"service_username=%s, service_password=%s, dns_domain=%s",
 						config_file,
 						self.interactive,
 						self.client_id,
 						self.service_address,
 						self.service_username,
 						"*" * len(self.service_password or ""),
+						self.dns_domain or "",
 					)
 			except Exception as err:  # pylint: disable=broad-except
 				logger.error(err, exc_info=True)
@@ -179,9 +187,12 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.depot = self.cmdline_args.depot
 		self.group = self.cmdline_args.group
 		self.force_recreate_client = self.cmdline_args.force_recreate_client
+		self.finalize = self.cmdline_args.finalize
+		self.dns_domain = self.cmdline_args.dns_domain
 		logger.debug(
 			"Config from cmdline: interactive=%s, client_id=%s, service_address=%s, "
-			"service_username=%s, service_password=%s, depot=%s, group=%s, force_recreate_client=%s",
+			"service_username=%s, service_password=%s, depot=%s, group=%s, "
+			"force_recreate_client=%s, finalize=%s, dns_domain=%s",
 			self.interactive,
 			self.client_id,
 			self.service_address,
@@ -190,13 +201,18 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			self.depot,
 			self.group,
 			self.force_recreate_client,
+			self.finalize,
+			self.dns_domain,
 		)
 
 	def get_config(self) -> None:
 		self.read_config_files()
 
+		# Do not overwrite client_id if explicitely set by parameter or found in config file
 		if not self.client_id:
 			self.client_id = socket.getfqdn().rstrip(".").lower()
+			if self.dns_domain:
+				self.client_id = ".".join((self.client_id.split(".")[0], self.dns_domain))
 
 		if not self.service_address:
 			self.start_zeroconf()
@@ -547,6 +563,7 @@ class ArgumentParser(argparse.ArgumentParser):
 def parse_args(args: List[str] = None):
 	if args is None:
 		args = sys.argv[1:]  # executable path is not processed
+	f_actions = ["noreboot", "reboot", "shutdown"]
 	parser = ArgumentParser()
 	parser.add_argument("--version", action="version", version=__version__)
 	parser.add_argument("--log-file", default=Path(tempfile.gettempdir()) / "oca-installation-helper.log")
@@ -562,6 +579,8 @@ def parse_args(args: List[str] = None):
 	parser.add_argument("--depot", help="Assign client to specified depot.", metavar="DEPOT")
 	parser.add_argument("--group", help="Insert client into specified host group.", metavar="HOSTGROUP")
 	parser.add_argument("--force-recreate-client", action="store_true", help="Always call host_createOpsiClient, even if it exists.")
+	parser.add_argument("--finalize", default="noreboot", choices=f_actions, help="Action to perform after successfull installation.")
+	parser.add_argument("--dns-domain", default=None, help="DNS domain for assembling client id (ignored if client id is given).")
 
 	return parser.parse_args(args)
 

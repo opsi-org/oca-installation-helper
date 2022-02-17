@@ -154,7 +154,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 					self.dns_domain = self.dns_domain or get_value_from_config_file(
 						[
 							("install", "dns_domain"),  # install.conf
-							("general", "dnsdomain"),  # config.ini
+							("install", "client_domain"),  # config.ini
 						]
 					)
 					val = config.get("install", "interactive", fallback=None)  # install.conf

@@ -223,9 +223,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 					break
 				time.sleep(1)
 
-		if "https://" not in self.service_address:
+		if self.service_address and "https://" not in self.service_address:
 			self.service_address = f"https://{self.service_address}"
-		if not re.match(r".*:\d", self.service_address):
+		if self.service_address and not re.match(r".*:\d", self.service_address):
 			self.service_address = f"{self.service_address}:{CONFIG_SERVICE_PORT}"
 
 		logger.debug(

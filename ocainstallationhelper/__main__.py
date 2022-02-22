@@ -43,6 +43,8 @@ from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
 from ocainstallationhelper.backend import Backend
 
+CONFIG_SERVICE_PORT = 4447
+
 monkeypatch_subprocess_for_frozen()
 
 
@@ -220,6 +222,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				if self.service_address:
 					break
 				time.sleep(1)
+
+		if "https://" not in self.service_address:
+			self.service_address = f"https://{self.service_address}"
+		if not re.match(r".*:\d", self.service_address):
+			self.service_address = f"{self.service_address}:{CONFIG_SERVICE_PORT}"
 
 		logger.debug(
 			"Config: interactive=%s, client_id=%s, " "service_address=%s, service_username=%s, service_password=%s",

@@ -12,7 +12,6 @@ opsi-client-agent installation_helper
 import os
 from pathlib import Path
 import sys
-import platform
 from typing import Union, Generator
 import socket
 import ipaddress

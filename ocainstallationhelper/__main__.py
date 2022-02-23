@@ -43,6 +43,8 @@ from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
 from ocainstallationhelper.backend import Backend
 
+CONFIG_SERVICE_PORT = 4447
+
 monkeypatch_subprocess_for_frozen()
 
 
@@ -74,6 +76,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.setup_script = None
 		self.full_path = Path(sys.argv[0])
 		self.should_stop = False
+		self.read_conf_files = ()
 		self.tmp_dir = Path(tempfile.gettempdir()) / "oca-installation-helper-tmp"
 		if not self.full_path.is_absolute():
 			self.full_path = (Path(".") / self.full_path).absolute()
@@ -90,6 +93,32 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			return Path("/etc/opsi-client-agent/opsiclientd.conf")
 		return None
 
+	def get_config_file_paths(self) -> List[Path]:
+		if not self.base_dir:
+			raise ValueError("No base dir given.")
+
+		result = []
+		for conffile in self.read_conf_files:
+			if conffile == "install.conf":
+				path = self.base_dir / "custom" / "install.conf"
+				if not path.exists():
+					path = self.base_dir / "install.conf"
+			elif conffile == "config.ini":
+				path = self.base_dir / "files" / "opsi" / "cfg" / "config.ini"
+			elif conffile == "opsiclientd.conf":
+				path = self.opsiclientd_conf
+			else:
+				path = Path(conffile)
+
+			try:
+				if path.exists():
+					result.append(path)
+				else:
+					logger.info("Config file '%s' not found", path)
+			except PermissionError:
+				logger.info("No permission to open file '%s'", path)
+		return result
+
 	def read_config_files(self) -> None:  # pylint: disable=too-many-branches
 		placeholder_regex = re.compile(r"#\@(\w+)\**#+")
 		placeholder_regex_new = re.compile(r"%([\w\-]+)%")
@@ -101,21 +130,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 					return result
 			return None
 
-		if not self.base_dir:
-			raise ValueError("No base dir given.")
-
-		install_conf = self.base_dir / "custom" / "install.conf"
-		if not install_conf.exists():
-			install_conf = self.base_dir / "install.conf"
-
-		for config_file in (install_conf, self.base_dir / "files" / "opsi" / "cfg" / "config.ini", self.opsiclientd_conf):
-			if not config_file.exists():
-				logger.info("Config file '%s' not found", config_file)
-				continue
+		for config_file in self.get_config_file_paths():
 			try:
 				logger.info("Reading config file '%s'", config_file)
 				config = ConfigParser()
-				with codecs.open(config_file, "r", "utf-8") as file:
+				with codecs.open(str(config_file), "r", "utf-8") as file:
 					data = file.read().replace("\r\n", "\n")
 					if config_file.name == "install.conf" and "[install]" not in data:
 						data = "[install]\n" + data
@@ -189,10 +208,12 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.force_recreate_client = self.cmdline_args.force_recreate_client
 		self.finalize = self.cmdline_args.finalize
 		self.dns_domain = self.cmdline_args.dns_domain
+		self.read_conf_files = self.cmdline_args.read_conf_files
 		logger.debug(
 			"Config from cmdline: interactive=%s, client_id=%s, service_address=%s, "
 			"service_username=%s, service_password=%s, depot=%s, group=%s, "
-			"force_recreate_client=%s, finalize=%s, dns_domain=%s",
+			"force_recreate_client=%s, finalize=%s, dns_domain=%s, "
+			"read_conf_files=%s",
 			self.interactive,
 			self.client_id,
 			self.service_address,
@@ -203,6 +224,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			self.force_recreate_client,
 			self.finalize,
 			self.dns_domain,
+			self.read_conf_files,
 		)
 
 	def get_config(self) -> None:
@@ -401,6 +423,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if not self.client_id:
 			raise ValueError("Client id undefined")
 
+		if "https://" not in self.service_address:
+			self.service_address = f"https://{self.service_address}"
+		if not re.match(r".*:\d", self.service_address):
+			self.service_address = f"{self.service_address}:{CONFIG_SERVICE_PORT}"
+
 		self.client_id = forceHostId(self.client_id)
 
 	def install(self) -> None:
@@ -474,11 +501,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 	def on_install_button(self) -> None:
 		self.dialog.set_button_enabled("install", False)
 		try:
+			# install returns True if installation successfull, False if skipped and throws Exception on error
 			self.install()
 			self.show_message("Installation completed", "success")
-			for _num in range(5):
-				time.sleep(1)
 			if self.dialog:
+				# if using a dialog, wait for 5 Seconds before closing
+				for _num in range(5):
+					time.sleep(1)
 				self.dialog.close()
 		except BackendAuthenticationError:
 			self.show_message("Authentication error, wrong username or password", "error")
@@ -581,6 +610,13 @@ def parse_args(args: List[str] = None):
 	parser.add_argument("--force-recreate-client", action="store_true", help="Always call host_createOpsiClient, even if it exists.")
 	parser.add_argument("--finalize", default="noreboot", choices=f_actions, help="Action to perform after successfull installation.")
 	parser.add_argument("--dns-domain", default=None, help="DNS domain for assembling client id (ignored if client id is given).")
+	parser.add_argument(
+		"--read-conf-files",
+		nargs="*",
+		metavar="FILE",
+		default=("install.conf", "config.ini", "opsiclientd.conf"),
+		help="config files to scan for informations, if empty no files are read (default: install.conf config.ini opsiclientd.conf)",
+	)
 
 	return parser.parse_args(args)
 

@@ -243,11 +243,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 					break
 				time.sleep(1)
 
-		if self.service_address and "https://" not in self.service_address:
-			self.service_address = f"https://{self.service_address}"
-		if self.service_address and not re.match(r".*:\d", self.service_address):
-			self.service_address = f"{self.service_address}:{CONFIG_SERVICE_PORT}"
-
 		logger.debug(
 			"Config: interactive=%s, client_id=%s, " "service_address=%s, service_username=%s, service_password=%s",
 			self.interactive,
@@ -427,6 +422,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 
 		if not self.client_id:
 			raise ValueError("Client id undefined")
+
+		if "https://" not in self.service_address:
+			self.service_address = f"https://{self.service_address}"
+		if not re.match(r".*:\d", self.service_address):
+			self.service_address = f"{self.service_address}:{CONFIG_SERVICE_PORT}"
 
 		self.client_id = forceHostId(self.client_id)
 

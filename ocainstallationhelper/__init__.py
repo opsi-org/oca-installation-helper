@@ -12,6 +12,7 @@ opsi-client-agent installation_helper
 import os
 from pathlib import Path
 import sys
+import platform
 from typing import Union, Generator
 import socket
 import ipaddress
@@ -22,7 +23,7 @@ import netifaces  # type: ignore[import]
 
 from opsicommon.logging import logger  # type: ignore[import]
 
-__version__ = "4.2.0.13"
+__version__ = "4.2.0.15"
 KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
 
 

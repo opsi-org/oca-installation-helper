@@ -23,6 +23,7 @@ from pathlib import Path
 from configparser import ConfigParser
 import argparse
 import shutil
+from urllib.parse import urlparse
 from typing import IO, Any, List, Optional
 from zeroconf import ServiceBrowser, Zeroconf
 
@@ -43,7 +44,7 @@ from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
 from ocainstallationhelper.backend import Backend
 
-CONFIG_SERVICE_PORT = 4447
+DEFAULT_CONFIG_SERVICE_PORT = 4447
 
 monkeypatch_subprocess_for_frozen()
 
@@ -423,10 +424,14 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if not self.client_id:
 			raise ValueError("Client id undefined")
 
-		if "https://" not in self.service_address:
+		if "://" not in self.service_address:
 			self.service_address = f"https://{self.service_address}"
-		if not re.match(r".*:\d", self.service_address):
-			self.service_address = f"{self.service_address}:{CONFIG_SERVICE_PORT}"
+		url = urlparse(self.service_address)
+		port = url.port or DEFAULT_CONFIG_SERVICE_PORT
+		hostname = str(url.hostname)
+		if ":" in hostname:
+			hostname = f"[{hostname}]"
+		self.service_address = f"{url.scheme}://{hostname}:{port}{url.path}"
 
 		self.client_id = forceHostId(self.client_id)
 

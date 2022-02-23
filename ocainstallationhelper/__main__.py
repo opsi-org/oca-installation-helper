@@ -23,7 +23,7 @@ from pathlib import Path
 from configparser import ConfigParser
 import argparse
 import shutil
-from typing import IO, Any, List, Optional, Tuple
+from typing import IO, Any, List, Optional
 from zeroconf import ServiceBrowser, Zeroconf
 
 import opsicommon  # type: ignore[import]
@@ -93,7 +93,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			return Path("/etc/opsi-client-agent/opsiclientd.conf")
 		return None
 
-	def get_config_file_paths(self) -> Tuple[str]:
+	def get_config_file_paths(self) -> List[Path]:
 		if not self.base_dir:
 			raise ValueError("No base dir given.")
 
@@ -134,7 +134,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			try:
 				logger.info("Reading config file '%s'", config_file)
 				config = ConfigParser()
-				with codecs.open(config_file, "r", "utf-8") as file:
+				with codecs.open(str(config_file), "r", "utf-8") as file:
 					data = file.read().replace("\r\n", "\n")
 					if config_file.name == "install.conf" and "[install]" not in data:
 						data = "[install]\n" + data
@@ -430,7 +430,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 
 		self.client_id = forceHostId(self.client_id)
 
-	def install(self) -> bool:
+	def install(self) -> None:
 		try:
 			self.check_values()
 			self.service_setup()
@@ -502,8 +502,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.dialog.set_button_enabled("install", False)
 		try:
 			# install returns True if installation successfull, False if skipped and throws Exception on error
-			if self.install():
-				self.show_message("Installation completed", "success")
+			self.install()
+			self.show_message("Installation completed", "success")
 			if self.dialog:
 				# if using a dialog, wait for 5 Seconds before closing
 				for _num in range(5):

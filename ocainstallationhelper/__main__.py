@@ -524,7 +524,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			if ctypes.windll.shell32.IsUserAnAdmin() == 0:  # type: ignore
 				# not elevated
 				new_path = self.base_dir / "oca-installation-helper.exe"
-				arg_string = "-argumentList " + ",".join([f'"{arg}"' for arg in sys.argv[1:]]) if sys.argv[1:] else ""
+				arg_string = "-ArgumentList " + ",".join([f'"{arg}"' for arg in sys.argv[1:]]) if sys.argv[1:] else ""
 				ps_script = f'Start-Process -Verb runas -FilePath "{str(new_path)}" {arg_string} -Wait'
 				command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
 				logger.info("Not running elevated. Rerunning oca-installation-helper as admin: %s\n", command)
@@ -633,7 +633,6 @@ def main() -> None:
 				if log_file.exists():
 					log_file.unlink()
 		logging_config(
-			stderr_level=getattr(opsicommon.logging, f"LOG_{log_level}"),  # TODO: remove for nongui
 			file_level=getattr(opsicommon.logging, f"LOG_{log_level}"),
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
 			log_file=str(log_file),

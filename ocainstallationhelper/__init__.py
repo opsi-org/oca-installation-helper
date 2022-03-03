@@ -14,6 +14,7 @@ from pathlib import Path
 import sys
 from typing import Union, Generator
 import socket
+import platform
 import ipaddress
 import base64
 import subprocess
@@ -24,6 +25,9 @@ from opsicommon.logging import logger  # type: ignore[import]
 
 __version__ = "4.2.0.15"
 KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
+THIS_OCA_VERSION_FILE = Path("files/opsi-client-agent.version")
+WINDOWS_OCA_VERSION_FILE = Path(os.path.expandvars("%PROGRAMS%")) / "opsi.org" / "opsi-client-agent" / "opsi-client-agent.version"
+POSIX_OCA_VERSION_FILE = Path("/etc/opsi-client-agent/opsi-client-agent.version")
 
 
 def encode_password(cleartext):
@@ -102,3 +106,32 @@ def get_ip_interfaces() -> Generator[Union[ipaddress.IPv4Interface, ipaddress.IP
 					yield ipaddress.ip_interface(f"{snic.address.split('%')[0]}/{netmask}")
 			except ValueError:
 				continue
+
+
+def get_installed_oca_version():
+	if platform.system().lower() == "windows":
+		version_file = WINDOWS_OCA_VERSION_FILE
+	elif platform.system().lower() in ("linux", "darwin"):
+		version_file = POSIX_OCA_VERSION_FILE
+	else:
+		raise ValueError(f"Invalid system {platform.system()}")
+	if not version_file.exists():
+		return None
+	with open(str(version_file), "r", encoding="utf-8") as vfile:
+		return vfile.readline().strip()
+
+
+def get_this_oca_version():
+	if not THIS_OCA_VERSION_FILE.exists():
+		return None
+	with open(str(THIS_OCA_VERSION_FILE), "r", encoding="utf-8") as vfile:
+		return vfile.readline().strip()
+
+
+def show_message(message: str) -> None:
+	if platform.system().lower() == "windows":
+		from .gui import show_message as _show_message  # pylint: disable=import-outside-toplevel
+
+		_show_message(message)
+	else:
+		sys.stdout.write(message)

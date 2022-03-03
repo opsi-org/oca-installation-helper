@@ -8,6 +8,7 @@
 opsi-client-agent installation_helper
 """
 
+from operator import ge
 import os
 import re
 import sys
@@ -39,6 +40,9 @@ from ocainstallationhelper import (
 	encode_password,
 	decode_password,
 	get_ip_interfaces,
+	show_message,
+	get_installed_oca_version,
+	get_this_oca_version,
 )
 from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
@@ -78,6 +82,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.full_path = Path(sys.argv[0])
 		self.should_stop = False
 		self.read_conf_files = ()
+		self.install_condition = None
 		self.tmp_dir = Path(tempfile.gettempdir()) / "oca-installation-helper-tmp"
 		if not self.full_path.is_absolute():
 			self.full_path = (Path(".") / self.full_path).absolute()
@@ -210,11 +215,12 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.finalize = self.cmdline_args.finalize
 		self.dns_domain = self.cmdline_args.dns_domain
 		self.read_conf_files = self.cmdline_args.read_conf_files
+		self.install_condition = self.cmdline_args.install_condition
 		logger.debug(
 			"Config from cmdline: interactive=%s, client_id=%s, service_address=%s, "
 			"service_username=%s, service_password=%s, depot=%s, group=%s, "
 			"force_recreate_client=%s, finalize=%s, dns_domain=%s, "
-			"read_conf_files=%s",
+			"read_conf_files=%s, install_condition=%s",
 			self.interactive,
 			self.client_id,
 			self.service_address,
@@ -226,6 +232,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			self.finalize,
 			self.dns_domain,
 			self.read_conf_files,
+			self.install_condition,
 		)
 
 	def get_config(self) -> None:
@@ -331,91 +338,59 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if not self.setup_script:
 			raise RuntimeError(f"{self.setup_script_name} not found")
 
-	def run_setup_script_windows(self) -> None:
-		opsi_script = self.base_dir / "files" / "opsi-script" / "opsi-script.exe"
-		log_dir = Path(r"c:\opsi.org\log")
+	def run_setup_script(self) -> None:
+		self.show_message("Running setup script")
+
+		if platform.system().lower() == "windows":
+			oca_package = "opsi-client-agent"
+			opsi_script = self.base_dir / "files" / "opsi-script" / "opsi-script.exe"
+			log_dir = Path(r"c:\opsi.org\log")
+			param_char = "/"
+		elif platform.system().lower() == "linux":
+			oca_package = "opsi-linux-client-agent"
+			opsi_script = self.base_dir / "files" / "opsi-script" / "opsi-script"
+			log_dir = Path("/var/log/opsi-script")
+			param_char = "-"
+		elif platform.system().lower() == "darwin":
+			opsi_script = self.base_dir / "files" / "opsi-script.app" / "Contents" / "MacOS" / "opsi-script"
+			oca_package = "opsi-mac-client-agent"
+			log_dir = Path("/var/log/opsi-script")
+			param_char = "-"
+		else:
+			raise NotImplementedError(f"Not implemented for {platform.system()}")
+
 		if not log_dir.exists():
 			try:
 				log_dir.mkdir(parents=True)
 			except Exception as exc:  # pylint: disable=broad-except
 				logger.error("Could not create log directory %s due to %s\n still trying to continue", exc, log_dir, exc_info=True)
-		log_file = log_dir / "opsi-client-agent.log"
 		arg_list = [
 			str(self.setup_script),
-			str(log_file),
-			"/servicebatch",
-			"/productid",
-			"opsi-client-agent",
-			"/opsiservice",
+			str(log_dir / "opsi-client-agent.log"),
+			f"{param_char}servicebatch",
+			f"{param_char}productid",
+			oca_package,
+			f"{param_char}opsiservice",
 			self.service_address,
-			"/clientid",
+			f"{param_char}clientid",
 			self.client_id,
-			"/username",
+			f"{param_char}username",
 			self.client_id,
-			"/password",
+			f"{param_char}password",
 			self.client_key,
-			"/parameter",
+			f"{param_char}parameter",
 			self.finalize,
 		]
-
-		arg_string = ",".join([f'"{arg}"' for arg in arg_list])
-		ps_script = f'Start-Process -Verb runas -FilePath "{opsi_script}" -ArgumentList {arg_string} -Wait'
-		command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
-		logger.info("Executing: %s", command)
-		subprocess.call(command)
-
-	def run_setup_script_posix(self) -> None:
-		if platform.system().lower() == "linux":
-			opsi_script = self.base_dir / "files" / "opsi-script" / "opsi-script"
-			productid = "opsi-linux-client-agent"
-		elif platform.system().lower() == "darwin":
-			opsi_script = self.base_dir / "files" / "opsi-script.app" / "Contents" / "MacOS" / "opsi-script"
-			productid = "opsi-mac-client-agent"
-		else:
-			raise RuntimeError("'run_setup_script_posix' can only be executed on linux or macos!")
-
-		log_dir = Path("/var/log/opsi-script")
-		if not log_dir.exists():
-			log_dir.mkdir(parents=True)
-		log_file = log_dir / "opsi-client-agent.log"
-		arg_list = [
-			"-servicebatch",
-			str(self.setup_script),
-			str(log_file),
-			"-productid",
-			productid,
-			"-opsiservice",
-			self.service_address,
-			"-clientid",
-			self.client_id,
-			"-username",
-			self.client_id,
-			"-password",
-			self.client_key,
-			"-parameter",
-			self.finalize,
-		]
-
-		command = [opsi_script]
-		command.extend(arg_list)
-		logger.info("Executing: %s", command)
-		print("\n\n")
-		subprocess.call(command)
-
-	def run_setup_script(self) -> None:
-		self.show_message("Running setup script")
-
 		if platform.system().lower() == "windows":
-			self.backend.set_poc_to_installing("opsi-client-agent", self.client_id)
-			return self.run_setup_script_windows()
-		if platform.system().lower() == "linux":
-			self.backend.set_poc_to_installing("opsi-linux-client-agent", self.client_id)
-			return self.run_setup_script_posix()
-		if platform.system().lower() == "darwin":
-			self.backend.set_poc_to_installing("opsi-mac-client-agent", self.client_id)
-			return self.run_setup_script_posix()
+			arg_string = ",".join([f'"{arg}"' for arg in arg_list])
+			ps_script = f'Start-Process -Verb runas -FilePath "{opsi_script}" -ArgumentList {arg_string} -Wait'
+			command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
+		else:
+			command = [opsi_script] + arg_list
 
-		raise NotImplementedError(f"Not implemented for {platform.system()}")
+		self.backend.set_poc_to_installing(oca_package, self.client_id)
+		logger.info("Executing: %s\n", command)
+		subprocess.call(command)
 
 	def check_values(self) -> None:
 		if not self.service_address:
@@ -435,8 +410,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 
 		self.client_id = forceHostId(self.client_id)
 
-	def install(self) -> None:
+	def install(self) -> bool:
 		try:
+			if (self.install_condition == "not_installed" and get_installed_oca_version()) or (
+				self.install_condition == "outdated" and get_installed_oca_version() != get_this_oca_version()
+			):
+				self.show_message(f"Skipping installation as condition {self.install_condition} is not met.")
+				return False
 			self.check_values()
 			self.service_setup()
 			if platform.system().lower() == "windows" and self.full_path.drive != Path(tempfile.gettempdir()).drive:
@@ -444,6 +424,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			self.run_setup_script()
 			self.show_message("Evaluating script result")
 			self.backend.evaluate_success(self.client_id)
+			return True
 		except Exception as err:  # pylint: disable=broad-except
 			logger.error(err, exc_info=True)
 			raise
@@ -507,8 +488,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.dialog.set_button_enabled("install", False)
 		try:
 			# install returns True if installation successfull, False if skipped and throws Exception on error
-			self.install()
-			self.show_message("Installation completed", "success")
+			if self.install():
+				self.show_message("Installation completed", "success")
 			if self.dialog:
 				# if using a dialog, wait for 5 Seconds before closing
 				for _num in range(5):
@@ -580,15 +561,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			sys.exit(1)
 
 
-def show_message(message: str) -> None:
-	if platform.system().lower() == "windows":
-		from .gui import show_message as _show_message  # pylint: disable=import-outside-toplevel
-
-		_show_message(message)
-	else:
-		sys.stdout.write(message)
-
-
 class ArgumentParser(argparse.ArgumentParser):
 	def _print_message(self, message: str, file: Optional[IO[str]] = None) -> None:
 		show_message(message)
@@ -598,6 +570,7 @@ def parse_args(args: List[str] = None):
 	if args is None:
 		args = sys.argv[1:]  # executable path is not processed
 	f_actions = ["noreboot", "reboot", "shutdown"]
+	condition_choices = ["always", "noninstalled", "outdated"]
 	parser = ArgumentParser()
 	parser.add_argument("--version", action="version", version=__version__)
 	parser.add_argument("--log-file", default=Path(tempfile.gettempdir()) / "oca-installation-helper.log")
@@ -621,6 +594,12 @@ def parse_args(args: List[str] = None):
 		metavar="FILE",
 		default=("install.conf", "config.ini", "opsiclientd.conf"),
 		help="config files to scan for informations, if empty no files are read (default: install.conf config.ini opsiclientd.conf)",
+	)
+	parser.add_argument(
+		"--install-condition",
+		default="always",
+		choices=condition_choices,
+		help="Uunder which condition should the client-agent be installed.",
 	)
 
 	return parser.parse_args(args)

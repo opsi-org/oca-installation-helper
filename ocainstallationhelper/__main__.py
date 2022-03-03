@@ -538,6 +538,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		error = None
 		try:
 			try:
+				self.find_setup_script()
+				self.cleanup()
+				logger.debug("Create temp dir '%s'", self.tmp_dir)
+				self.tmp_dir.mkdir(parents=True)
+
 				self.ensure_admin()
 				if self.interactive:
 					if self.use_gui:
@@ -546,13 +551,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 					else:
 						self.dialog = ConsoleDialog(self)
 						self.dialog.show()
-
-				self.find_setup_script()
 				self.get_config()
-
-				self.cleanup()
-				logger.debug("Create temp dir '%s'", self.tmp_dir)
-				self.tmp_dir.mkdir(parents=True)
 
 				if self.interactive and self.dialog:
 					self.dialog.wait()

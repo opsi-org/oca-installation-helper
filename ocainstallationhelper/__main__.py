@@ -531,8 +531,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				ps_script = f'Start-Process -Verb runas -FilePath "{str(new_path)}" {arg_string} -Wait'
 				command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
 				logger.info("Not running elevated. Rerunning oca-installation-helper as admin: %s\n", command)
-				subprocess.call(command)
-				sys.exit(0)
+				returncode = subprocess.call(command)
+				sys.exit(returncode)
 
 	def run(self) -> None:  # pylint: disable=too-many-branches
 		error = None
@@ -586,7 +586,7 @@ def parse_args(args: List[str] = None):
 	condition_choices = ["always", "noninstalled", "outdated"]
 	parser = ArgumentParser()
 	parser.add_argument("--version", action="version", version=__version__)
-	parser.add_argument("--log-file", default=Path(tempfile.gettempdir()) / "oca-installation-helper.log")
+	parser.add_argument("--log-file", default=tempfile.gettempdir() / "oca-installation-helper.log")
 	parser.add_argument("--log-level", default="warning", choices=["none", "debug", "info", "warning", "error", "critical"])
 	parser.add_argument("--service-address", default=None, help="Service address to use.")
 	parser.add_argument("--service-username", default=None, help="Username to use for service connection.")
@@ -629,12 +629,19 @@ def main() -> None:
 		log_level = "DEBUG"
 
 	if log_level != "NONE":
-		if args.log_file.exists():
-			args.log_file.unlink()
+		log_file = Path(args.log_file)
+		if log_file.exists():
+			try:
+				# If running as user Administrator but not elevated, logfile is required twice
+				log_file.unlink()
+			except Exception:  # pylint: disable=broad-except
+				log_file = log_file.with_suffix(f"_1{log_file.suffix}")
+				if log_file.exists():
+					log_file.unlink()
 		logging_config(
 			file_level=getattr(opsicommon.logging, f"LOG_{log_level}"),
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
-			log_file=args.log_file,
+			log_file=str(log_file),
 		)
 
 	InstallationHelper(args).run()

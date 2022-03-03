@@ -530,6 +530,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				logger.info("Not running elevated. Rerunning oca-installation-helper as admin: %s\n", command)
 				returncode = subprocess.call(command)
 				sys.exit(returncode)
+			logger.info("Already running elevated. Continuing execution.")
 
 	def run(self) -> None:  # pylint: disable=too-many-branches
 		error = None
@@ -605,7 +606,7 @@ def parse_args(args: List[str] = None):
 		"--install-condition",
 		default="always",
 		choices=condition_choices,
-		help="Uunder which condition should the client-agent be installed.",
+		help="Under which condition should the client-agent be installed.",
 	)
 
 	return parser.parse_args(args)
@@ -632,6 +633,7 @@ def main() -> None:
 				if log_file.exists():
 					log_file.unlink()
 		logging_config(
+			stderr_level=getattr(opsicommon.logging, f"LOG_{log_level}"),  # TODO: remove for nongui
 			file_level=getattr(opsicommon.logging, f"LOG_{log_level}"),
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
 			log_file=str(log_file),

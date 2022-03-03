@@ -316,14 +316,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.show_message(f"opsi config services found: {len(self.zeroconf_addresses)}", display_seconds=3)
 
 	def copy_installation_files(self) -> None:
-		dst_dir = Path(self.tmp_dir)
-		dst_dir.mkdir(exist_ok=True)
-		self.show_message(f"Copy installation files from '{self.base_dir}' to '{dst_dir}'")
-		if dst_dir.exists():
-			shutil.rmtree(str(dst_dir))
-		shutil.copytree(str(self.base_dir), str(dst_dir))
-		self.show_message(f"Installation files succesfully copied to '{dst_dir}'", "success")
-		self.base_dir = dst_dir
+		self.cleanup()
+		self.show_message(f"Copy installation files from '{self.base_dir}' to '{self.tmp_dir}'")
+		shutil.copytree(str(self.base_dir), str(self.tmp_dir))
+		self.show_message(f"Installation files succesfully copied to '{self.tmp_dir}'", "success")
+		self.base_dir = self.tmp_dir
 		self.setup_script = self.base_dir / self.setup_script_name
 
 	def find_setup_script(self) -> None:
@@ -508,7 +505,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 	def cleanup(self) -> None:
 		if self.tmp_dir.is_dir():
 			logger.debug("Delete temp dir '%s'", self.tmp_dir)
-			shutil.rmtree(self.tmp_dir)
+			shutil.rmtree(str(self.tmp_dir))
 
 	def ensure_admin(self) -> None:
 		if platform.system().lower() != "windows":
@@ -539,10 +536,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		try:
 			try:
 				self.find_setup_script()
-				self.cleanup()
-				logger.debug("Create temp dir '%s'", self.tmp_dir)
-				self.tmp_dir.mkdir(parents=True)
-
 				self.ensure_admin()
 				if self.interactive:
 					if self.use_gui:
@@ -631,13 +624,7 @@ def main() -> None:
 	if log_level != "NONE":
 		log_file = Path(args.log_file)
 		if log_file.exists():
-			try:
-				# If running as user Administrator but not elevated, logfile is required twice
-				log_file.unlink()
-			except Exception:  # pylint: disable=broad-except
-				log_file = log_file.with_suffix(f"_1{log_file.suffix}")
-				if log_file.exists():
-					log_file.unlink()
+			log_file.unlink()
 		logging_config(
 			file_level=getattr(opsicommon.logging, f"LOG_{log_level}"),
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",

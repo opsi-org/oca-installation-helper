@@ -624,7 +624,13 @@ def main() -> None:
 	if log_level != "NONE":
 		log_file = Path(args.log_file)
 		if log_file.exists():
-			log_file.unlink()
+			try:
+				# If running as user Administrator but not elevated, logfile is required twice
+				log_file.unlink()
+			except Exception:  # pylint: disable=broad-except
+				log_file = log_file.with_suffix(f"_1{log_file.suffix}")
+				if log_file.exists():
+					log_file.unlink()
 		logging_config(
 			file_level=getattr(opsicommon.logging, f"LOG_{log_level}"),
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",

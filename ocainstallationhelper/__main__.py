@@ -586,7 +586,7 @@ def parse_args(args: List[str] = None):
 	condition_choices = ["always", "noninstalled", "outdated"]
 	parser = ArgumentParser()
 	parser.add_argument("--version", action="version", version=__version__)
-	parser.add_argument("--log-file", default=tempfile.gettempdir() / "oca-installation-helper.log")
+	parser.add_argument("--log-file", default=str(Path(tempfile.gettempdir()) / "oca-installation-helper.log"))
 	parser.add_argument("--log-level", default="warning", choices=["none", "debug", "info", "warning", "error", "critical"])
 	parser.add_argument("--service-address", default=None, help="Service address to use.")
 	parser.add_argument("--service-username", default=None, help="Username to use for service connection.")

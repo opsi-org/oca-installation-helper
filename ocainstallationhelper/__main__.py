@@ -8,7 +8,7 @@
 opsi-client-agent installation_helper
 """
 
-from operator import ge
+import ctypes
 import os
 import re
 import sys
@@ -419,8 +419,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				return False
 			self.check_values()
 			self.service_setup()
-			if platform.system().lower() == "windows" and self.full_path.drive != Path(tempfile.gettempdir()).drive:
-				self.copy_installation_files()
 			self.run_setup_script()
 			self.show_message("Evaluating script result")
 			self.backend.evaluate_success(self.client_id)
@@ -512,19 +510,35 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			logger.debug("Delete temp dir '%s'", self.tmp_dir)
 			shutil.rmtree(self.tmp_dir)
 
+	def ensure_admin(self) -> None:
+		if platform.system().lower() != "windows":
+			if os.geteuid() != 0:
+				# not root
+				if self.use_gui and platform.system().lower() == "linux":
+					try:
+						subprocess.call(["xhost", "+si:localuser:root"])
+					except subprocess.SubprocessError as err:
+						logger.error(err)
+				print(f"{Path(sys.argv[0]).name} has to be run as root")
+				os.execvp("sudo", ["sudo"] + sys.argv)
+		else:
+			if self.full_path.drive != Path(tempfile.gettempdir()).drive:
+				# TODO test condition
+				self.copy_installation_files()
+			if ctypes.windll.shell32.IsUserAnAdmin() == 0:  # type: ignore
+				# not elevated
+				new_path = self.base_dir / "oca-installation-helper.exe"
+				arg_string = ",".join([f'"{arg}"' for arg in sys.argv[1:]])
+				ps_script = f'Start-Process -Verb runas -FilePath "{str(new_path)}" -ArgumentList {arg_string} -Wait'
+				command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
+				logger.info("Not running elevated. Rerunning oca-installation-helper as admin: %s\n", command)
+				subprocess.call(command)
+
 	def run(self) -> None:  # pylint: disable=too-many-branches
 		error = None
 		try:
 			try:
-				if platform.system().lower() != "windows" and os.geteuid() != 0:
-					if self.use_gui and platform.system().lower() == "linux":
-						try:
-							subprocess.call(["xhost", "+si:localuser:root"])
-						except subprocess.SubprocessError as err:
-							logger.error(err)
-					print(f"{Path(sys.argv[0]).name} has to be run as root")
-					os.execvp("sudo", ["sudo"] + sys.argv)
-
+				self.ensure_admin()
 				if self.interactive:
 					if self.use_gui:
 						self.dialog = GUIDialog(self)

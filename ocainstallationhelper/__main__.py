@@ -523,7 +523,6 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				os.execvp("sudo", ["sudo"] + sys.argv)
 		else:
 			if self.full_path.drive != Path(tempfile.gettempdir()).drive:
-				# TODO test condition
 				self.copy_installation_files()
 			if ctypes.windll.shell32.IsUserAnAdmin() == 0:  # type: ignore
 				# not elevated
@@ -533,6 +532,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
 				logger.info("Not running elevated. Rerunning oca-installation-helper as admin: %s\n", command)
 				subprocess.call(command)
+				sys.exit(0)
 
 	def run(self) -> None:  # pylint: disable=too-many-branches
 		error = None

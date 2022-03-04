@@ -409,9 +409,12 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 
 	def install(self) -> bool:
 		try:
-			if (self.install_condition == "not_installed" and get_installed_oca_version()) or (
-				self.install_condition == "outdated" and get_installed_oca_version() != get_this_oca_version()
+			installed_oca_version = get_installed_oca_version()
+			this_oca_version = get_this_oca_version()
+			if (self.install_condition == "notinstalled" and installed_oca_version) or (
+				self.install_condition == "outdated" and installed_oca_version != this_oca_version
 			):
+				logger.debug("oca versions: installed=%s, this=%s", installed_oca_version, this_oca_version)
 				self.show_message(f"Skipping installation as condition {self.install_condition} is not met.")
 				return False
 			self.check_values()
@@ -529,7 +532,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
 				logger.info("Not running elevated. Rerunning oca-installation-helper as admin: %s\n", command)
 				os.execvp("powershell", command)
-			logger.info("Already running elevated. Continuing execution.")
+			logger.info("Running elevated. Continuing execution.")
 
 	def run(self) -> None:  # pylint: disable=too-many-branches
 		error = None
@@ -576,7 +579,7 @@ def parse_args(args: List[str] = None):
 	if args is None:
 		args = sys.argv[1:]  # executable path is not processed
 	f_actions = ["noreboot", "reboot", "shutdown"]
-	condition_choices = ["always", "noninstalled", "outdated"]
+	condition_choices = ["always", "notinstalled", "outdated"]
 	parser = ArgumentParser()
 	parser.add_argument("--version", action="version", version=__version__)
 	parser.add_argument("--log-file", default=str(Path(tempfile.gettempdir()) / "oca-installation-helper.log"))
@@ -624,13 +627,7 @@ def main() -> None:
 	if log_level != "NONE":
 		log_file = Path(args.log_file)
 		if log_file.exists():
-			try:
-				# If running as user Administrator but not elevated, logfile is required twice
-				log_file.unlink()
-			except Exception:  # pylint: disable=broad-except
-				log_file = log_file.with_suffix(f"_1{log_file.suffix}")
-				if log_file.exists():
-					log_file.unlink()
+			log_file.unlink()
 		logging_config(
 			file_level=getattr(opsicommon.logging, f"LOG_{log_level}"),
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",

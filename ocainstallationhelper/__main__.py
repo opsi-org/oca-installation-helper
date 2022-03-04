@@ -411,10 +411,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		try:
 			installed_oca_version = get_installed_oca_version()
 			this_oca_version = get_this_oca_version()
+			logger.debug("opsi-client-agent versions: installed=%s, this=%s", installed_oca_version, this_oca_version)
 			if (self.install_condition == "notinstalled" and installed_oca_version) or (
-				self.install_condition == "outdated" and installed_oca_version != this_oca_version
+				self.install_condition == "outdated" and installed_oca_version == this_oca_version
 			):
-				logger.debug("oca versions: installed=%s, this=%s", installed_oca_version, this_oca_version)
 				self.show_message(f"Skipping installation as condition {self.install_condition} is not met.")
 				return False
 			self.check_values()

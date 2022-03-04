@@ -528,8 +528,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				ps_script = f'Start-Process -Verb runas -FilePath "{str(new_path)}" {arg_string} -Wait'
 				command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
 				logger.info("Not running elevated. Rerunning oca-installation-helper as admin: %s\n", command)
-				returncode = subprocess.call(command)
-				sys.exit(returncode)
+				os.execvp("powershell", command)
 			logger.info("Already running elevated. Continuing execution.")
 
 	def run(self) -> None:  # pylint: disable=too-many-branches

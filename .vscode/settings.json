@@ -16,5 +16,6 @@
 	],
 	"python.testing.pytestEnabled": true,
 	"files.trimTrailingWhitespace": true,
-	"python.languageServer": "Pylance"
+	"python.languageServer": "Pylance",
+	"editor.detectIndentation": false
 }

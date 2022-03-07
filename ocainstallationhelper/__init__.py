@@ -10,6 +10,7 @@ opsi-client-agent installation_helper
 """
 
 import os
+import re
 from pathlib import Path
 import sys
 from typing import Union, Generator
@@ -28,6 +29,7 @@ KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
 THIS_OCA_VERSION_FILE = Path("files/opsi-client-agent.version")
 WINDOWS_OCA_VERSION_FILE = Path(os.path.expandvars("%programfiles%")) / "opsi.org" / "opsi-client-agent" / "opsi-client-agent.version"
 POSIX_OCA_VERSION_FILE = Path("/etc/opsi-client-agent/opsi-client-agent.version")
+VERSION_PATTERN = re.compile(r"[0-9.]+-[0-9.~]+")
 
 
 def encode_password(cleartext):
@@ -108,6 +110,15 @@ def get_ip_interfaces() -> Generator[Union[ipaddress.IPv4Interface, ipaddress.IP
 				continue
 
 
+def get_versionfile_content(version_file):
+	if not version_file.exists():
+		return None
+	content = version_file.read_text(encoding="utf-8")
+	if re.search(VERSION_PATTERN, content):
+		return content
+	return None
+
+
 def get_installed_oca_version():
 	if platform.system().lower() == "windows":
 		version_file = WINDOWS_OCA_VERSION_FILE
@@ -115,23 +126,22 @@ def get_installed_oca_version():
 		version_file = POSIX_OCA_VERSION_FILE
 	else:
 		raise ValueError(f"Invalid system {platform.system()}")
-	if not version_file.exists():
-		return None
-	with open(str(version_file), "r", encoding="utf-8") as vfile:
-		return vfile.readline().strip()
+	return get_versionfile_content(version_file)
 
 
 def get_this_oca_version():
-	if not THIS_OCA_VERSION_FILE.exists():
-		return None
-	with open(str(THIS_OCA_VERSION_FILE), "r", encoding="utf-8") as vfile:
-		return vfile.readline().strip()
+	return get_versionfile_content(THIS_OCA_VERSION_FILE)
 
 
-def show_message(message: str) -> None:
+def show_message(message: str, message_type: str = "stdout") -> None:
 	if platform.system().lower() == "windows":
 		from .gui import show_message as _show_message  # pylint: disable=import-outside-toplevel
 
 		_show_message(message)
 	else:
-		sys.stdout.write(message)
+		if message_type == "stdout":
+			sys.stdout.write(message)
+		elif message_type == "stderr":
+			sys.stdout.write(message)
+		else:
+			raise ValueError(f"Invalid type {message_type} for show_message")

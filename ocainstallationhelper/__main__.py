@@ -572,7 +572,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 
 class ArgumentParser(argparse.ArgumentParser):
 	def _print_message(self, message: str, file: Optional[IO[str]] = None) -> None:
-		show_message(message)
+		show_message(message, message_type="stderr")
 
 
 def parse_args(args: List[str] = None):

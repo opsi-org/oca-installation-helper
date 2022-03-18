@@ -32,5 +32,5 @@ def test_get_resource_path():
 
 
 def test_version_files():
-	assert get_installed_oca_version() is None
+	get_installed_oca_version()
 	assert get_this_oca_version() is None

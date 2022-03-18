@@ -83,6 +83,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.should_stop = False
 		self.read_conf_files = ()
 		self.install_condition = None
+		self.set_mac_address = True
 		self.tmp_dir = Path(tempfile.gettempdir()) / "oca-installation-helper-tmp"
 		if not self.full_path.is_absolute():
 			self.full_path = (Path(".") / self.full_path).absolute()
@@ -204,6 +205,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			self.use_gui = True
 		if self.cmdline_args.no_gui:
 			self.use_gui = False
+		if self.cmdline_args.no_set_mac_address:
+			self.set_mac_address = False
 		self.interactive = not self.cmdline_args.non_interactive
 		self.client_id = self.cmdline_args.client_id
 		self.service_address = self.cmdline_args.service_address
@@ -220,7 +223,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			"Config from cmdline: interactive=%s, client_id=%s, service_address=%s, "
 			"service_username=%s, service_password=%s, depot=%s, group=%s, "
 			"force_recreate_client=%s, finalize=%s, dns_domain=%s, "
-			"read_conf_files=%s, install_condition=%s",
+			"read_conf_files=%s, install_condition=%s, set_mac_address=%s",
 			self.interactive,
 			self.client_id,
 			self.service_address,
@@ -233,6 +236,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			self.dns_domain,
 			self.read_conf_files,
 			self.install_condition,
+			self.set_mac_address,
 		)
 
 	def get_config(self) -> None:
@@ -445,7 +449,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			if self.dialog:
 				self.dialog.update()
 
-		client = self.backend.get_or_create_client(self.client_id, force_create=self.force_recreate_client)
+		client = self.backend.get_or_create_client(
+			self.client_id, force_create=self.force_recreate_client, set_mac_address=self.set_mac_address
+		)
 		self.client_key = client.opsiHostKey
 		self.client_id = client.id
 		self.show_message("Client exists", "success")
@@ -597,6 +603,7 @@ def parse_args(args: List[str] = None):
 	parser.add_argument("--force-recreate-client", action="store_true", help="Always call host_createOpsiClient, even if it exists.")
 	parser.add_argument("--finalize", default="noreboot", choices=f_actions, help="Action to perform after successfull installation.")
 	parser.add_argument("--dns-domain", default=None, help="DNS domain for assembling client id (ignored if client id is given).")
+	parser.add_argument("--no-set-mac-address", action="store_true", help="Avoid retrieving and setting mac-address on client creation.")
 	parser.add_argument(
 		"--read-conf-files",
 		nargs="*",

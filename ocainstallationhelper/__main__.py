@@ -8,45 +8,45 @@
 opsi-client-agent installation_helper
 """
 
-import ctypes
-import os
-import re
-import sys
-import time
-import threading
-import codecs
-import socket
-import ipaddress
-import tempfile
-import platform
-import subprocess
-from pathlib import Path
-from configparser import ConfigParser
 import argparse
+import codecs
+import ctypes
+import ipaddress
+import os
+import platform
+import re
 import shutil
-from urllib.parse import urlparse
+import socket
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+from configparser import ConfigParser
+from pathlib import Path
 from typing import IO, Any, List, Optional
-from zeroconf import ServiceBrowser, Zeroconf
+from urllib.parse import urlparse
 
 import opsicommon  # type: ignore[import]
 from opsicommon.exceptions import BackendAuthenticationError  # type: ignore[import]
 from opsicommon.logging import logging_config  # type: ignore[import]
 from opsicommon.types import forceHostId  # type: ignore[import]
+from zeroconf import ServiceBrowser, Zeroconf
 
 from ocainstallationhelper import (
 	__version__,
-	monkeypatch_subprocess_for_frozen,
-	logger,
-	encode_password,
 	decode_password,
-	get_ip_interfaces,
-	show_message,
+	encode_password,
 	get_installed_oca_version,
+	get_ip_interfaces,
 	get_this_oca_version,
+	logger,
+	monkeypatch_subprocess_for_frozen,
+	show_message,
 )
+from ocainstallationhelper.backend import Backend
 from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
-from ocainstallationhelper.backend import Backend
 
 DEFAULT_CONFIG_SERVICE_PORT = 4447
 
@@ -107,7 +107,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		result = []
 		for conffile in self.read_conf_files:
 			if conffile == "install.conf":
-				path = self.base_dir / "custom" / "install.conf"
+				path = self.base_dir / "files" / "custom" / "install.conf"
 				if not path.exists():
 					path = self.base_dir / "install.conf"
 			elif conffile == "config.ini":

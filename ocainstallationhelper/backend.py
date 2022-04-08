@@ -4,10 +4,14 @@ opsi-client-agent installation_helper backend class
 
 import platform
 
-from opsicommon.objects import OpsiClient  # type: ignore[import]
 from opsicommon.client.jsonrpc import JSONRPCClient  # type: ignore[import]
+from opsicommon.objects import OpsiClient  # type: ignore[import]
 
-from ocainstallationhelper import logger, get_mac_address
+from ocainstallationhelper import get_mac_address, logger
+
+
+class InstallationUnsuccessful(Exception):
+	pass
 
 
 class Backend:
@@ -82,9 +86,9 @@ class Backend:
 
 		product_on_client = self.service.execute_rpc("productOnClient_getObjects", [[], {"productId": product_id, "clientId": client_id}])
 		if not product_on_client or not product_on_client[0]:
-			raise ValueError(f"Product {product_id} not found on client {client_id}")
+			raise InstallationUnsuccessful(f"Product {product_id} not found on client {client_id}")
 		if not product_on_client[0].installationStatus == "installed":
-			raise ValueError(f"Installation of {product_id} on client {client_id} unsuccessful")
+			raise InstallationUnsuccessful(f"Installation of {product_id} on client {client_id} unsuccessful")
 
 	def get_or_create_client(self, client_id: str, force_create: bool = False, set_mac_address: bool = True) -> OpsiClient:
 		client = self.service.execute_rpc("host_getObjects", [[], {"id": client_id}])

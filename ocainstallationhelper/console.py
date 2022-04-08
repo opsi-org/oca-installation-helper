@@ -9,15 +9,15 @@
 opsi-client-agent installation_helper console output component
 """
 
-import time
-import signal
-from typing import Dict
-import threading
 import platform
+import signal
+import threading
+import time
+from typing import Dict
 
-from picotui.widgets import WTextEntry, WLabel, WButton, Dialog, C_BLACK, C_WHITE  # type: ignore[import]
-from picotui.menu import Screen  # type: ignore[import]
 from picotui.context import Context  # type: ignore[import]
+from picotui.menu import Screen  # type: ignore[import]
+from picotui.widgets import C_BLACK, C_WHITE, Dialog, WButton, WLabel, WTextEntry  # type: ignore[import]
 
 
 class WDialogTextEntry(WTextEntry):
@@ -45,7 +45,7 @@ class WDialogTextEntry(WTextEntry):
 		self.attr_reset()
 
 
-class ConsoleDialog(threading.Thread):
+class ConsoleDialog(threading.Thread):  # pylint: disable=too-many-instance-attributes
 	def __init__(self, installation_helper) -> None:
 		threading.Thread.__init__(self)
 		self.daemon = True
@@ -55,6 +55,7 @@ class ConsoleDialog(threading.Thread):
 		self._closed = False
 		self.dialog = None
 		self.message = None
+		self.logpath = None
 		if platform.system().lower() != "windows":
 			signal.signal(signal.SIGWINCH, self._sigwinch_handler)
 
@@ -83,6 +84,10 @@ class ConsoleDialog(threading.Thread):
 
 	def show_message(self, message, severity=None):  # pylint: disable=unused-argument
 		self.message.t = message
+		self._redraw()
+
+	def show_logpath(self, logpath):
+		self.logpath.t = f"See logs at: {logpath}"
 		self._redraw()
 
 	def _sigwinch_handler(self, *args):  # pylint: disable=unused-argument
@@ -116,7 +121,7 @@ class ConsoleDialog(threading.Thread):
 	def run(self):
 		with Context():
 			width = 80
-			height = 13
+			height = 14
 			padding = 3
 			label_width = 18
 			button_y = 11
@@ -157,6 +162,9 @@ class ConsoleDialog(threading.Thread):
 			self.buttons["install"] = WButton(w=button_w, text="Install")
 			self.dialog.add(x=width - padding - button_w, y=button_y, widget=self.buttons["install"])
 			self.buttons["install"].on("click", self._on_install)
+
+			self.logpath = WLabel(w=width - padding * 2, text="")
+			self.dialog.add(x=padding, y=12, widget=self.logpath)
 
 			self._redraw()
 			Screen.set_screen_redraw(self._screen_redraw)

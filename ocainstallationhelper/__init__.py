@@ -9,22 +9,22 @@
 opsi-client-agent installation_helper
 """
 
-import os
-import re
-from pathlib import Path
-import sys
-from typing import Union, Generator
-import socket
-import platform
-import ipaddress
 import base64
+import ipaddress
+import os
+import platform
+import re
+import socket
 import subprocess
-import psutil
-import netifaces  # type: ignore[import]
+import sys
+from pathlib import Path
+from typing import Generator, Union
 
+import netifaces  # type: ignore[import]
+import psutil
 from opsicommon.logging import logger  # type: ignore[import]
 
-__version__ = "4.2.0.16"
+__version__ = "4.2.0.17"
 KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
 THIS_OCA_VERSION_FILE = Path("files/opsi-client-agent.version")
 WINDOWS_OCA_VERSION_FILE = Path(os.path.expandvars("%programfiles%")) / "opsi.org" / "opsi-client-agent" / "opsi-client-agent.version"

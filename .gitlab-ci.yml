@@ -1,34 +1,9 @@
-image: docker.uib.gmbh/opsi/dev/pybuilder:uib-python-3.9
+image: docker.uib.gmbh/opsi/dev/pybuilder:uib-python-3.10
 
 stages:
   - test
   - build
   - viruscheck
-
-
-.parseoutput: &parseoutput |
-  #variables
-    malicious_limit="3"
-    total_engines=`grep -c "engine_name" $results` || true
-    malicious_engines=`grep -c "category: malicious" $results` || true
-    malicious_percentage=`awk -v total_engines=$total_engines -v malicious_engines=$malicious_engines 'BEGIN {print (100/total_engines*malicious_engines)}'`
-    timed_out_engines=`grep -c "category: timeout" $results` || true
-    timed_out_percentage=`awk -v total_engines=$total_engines -v timed_out_engines=$timed_out_engines 'BEGIN {print (100/total_engines*timed_out_engines)}'`
-    type_unsupported_engines=`grep -c "category: type-unsupported" $results` || true
-    type_unsupported_percentage=`awk -v total_engines=$total_engines -v type_unsupported_engines=$type_unsupported_engines 'BEGIN {print (100/total_engines*type_unsupported_engines)}'` || true
-    successful_engines=`expr $total_engines - $malicious_engines - $timed_out_engines - $type_unsupported_engines` || true
-    successful_percentage=`awk -v total_engines=$total_engines -v successful_engines=$successful_engines 'BEGIN {print (100/total_engines*successful_engines)}'`
-  #summary
-    echo -e "\nSummary:"
-    echo -e "\e[1;32m$total_engines engines in total\e[0m"
-    echo -e "\e[1;32m$successful_engines engines scanned the file(s) successfully ($successful_percentage%)\e[0m"
-    echo -e "\e[1;34m$timed_out_engines engine(s) timed out ($timed_out_percentage%):\e[0m"
-    awk '/category: timeout/{getline; print}' $results | sed s/"engine_name: "// || true
-    echo -e "\e[1;34m$type_unsupported_engines engine(s) reported the file(s) as type-unsupported ($type_unsupported_percentage%):\e[0m"
-    awk '/type-unsupported/{getline; print}' $results | sed s/"engine_name: "// || true
-    echo -e "\e[1;31m$malicious_engines engine(s) reported the file(s) as malicious ($malicious_percentage%):\e[0m"
-    grep -A 5 "category: malicious" $results || true
-    if [ $malicious_engines -le $malicious_limit ]; then echo -e "\e[1;32mThis is less than or equal to the set limit of $malicious_limit engines\e[0m" || true; else echo -e "\e[1;31mThis is more than the set limit of $malicious_limit engines\e[0m" && exit 1; fi
 
 
 test:pytest-darwin:
@@ -149,12 +124,11 @@ build:pyinstaller-windows-x86:
     paths:
       - dist\oca-installation-helper.exe
 
+
 viruscheck:virustotal:
   stage: viruscheck
   script:
     - opsi-dev-tool -l debug --virustotal-analysis dist/oca-installation-helper.exe --output-type simple --output-file ./virustotal-results.txt || true
-    - results="./virustotal-results.txt"
-    - *parseoutput
   artifacts:
     name: virustotal-results
     paths:

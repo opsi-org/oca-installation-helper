@@ -24,7 +24,7 @@ import threading
 import time
 from configparser import ConfigParser
 from pathlib import Path
-from typing import IO, Any, List, Optional
+from typing import IO, Any, List, Optional, Union
 from urllib.parse import urlparse
 
 import opsicommon  # type: ignore[import]
@@ -44,7 +44,7 @@ from ocainstallationhelper import (
 	monkeypatch_subprocess_for_frozen,
 	show_message,
 )
-from ocainstallationhelper.backend import Backend
+from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
 from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
 
@@ -84,6 +84,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		self.read_conf_files = ()
 		self.install_condition = None
 		self.set_mac_address = True
+		self.opsi_script_logfile = None
 		self.tmp_dir = Path(tempfile.gettempdir()) / "oca-installation-helper-tmp"
 		if not self.full_path.is_absolute():
 			self.full_path = (Path(".") / self.full_path).absolute()
@@ -365,9 +366,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				log_dir.mkdir(parents=True)
 			except Exception as exc:  # pylint: disable=broad-except
 				logger.error("Could not create log directory %s due to %s\n still trying to continue", exc, log_dir, exc_info=True)
+		self.opsi_script_logfile = log_dir / "opsi-client-agent.log"
 		arg_list = [
 			str(self.setup_script),
-			str(log_dir / "opsi-client-agent.log"),
+			str(self.opsi_script_logfile),
 			f"{param_char}servicebatch",
 			f"{param_char}productid",
 			oca_package,
@@ -484,6 +486,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				self.clear_message_timer = threading.Timer(display_seconds, self.show_message, args=[""])
 				self.clear_message_timer.start()
 
+	def show_logpath(self, logpath: Union[Path, str]) -> None:
+		logger.info("See logs at: %s", logpath)
+		if self.dialog:
+			self.dialog.show_logpath(logpath)
+
 	def on_cancel_button(self) -> None:
 		self.show_message("Canceled")
 		sys.exit(1)
@@ -501,8 +508,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				self.dialog.close()
 		except BackendAuthenticationError:
 			self.show_message("Authentication error, wrong username or password", "error")
+			self.show_logpath(self.cmdline_args.log_file)
+		except InstallationUnsuccessful as err:
+			self.show_message(f"Installation Unsuccessful: {err}", "error")
+			self.show_logpath(self.opsi_script_logfile)
 		except Exception as err:  # pylint: disable=broad-except
 			self.show_message(str(err), "error")
+			self.show_logpath(self.cmdline_args.log_file)
 		self.dialog.set_button_enabled("install", True)
 
 	def on_zeroconf_button(self) -> None:

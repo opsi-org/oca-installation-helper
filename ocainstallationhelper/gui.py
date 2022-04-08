@@ -92,7 +92,7 @@ class GUIDialog(threading.Thread):
 				sg.Button("Cancel", key="cancel", size=(10, 1)),
 				sg.Button("Install", key="install", size=(10, 1), bind_return_key=True),
 			],
-			[sg.Text(size=(WIDTH, 1), key="logpath")],
+			[sg.Text(size=(WIDTH, 2), key="logpath")],
 		]
 
 		height = 350

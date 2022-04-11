@@ -93,12 +93,11 @@ class GUIDialog(threading.Thread):
 				sg.Button("Install", key="install", size=(10, 1), bind_return_key=True),
 			],
 			[sg.Text(size=(WIDTH, 1), key="logpath")],
-			[sg.Text(" ", font="Any 3")],
 		]
 
 		height = 350
 		if platform.system().lower() == "windows":
-			height = 310
+			height = 320
 		icon = get_icon()
 		logger.debug("rendering window with icon %s and layout %s", icon, layout)
 		self.window = sg.Window(title="opsi client agent installation", icon=icon, size=(500, height), layout=layout, finalize=True)

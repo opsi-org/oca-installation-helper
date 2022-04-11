@@ -93,7 +93,7 @@ class GUIDialog(threading.Thread):
 				sg.Button("Install", key="install", size=(10, 1), bind_return_key=True),
 			],
 			[sg.Text(size=(WIDTH, 1), key="logpath")],
-			[sg.Text("", font="Any 3")],
+			[sg.Text(" ", font="Any 3")],
 		]
 
 		height = 350

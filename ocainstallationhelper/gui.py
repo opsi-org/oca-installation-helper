@@ -97,7 +97,7 @@ class GUIDialog(threading.Thread):
 			[sg.Button("Open logs", key="logs", size=(10, 1), disabled=True)],
 		]
 
-		height = 350
+		height = 370
 		if platform.system().lower() == "windows":
 			height = 320
 		icon = get_icon()
@@ -148,8 +148,8 @@ class GUIDialog(threading.Thread):
 
 	def open_logs(self):
 		if platform.system().lower() == "darwin":
-			subprocess.call(("open", self.relevant_log_file))
+			subprocess.Popen(("open", self.relevant_log_file))
 		elif platform.system().lower() == "windows":
-			subprocess.call(("notepad.exe", self.relevant_log_file))
+			subprocess.Popen(("notepad.exe", self.relevant_log_file))
 		else:
-			subprocess.call(("xdg-open", self.relevant_log_file))
+			subprocess.Popen(("xdg-open", self.relevant_log_file))

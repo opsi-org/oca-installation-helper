@@ -10,6 +10,7 @@ opsi-client-agent installation_helper gui component
 """
 
 import platform
+import subprocess
 import threading
 import time
 
@@ -54,6 +55,7 @@ class GUIDialog(threading.Thread):
 		self.inst_helper = installation_helper
 		self.window = None
 		self._closed = False
+		self.relevant_log_file = ""
 
 	def show(self):
 		self.start()
@@ -92,7 +94,7 @@ class GUIDialog(threading.Thread):
 				sg.Button("Cancel", key="cancel", size=(10, 1)),
 				sg.Button("Install", key="install", size=(10, 1), bind_return_key=True),
 			],
-			[sg.Text(size=(WIDTH, 1), key="logpath")],
+			[sg.Button("Open logs", key="logs", size=(10, 1), disabled=True)],
 		]
 
 		height = 350
@@ -117,6 +119,8 @@ class GUIDialog(threading.Thread):
 				self.inst_helper.on_zeroconf_button()
 			elif event == "install":
 				self.inst_helper.on_install_button()
+			elif event == "logs":
+				self.open_logs()
 
 	def update(self):
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
@@ -138,5 +142,14 @@ class GUIDialog(threading.Thread):
 		self.window.refresh()
 
 	def show_logpath(self, logpath):
-		self.window["logpath"].update(f"See logs at: {logpath}")
+		self.relevant_log_file = logpath
+		self.window["logs"].update(disabled=False)
 		self.window.refresh()
+
+	def open_logs(self):
+		if platform.system().lower() == "darwin":
+			subprocess.call(("open", self.relevant_log_file))
+		elif platform.system().lower() == "windows":
+			subprocess.call(("notepad.exe", self.relevant_log_file))
+		else:
+			subprocess.call(("xdg-open", self.relevant_log_file))

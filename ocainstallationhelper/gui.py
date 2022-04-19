@@ -148,8 +148,8 @@ class GUIDialog(threading.Thread):
 
 	def open_logs(self):
 		if platform.system().lower() == "darwin":
-			subprocess.Popen(("open", self.relevant_log_file))
+			subprocess.Popen(("cat", self.relevant_log_file))
 		elif platform.system().lower() == "windows":
 			subprocess.Popen(("notepad.exe", self.relevant_log_file))
 		else:
-			subprocess.Popen(("xdg-open", self.relevant_log_file))
+			subprocess.Popen(("cat", self.relevant_log_file))

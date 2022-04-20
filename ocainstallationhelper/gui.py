@@ -9,15 +9,18 @@
 opsi-client-agent installation_helper gui component
 """
 
-import time
-import threading
 import platform
-import PySimpleGUI.PySimpleGUI  # type: ignore[import]
+import subprocess
+import threading
+import time
 
+import PySimpleGUI.PySimpleGUI  # type: ignore[import]
 from opsicommon.logging import logger  # type: ignore[import]
+
 from ocainstallationhelper import get_resource_path
 
 SG_THEME = "Default1"  # "Reddit"
+WIDTH = 70
 
 
 def _refresh_debugger():
@@ -52,6 +55,7 @@ class GUIDialog(threading.Thread):
 		self.inst_helper = installation_helper
 		self.window = None
 		self._closed = False
+		self.relevant_log_file = ""
 
 	def show(self):
 		self.start()
@@ -69,32 +73,33 @@ class GUIDialog(threading.Thread):
 		sg.SetOptions(element_padding=((1, 1), 0))
 		layout = [
 			[sg.Text("Client-ID")],
-			[sg.Input(key="client_id", size=(70, 1), default_text=self.inst_helper.client_id)],
+			[sg.Input(key="client_id", size=(WIDTH, 1), default_text=self.inst_helper.client_id)],
 			[sg.Text("", font="Any 3")],
 			[sg.Text("Opsi Service url")],
 			[
-				sg.Input(key="service_address", size=(55, 1), default_text=self.inst_helper.service_address),
+				sg.Input(key="service_address", size=(WIDTH - 15, 1), default_text=self.inst_helper.service_address),
 				sg.Button("Zeroconf", key="zeroconf", size=(15, 1)),
 			],
 			[sg.Text("", font="Any 3")],
 			[sg.Text("Username")],
-			[sg.Input(key="service_username", size=(70, 1), default_text=self.inst_helper.service_username)],
+			[sg.Input(key="service_username", size=(WIDTH, 1), default_text=self.inst_helper.service_username)],
 			[sg.Text("", font="Any 3")],
 			[sg.Text("Password")],
-			[sg.Input(key="service_password", size=(70, 1), default_text=self.inst_helper.service_password, password_char="*")],
+			[sg.Input(key="service_password", size=(WIDTH, 1), default_text=self.inst_helper.service_password, password_char="*")],
 			[sg.Text("", font="Any 3")],
-			[sg.Text(size=(70, 3), key="message")],
+			[sg.Text(size=(WIDTH, 3), key="message")],
 			[sg.Text("", font="Any 3")],
 			[
 				sg.Text("", size=(35, 1)),
 				sg.Button("Cancel", key="cancel", size=(10, 1)),
 				sg.Button("Install", key="install", size=(10, 1), bind_return_key=True),
 			],
+			[sg.Button("Open logs", key="logs", size=(10, 1), disabled=True)],
 		]
 
-		height = 350
+		height = 370
 		if platform.system().lower() == "windows":
-			height = 310
+			height = 320
 		icon = get_icon()
 		logger.debug("rendering window with icon %s and layout %s", icon, layout)
 		self.window = sg.Window(title="opsi client agent installation", icon=icon, size=(500, height), layout=layout, finalize=True)
@@ -114,6 +119,8 @@ class GUIDialog(threading.Thread):
 				self.inst_helper.on_zeroconf_button()
 			elif event == "install":
 				self.inst_helper.on_install_button()
+			elif event == "logs":
+				self.open_logs()
 
 	def update(self):
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
@@ -133,3 +140,16 @@ class GUIDialog(threading.Thread):
 
 		self.window["message"].update(message, text_color=text_color)
 		self.window.refresh()
+
+	def show_logpath(self, logpath):
+		self.relevant_log_file = logpath
+		self.window["logs"].update(disabled=False)
+		self.window.refresh()
+
+	def open_logs(self):
+		if platform.system().lower() == "darwin":
+			subprocess.Popen(("cat", self.relevant_log_file))
+		elif platform.system().lower() == "windows":
+			subprocess.Popen(("notepad.exe", self.relevant_log_file))
+		else:
+			subprocess.Popen(("cat", self.relevant_log_file))

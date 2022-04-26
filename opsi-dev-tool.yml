@@ -8,6 +8,9 @@ pyinstaller-poetry:
   data_files:
     - src: opsi.ico
       dst: .
-  icon: opsi.ico
+  icon:
+    windows: opsi.ico
+    linux: opsi.ico
+    darwin: opsi.icns
   extra_args:
     - "--noconsole"

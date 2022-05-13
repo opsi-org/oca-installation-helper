@@ -258,11 +258,11 @@ class Config:  # pylint: disable=too-many-instance-attributes
 		ifaces = list(get_ip_interfaces())
 		logger.info("Local ip interfaces: %s", [iface.compressed for iface in ifaces])
 		for service_address_str in info.parsed_addresses():
-			logger.info("Service address: %s", service_address)
+			logger.info("Service address: %s", service_address_str)
 			try:
 				service_address = ipaddress.ip_address(service_address_str)
 			except ValueError as err:
-				logger.warning("Failed to parse service address '%s': %s", service_address, err)
+				logger.warning("Failed to parse service address '%s': %s", service_address_str, err)
 			for iface in ifaces:
 				if service_address in iface.network:
 					logger.info("Service address '%s' in network '%s'", service_address, iface.network)

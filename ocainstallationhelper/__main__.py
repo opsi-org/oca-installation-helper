@@ -151,6 +151,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 			):
 				self.show_message(f"Skipping installation as condition {self.config.install_condition} is not met.")
 				return False
+			self.config.check_values()
 			self.service_setup()
 			if not self.backend:
 				raise ValueError("Backend is not initialized.")

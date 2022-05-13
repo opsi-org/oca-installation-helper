@@ -117,7 +117,9 @@ class Config:  # pylint: disable=too-many-instance-attributes
 				logger.info("No permission to open file '%s'", path)
 		return result
 
-	def fill_config_from_files(self) -> None:  # pylint: disable=too-many-branches
+	def fill_config_from_files(self, config_files: List[Path] = None) -> None:  # pylint: disable=too-many-branches
+		if config_files is None:
+			config_files = self.get_config_file_paths()
 		placeholder_regex = re.compile(r"#\@(\w+)\**#+")
 		placeholder_regex_new = re.compile(r"%([\w\-]+)%")
 
@@ -128,7 +130,7 @@ class Config:  # pylint: disable=too-many-instance-attributes
 					return result
 			return None
 
-		for config_file in self.get_config_file_paths():
+		for config_file in config_files:
 			try:
 				logger.info("Reading config file '%s'", config_file)
 				config = ConfigParser()

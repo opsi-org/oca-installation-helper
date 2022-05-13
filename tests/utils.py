@@ -13,8 +13,8 @@ from ocainstallationhelper.__main__ import InstallationHelper, parse_args
 
 
 @contextmanager
-def get_installation_helper():
-	args = []
+def get_installation_helper(args=None):
+	args = args or []
 	with tempfile.TemporaryDirectory() as tempdir:
 		tempdir_path = Path(tempdir)
 		(tempdir_path / "setup.opsiscript").touch()

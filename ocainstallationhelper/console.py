@@ -75,7 +75,7 @@ class ConsoleDialog(threading.Thread):  # pylint: disable=too-many-instance-attr
 
 	def update(self):
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
-			self.inputs[attr].set(getattr(self.inst_helper, attr) or "")
+			self.inputs[attr].set(getattr(self.inst_helper.config, attr) or "")
 		self._redraw()
 
 	def set_button_enabled(self, button_id, enabled):
@@ -107,7 +107,7 @@ class ConsoleDialog(threading.Thread):  # pylint: disable=too-many-instance-attr
 
 	def _on_change(self, _widget):  # pylint: disable=unused-argument
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
-			setattr(self.inst_helper, attr, self.inputs[attr].get())
+			setattr(self.inst_helper.config, attr, self.inputs[attr].get())
 
 	def _on_cancel(self, _widget):  # pylint: disable=unused-argument
 		self.inst_helper.on_cancel_button()

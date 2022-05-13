@@ -29,7 +29,7 @@ SETUP_SCRIPT_NAME = "setup.opsiscript"
 DEFAULT_CONFIG_SERVICE_PORT = 4447
 
 
-class Config:
+class Config:  # pylint: disable=too-many-instance-attributes
 	def __init__(self, cmdline_args: argparse.Namespace, full_path) -> None:
 		self.client_id: Optional[str] = cmdline_args.client_id
 		self.client_key: Optional[str] = None
@@ -64,8 +64,7 @@ class Config:
 				self.setup_script: Path = script
 				self.base_dir: Path = path
 				break
-
-		if not self.setup_script or not self.base_dir:
+		else:  # did not find a setup_script
 			raise RuntimeError(f"{SETUP_SCRIPT_NAME} not found")
 
 		self.zeroconf: Optional[Zeroconf] = None
@@ -258,10 +257,10 @@ class Config:
 
 		ifaces = list(get_ip_interfaces())
 		logger.info("Local ip interfaces: %s", [iface.compressed for iface in ifaces])
-		for service_address in info.parsed_addresses():
+		for service_address_str in info.parsed_addresses():
 			logger.info("Service address: %s", service_address)
 			try:
-				service_address = ipaddress.ip_address(service_address)
+				service_address = ipaddress.ip_address(service_address_str)
 			except ValueError as err:
 				logger.warning("Failed to parse service address '%s': %s", service_address, err)
 			for iface in ifaces:

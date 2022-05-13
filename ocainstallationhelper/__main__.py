@@ -43,14 +43,18 @@ from ocainstallationhelper.config import Config, SETUP_SCRIPT_NAME
 monkeypatch_subprocess_for_frozen()
 
 
-class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-many-public-methods
-	def __init__(self, cmdline_args: argparse.Namespace) -> None:
+class InstallationHelper:  # pylint: disable=too-many-instance-attributes
+	def __init__(self, cmdline_args: argparse.Namespace, full_path: Path = None) -> None:
 		# macos does not use DISPLAY. gui does not work properly on macos right now.
 		self.dialog: Optional[Union[ConsoleDialog, GUIDialog]] = None
 		self.clear_message_timer: Optional[threading.Timer] = None
 		self.backend: Optional[Backend] = None
 
-		self.full_path: Path = Path(sys.argv[0])
+		self.full_path: Path
+		if full_path is None:
+			self.full_path = Path(sys.argv[0])
+		else:
+			self.full_path = full_path
 		self.should_stop: bool = False
 		self.opsi_script_logfile: Optional[Path] = None
 		self.tmp_dir: Path = Path(tempfile.gettempdir()) / "oca-installation-helper-tmp"

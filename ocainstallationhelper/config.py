@@ -232,7 +232,8 @@ class Config:  # pylint: disable=too-many-instance-attributes
 			)
 			logger.devel("Obtained install_params_string %s", install_params_string)
 		except Exception as error:  # pylint: disable=broad-except
-			logger.error("Could not open registry key, skipping fill_config_from_registry: %s", error, exc_info=True)
+			logger.info("Could not open registry key, skipping fill_config_from_registry: %s", error, exc_info=True)
+			return
 		if not install_params_string:
 			return
 		args = parse_args_function(re.split(" |=", install_params_string))

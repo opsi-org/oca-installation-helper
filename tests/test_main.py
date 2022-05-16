@@ -20,7 +20,8 @@ def test_helper_object():
 def test_copy_files():
 	with get_installation_helper() as installation_helper:
 		with tempfile.TemporaryDirectory() as tempdir:
-			installconf = Path(tempdir) / "install.conf"
+			base_dir = Path(tempdir)
+			installconf = base_dir / "install.conf"
 			installconf.write_text(
 				"client_id = dummy.domain.local\n"
 				"service_address = https://192.168.0.1:4447/rpc\n"
@@ -31,7 +32,6 @@ def test_copy_files():
 				encoding="utf-8",
 			)
 
-			base_dir = Path(tempdir)
 			installation_helper.config.base_dir = base_dir
 			installation_helper.get_config()
 			installation_helper.copy_installation_files()

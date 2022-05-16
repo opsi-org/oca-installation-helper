@@ -64,12 +64,18 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.config = Config(cmdline_args, self.full_path)
 
 	def get_config(self) -> None:
+		logger.info("Filling empty config fields from config files.")
 		self.config.fill_config_from_files()
+		if platform.system().lower() == "windows":
+			logger.info("Filling empty config fields from windows registry.")
+			self.config.fill_config_from_registry(parse_args)
+		logger.info("Filling empty config fields from zeroconf information.")
 		self.show_message("Searching for opsi config services", display_seconds=5)
 		self.config.fill_config_from_zeroconf()
 		if self.dialog:
 			self.dialog.update()
 		self.show_message(f"opsi config services found: {len(self.config.zeroconf_addresses)}", display_seconds=3)
+		logger.info("Filling empty config fields from default.")
 		self.config.fill_config_from_default()
 		logger.info(
 			"Got config: service_address='%s', service_username='%s', client_id='%s'",

@@ -13,7 +13,7 @@ import socket
 
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 from urllib.parse import urlparse
 from zeroconf import ServiceBrowser, Zeroconf
 
@@ -209,6 +209,41 @@ class Config:  # pylint: disable=too-many-instance-attributes
 			self.client_id = socket.getfqdn().rstrip(".").lower()
 			if self.dns_domain:
 				self.client_id = ".".join((self.client_id.split(".")[0], self.dns_domain))
+
+	def fill_config_from_registry(self, parse_args_function: Callable) -> None:
+		if platform.system().lower() != "windows":
+			return
+		import winreg  # pylint: disable=import-outside-toplevel,import-error
+
+		def get_registry_value(key, sub_key, value_name):
+			hkey = winreg.OpenKey(key, sub_key)
+			try:  # TODO: x86 on x64? Reflections?
+				(value, _type) = winreg.QueryValueEx(hkey, value_name)
+			finally:
+				winreg.CloseKey(hkey)
+			return value
+
+		# or HKEY_LOCAL_MACHINE\SOFTWARE\opsi.org\general ?
+		try:
+			install_params_string = get_registry_value(
+				winreg.HKEY_LOCAL_MACHINE,  # type: ignore[attr-defined]
+				r"\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\opsi-client-agent",
+				"INSTALL_PARAMS",
+			)
+			logger.devel("Obtained install_params_string %s", install_params_string)
+		except Exception as error:  # pylint: disable=broad-except
+			logger.error("Could not open registry key, skipping fill_config_from_registry: %s", error, exc_info=True)
+		if not install_params_string:
+			return
+		args = parse_args_function(re.split(" |=", install_params_string))
+		self.client_id = self.client_id or args.client_id
+		self.service_address = self.service_address or args.service_address
+		self.service_username = self.service_username or args.service_username
+		self.service_password = self.service_password or args.service_password
+		self.depot = self.depot or args.depot
+		self.group = self.group or args.group
+		self.dns_domain = self.dns_domain or args.dns_domain
+		self.interactive = self.interactive or args.interactive
 
 	def check_values(self) -> None:
 		if not self.service_address:

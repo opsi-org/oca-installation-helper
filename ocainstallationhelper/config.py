@@ -217,8 +217,15 @@ class Config:  # pylint: disable=too-many-instance-attributes
 
 		def get_registry_value(key, sub_key, value_name):
 			hkey = winreg.OpenKey(key, sub_key)
-			try:  # TODO: x86 on x64? Reflections?
+			try:
 				(value, _type) = winreg.QueryValueEx(hkey, value_name)
+			except FileNotFoundError:  # x86 on x64
+				if r"\SOFTWARE" in sub_key:
+					try:
+						wow6432_key = winreg.OpenKey(key, sub_key.replace(r"\SOFTWARE", r"\SOFTWARE\WOW6432Node"))
+						(value, _type) = winreg.QueryValueEx(wow6432_key, value_name)
+					finally:
+						winreg.CloseKey(wow6432_key)
 			finally:
 				winreg.CloseKey(hkey)
 			return value
@@ -230,10 +237,10 @@ class Config:  # pylint: disable=too-many-instance-attributes
 				r"\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\opsi-client-agent",
 				"INSTALL_PARAMS",
 			)
-			logger.devel("Obtained install_params_string %s", install_params_string)
-		except Exception as error:  # pylint: disable=broad-except
-			logger.info("Could not open registry key, skipping fill_config_from_registry: %s", error, exc_info=True)
+		except Exception:  # pylint: disable=broad-except
+			logger.info("Could not open registry key, skipping fill_config_from_registry.")
 			return
+		logger.info("Obtained install_params_string %s", install_params_string)
 		if not install_params_string:
 			return
 		args = parse_args_function(re.split(" |=", install_params_string))

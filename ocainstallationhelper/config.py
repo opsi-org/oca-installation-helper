@@ -217,10 +217,13 @@ class Config:  # pylint: disable=too-many-instance-attributes
 
 		def get_registry_value(key, sub_key, value_name):
 			hkey = winreg.OpenKey(key, sub_key)
+			logger.devel("Requesting key %s and value %s", sub_key, value_name)
 			try:
 				(value, _type) = winreg.QueryValueEx(hkey, value_name)
 			except FileNotFoundError:  # x86 on x64
+				logger.devel("Failed")
 				if r"\SOFTWARE" in sub_key:
+					logger.devel("Requesting key %s and value %s", sub_key.replace(r"\SOFTWARE", r"\SOFTWARE\WOW6432Node"), value_name)
 					try:
 						wow6432_key = winreg.OpenKey(key, sub_key.replace(r"\SOFTWARE", r"\SOFTWARE\WOW6432Node"))
 						(value, _type) = winreg.QueryValueEx(wow6432_key, value_name)

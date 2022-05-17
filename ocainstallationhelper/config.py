@@ -217,8 +217,8 @@ class Config:  # pylint: disable=too-many-instance-attributes
 
 		def get_registry_value(key, sub_key, value_name):
 			logger.debug("Requesting key %s and value %s", sub_key, value_name)
-			hkey = winreg.OpenKey(key, sub_key)
 			try:
+				hkey = winreg.OpenKey(key, sub_key)
 				(value, _type) = winreg.QueryValueEx(hkey, value_name)
 			except FileNotFoundError:  # x86 on x64
 				if r"\SOFTWARE" in sub_key:

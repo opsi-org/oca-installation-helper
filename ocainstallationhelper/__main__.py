@@ -276,9 +276,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.config.service_address = None
 		self.show_message("Searching for opsi config services", display_seconds=5)
 		self.config.fill_config_from_zeroconf()
+		for _sec in range(5):
+			if self.config.service_address:
+				break
+			time.sleep(1)
+		self.show_message(f"opsi config services found: {len(self.config.zeroconf_addresses)}", display_seconds=3)
 		if self.dialog:
 			self.dialog.update()
-		self.show_message(f"opsi config services found: {len(self.config.zeroconf_addresses)}", display_seconds=3)
 
 	def cleanup(self) -> None:
 		if self.tmp_dir.is_dir():

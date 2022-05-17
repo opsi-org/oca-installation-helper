@@ -216,8 +216,8 @@ class Config:  # pylint: disable=too-many-instance-attributes
 		import winreg  # pylint: disable=import-outside-toplevel,import-error
 
 		def get_registry_value(key, sub_key, value_name):
-			hkey = winreg.OpenKey(key, sub_key)
 			logger.debug("Requesting key %s and value %s", sub_key, value_name)
+			hkey = winreg.OpenKey(key, sub_key)
 			try:
 				(value, _type) = winreg.QueryValueEx(hkey, value_name)
 			except FileNotFoundError:  # x86 on x64
@@ -239,8 +239,9 @@ class Config:  # pylint: disable=too-many-instance-attributes
 				r"\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\opsi-client-agent",
 				"INSTALL_PARAMS",
 			)
-		except Exception:  # pylint: disable=broad-except
+		except Exception as error:  # pylint: disable=broad-except
 			logger.info("Could not open registry key, skipping fill_config_from_registry.")
+			logger.debug("Caught Error %s", error, exc_info=True)
 			return
 		logger.info("Obtained install_params_string %s", install_params_string)
 		if not install_params_string:

@@ -217,26 +217,30 @@ class Config:  # pylint: disable=too-many-instance-attributes
 
 		def get_registry_value(key, sub_key, value_name):
 			logger.debug("Requesting key %s and value %s", sub_key, value_name)
+			hkey = None
 			try:
 				hkey = winreg.OpenKey(key, sub_key)
 				(value, _type) = winreg.QueryValueEx(hkey, value_name)
 			except FileNotFoundError:  # x86 on x64
-				if r"\SOFTWARE" in sub_key:
-					logger.debug("Requesting key %s and value %s", sub_key.replace(r"\SOFTWARE", r"\SOFTWARE\WOW6432Node"), value_name)
+				if "\\SOFTWARE" in sub_key:
+					logger.debug("Requesting key %s and value %s", sub_key.replace("\\SOFTWARE", "\\SOFTWARE\\WOW6432Node"), value_name)
+					wow6432_key = None
 					try:
-						wow6432_key = winreg.OpenKey(key, sub_key.replace(r"\SOFTWARE", r"\SOFTWARE\WOW6432Node"))
+						wow6432_key = winreg.OpenKey(key, sub_key.replace("\\SOFTWARE", "\\SOFTWARE\\WOW6432Node"))
 						(value, _type) = winreg.QueryValueEx(wow6432_key, value_name)
 					finally:
-						winreg.CloseKey(wow6432_key)
+						if wow6432_key:
+							winreg.CloseKey(wow6432_key)
 			finally:
-				winreg.CloseKey(hkey)
+				if hkey:
+					winreg.CloseKey(hkey)
 			return value
 
 		# or HKEY_LOCAL_MACHINE\SOFTWARE\opsi.org\general ?
 		try:
 			install_params_string = get_registry_value(
 				winreg.HKEY_LOCAL_MACHINE,  # type: ignore[attr-defined]
-				r"\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\opsi-client-agent",
+				"\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\opsi-client-agent",
 				"INSTALL_PARAMS",
 			)
 		except Exception as error:  # pylint: disable=broad-except

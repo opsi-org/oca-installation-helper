@@ -240,7 +240,8 @@ class Config:  # pylint: disable=too-many-instance-attributes
 		logger.info("Obtained install_params_string %s", install_params_string)
 		if not install_params_string:
 			return
-		args = parse_args_function(re.split(" |=", install_params_string))
+		# Strip quotation marks from parts to allow different formats (like in shell)
+		args = parse_args_function([part.strip("\"'") for part in re.split(" |=", install_params_string)])
 		self.client_id = self.client_id or args.client_id
 		self.service_address = self.service_address or args.service_address
 		self.service_username = self.service_username or args.service_username

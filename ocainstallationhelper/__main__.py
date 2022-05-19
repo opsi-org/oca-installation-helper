@@ -64,13 +64,17 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.config = Config(cmdline_args, self.full_path)
 
 	def get_config(self) -> None:
+		self.configure_from_file_reg()
+		self.configure_from_zeroconf_default()
+
+	def configure_from_file_reg(self) -> None:
 		logger.info("Filling empty config fields from config files.")
 		self.config.fill_config_from_files()
 		if platform.system().lower() == "windows":
 			logger.info("Filling empty config fields from windows registry.")
 			self.config.fill_config_from_registry(parse_args)
-		if self.dialog:
-			self.dialog.update()
+
+	def configure_from_zeroconf_default(self) -> None:
 		logger.info("Filling empty config fields from zeroconf information.")
 		if not self.config.service_address:
 			self.show_message("Searching for opsi config services", display_seconds=5)
@@ -320,6 +324,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		try:
 			try:
 				self.ensure_admin()
+				self.configure_from_file_reg()
 				if self.config.interactive:
 					if self.config.use_gui:
 						self.dialog = GUIDialog(self)
@@ -327,7 +332,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					else:
 						self.dialog = ConsoleDialog(self)
 						self.dialog.show()
-				self.get_config()
+				self.configure_from_zeroconf_default()
 				if self.dialog:
 					self.dialog.update()
 

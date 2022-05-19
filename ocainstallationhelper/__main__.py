@@ -9,36 +9,27 @@ opsi-client-agent installation_helper
 """
 
 import argparse
-import codecs
 import ctypes
-import ipaddress
 import os
 import platform
-import re
 import shutil
-import socket
 import subprocess
 import sys
 import tempfile
 import threading
 import time
-from configparser import ConfigParser
 from pathlib import Path
-from typing import IO, Any, List, Optional, Union
-from urllib.parse import urlparse
+from typing import IO, List, Optional, Union
 
 import opsicommon  # type: ignore[import]
 from opsicommon.exceptions import BackendAuthenticationError  # type: ignore[import]
 from opsicommon.logging import logging_config  # type: ignore[import]
-from opsicommon.types import forceHostId  # type: ignore[import]
-from zeroconf import ServiceBrowser, Zeroconf
 
 from ocainstallationhelper import (
 	__version__,
 	decode_password,
 	encode_password,
 	get_installed_oca_version,
-	get_ip_interfaces,
 	get_this_oca_version,
 	logger,
 	monkeypatch_subprocess_for_frozen,
@@ -47,314 +38,89 @@ from ocainstallationhelper import (
 from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
 from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.gui import GUIDialog
-
-DEFAULT_CONFIG_SERVICE_PORT = 4447
+from ocainstallationhelper.config import Config, SETUP_SCRIPT_NAME
 
 monkeypatch_subprocess_for_frozen()
 
 
-class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-many-public-methods
-	setup_script_name = "setup.opsiscript"
-
-	def __init__(self, cmdline_args):
-		self.cmdline_args = cmdline_args
+class InstallationHelper:  # pylint: disable=too-many-instance-attributes
+	def __init__(self, cmdline_args: argparse.Namespace, full_path: Path = None) -> None:
 		# macos does not use DISPLAY. gui does not work properly on macos right now.
-		self.use_gui = platform.system().lower() == "windows" or os.environ.get("DISPLAY") not in (None, "")
-		self.depot = None
-		self.group = None
-		self.force_recreate_client = False
-		self.dialog = None
-		self.clear_message_timer = None
-		self.backend = None
-		self.zeroconf = None
-		self.zeroconf_addresses = []
-		self.zeroconf_idx = -1
-		self.interactive = True
-		self.client_id = None
-		self.client_key = None
-		self.service_address = None
-		self.service_username = None
-		self.service_password = None
-		self.finalize = None
-		self.dns_domain = None
-		self.base_dir = None
-		self.setup_script = None
-		self.full_path = Path(sys.argv[0])
-		self.should_stop = False
-		self.read_conf_files = ()
-		self.install_condition = None
-		self.set_mac_address = True
-		self.opsi_script_logfile = None
-		self.tmp_dir = Path(tempfile.gettempdir()) / "oca-installation-helper-tmp"
+		self.dialog: Optional[Union[ConsoleDialog, GUIDialog]] = None
+		self.clear_message_timer: Optional[threading.Timer] = None
+		self.backend: Optional[Backend] = None
+
+		self.full_path: Path
+		if full_path is None:
+			self.full_path = Path(sys.argv[0])
+		else:
+			self.full_path = full_path
+		self.should_stop: bool = False
+		self.opsi_script_logfile: Optional[Path] = None
+		self.tmp_dir: Path = Path(tempfile.gettempdir()) / "oca-installation-helper-tmp"
 		if not self.full_path.is_absolute():
-			self.full_path = (Path(".") / self.full_path).absolute()
-		self.get_cmdline_config()
+			self.full_path = (Path() / self.full_path).absolute()
 		logger.info("Installation helper running from '%s', working dir '%s'", self.full_path, Path(".").absolute())
-
-	@property
-	def opsiclientd_conf(self) -> Optional[Path]:
-		if platform.system().lower() == "windows":
-			programs = os.environ.get("PROGRAMFILES(X86)") or os.environ.get("PROGRAMFILES")
-			if programs:
-				return Path(programs) / "opsi.org" / "opsi-client-agent" / "opsiclientd" / "opsiclientd.conf"
-		if platform.system().lower() in ("linux", "darwin"):
-			return Path("/etc/opsi-client-agent/opsiclientd.conf")
-		return None
-
-	def get_config_file_paths(self) -> List[Path]:
-		if not self.base_dir:
-			raise ValueError("No base dir given.")
-
-		result = []
-		for conffile in self.read_conf_files:
-			if conffile == "install.conf":
-				path = self.base_dir / "files" / "custom" / "install.conf"
-				if not path.exists():
-					path = self.base_dir / "install.conf"
-			elif conffile == "config.ini":
-				path = self.base_dir / "files" / "opsi" / "cfg" / "config.ini"
-			elif conffile == "opsiclientd.conf":
-				path = self.opsiclientd_conf
-			else:
-				path = Path(conffile)
-
-			try:
-				if path.exists():
-					result.append(path)
-				else:
-					logger.info("Config file '%s' not found", path)
-			except PermissionError:
-				logger.info("No permission to open file '%s'", path)
-		return result
-
-	def read_config_files(self) -> None:  # pylint: disable=too-many-branches
-		placeholder_regex = re.compile(r"#\@(\w+)\**#+")
-		placeholder_regex_new = re.compile(r"%([\w\-]+)%")
-
-		def get_value_from_config_file(key_tuples):
-			for (section, key) in key_tuples:
-				result = config.get(section, key, fallback=None)
-				if result and not placeholder_regex.search(result) and not placeholder_regex_new.search(result):
-					return result
-			return None
-
-		for config_file in self.get_config_file_paths():
-			try:
-				logger.info("Reading config file '%s'", config_file)
-				config = ConfigParser()
-				with codecs.open(str(config_file), "r", "utf-8") as file:
-					data = file.read().replace("\r\n", "\n")
-					if config_file.name == "install.conf" and "[install]" not in data:
-						data = "[install]\n" + data
-					config.read_string(data)
-
-					self.client_id = self.client_id or get_value_from_config_file(
-						[("install", "client_id"), ("global", "host_id")]  # install.conf, config.ini  # opsiclientd.conf
-					)
-					self.service_address = self.service_address or get_value_from_config_file(
-						[("install", "service_address"), ("config_service", "url")]  # install.conf, config.ini  # opsiclientd.conf
-					)
-					self.service_username = self.service_username or get_value_from_config_file(
-						[
-							("install", "service_username"),  # install.conf
-							("install", "client_id"),  # config.ini
-							("global", "host_id"),  # opsiclientd.conf
-						]
-					)
-					self.service_password = self.service_password or get_value_from_config_file(
-						[
-							("install", "service_password"),  # install.conf
-							("install", "client_key"),  # config.ini
-							("global", "opsi_host_key"),  # opsiclientd.conf
-						]
-					)
-					self.depot = self.depot or get_value_from_config_file(
-						[
-							("install", "depot"),  # install.conf
-						]
-					)
-					self.group = self.group or get_value_from_config_file(
-						[
-							("install", "group"),  # install.conf
-						]
-					)
-					self.dns_domain = self.dns_domain or get_value_from_config_file(
-						[
-							("install", "dns_domain"),  # install.conf
-							("install", "client_domain"),  # config.ini
-						]
-					)
-					val = config.get("install", "interactive", fallback=None)  # install.conf
-					if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
-						self.interactive = val.lower().strip() in ("yes", "true", "on", "1")
-					logger.debug(
-						"Config after reading '%s': interactive=%s, client_id=%s, service_address=%s, "
-						"service_username=%s, service_password=%s, dns_domain=%s",
-						config_file,
-						self.interactive,
-						self.client_id,
-						self.service_address,
-						self.service_username,
-						"*" * len(self.service_password or ""),
-						self.dns_domain or "",
-					)
-			except Exception as err:  # pylint: disable=broad-except
-				logger.error(err, exc_info=True)
-
-	def get_cmdline_config(self) -> None:
-		if self.cmdline_args.gui:
-			self.use_gui = True
-		if self.cmdline_args.no_gui:
-			self.use_gui = False
-		if self.cmdline_args.no_set_mac_address:
-			self.set_mac_address = False
-		self.interactive = not self.cmdline_args.non_interactive
-		self.client_id = self.cmdline_args.client_id
-		self.service_address = self.cmdline_args.service_address
-		self.service_username = self.cmdline_args.service_username
-		self.service_password = self.cmdline_args.service_password
-		self.depot = self.cmdline_args.depot
-		self.group = self.cmdline_args.group
-		self.force_recreate_client = self.cmdline_args.force_recreate_client
-		self.finalize = self.cmdline_args.finalize
-		self.dns_domain = self.cmdline_args.dns_domain
-		self.read_conf_files = self.cmdline_args.read_conf_files
-		self.install_condition = self.cmdline_args.install_condition
-		logger.debug(
-			"Config from cmdline: interactive=%s, client_id=%s, service_address=%s, "
-			"service_username=%s, service_password=%s, depot=%s, group=%s, "
-			"force_recreate_client=%s, finalize=%s, dns_domain=%s, "
-			"read_conf_files=%s, install_condition=%s, set_mac_address=%s",
-			self.interactive,
-			self.client_id,
-			self.service_address,
-			self.service_username,
-			"*" * len(self.service_password or ""),
-			self.depot,
-			self.group,
-			self.force_recreate_client,
-			self.finalize,
-			self.dns_domain,
-			self.read_conf_files,
-			self.install_condition,
-			self.set_mac_address,
-		)
+		self.config = Config(cmdline_args, self.full_path)
 
 	def get_config(self) -> None:
-		self.read_config_files()
+		self.configure_from_reg_file()
+		self.configure_from_zeroconf_default()
 
-		# Do not overwrite client_id if explicitely set by parameter or found in config file
-		if not self.client_id:
-			self.client_id = socket.getfqdn().rstrip(".").lower()
-			if self.dns_domain:
-				self.client_id = ".".join((self.client_id.split(".")[0], self.dns_domain))
+	def configure_from_reg_file(self) -> None:
+		if platform.system().lower() == "windows":
+			logger.info("Filling empty config fields from windows registry.")
+			self.config.fill_config_from_registry(parse_args)
 
-		if not self.service_address:
-			self.start_zeroconf()
+		logger.info("Filling empty config fields from config files.")
+		self.config.fill_config_from_files()
+
+	def configure_from_zeroconf_default(self) -> None:
+		logger.info("Filling empty config fields from zeroconf information.")
+		if not self.config.service_address:
+			self.show_message("Searching for opsi config services", display_seconds=5)
+			self.config.fill_config_from_zeroconf()
 			for _sec in range(5):
-				if self.service_address:
+				if self.config.service_address:
 					break
 				time.sleep(1)
-
-		logger.debug(
-			"Config: interactive=%s, client_id=%s, " "service_address=%s, service_username=%s, service_password=%s",
-			self.interactive,
-			self.client_id,
-			self.service_address,
-			self.service_username,
-			"*" * len(self.service_password or ""),
-		)
-
+			self.show_message(f"opsi config services found: {len(self.config.zeroconf_addresses)}", display_seconds=3)
+		logger.info("Filling empty config fields from default.")
 		if self.dialog:
 			self.dialog.update()
-
-	def start_zeroconf(self) -> None:
-		self.show_message("Searching for opsi config services", display_seconds=5)
-		if self.zeroconf:
-			self.zeroconf.close()
-		try:
-			self.zeroconf = Zeroconf()
-			ServiceBrowser(zc=self.zeroconf, type_="_opsics._tcp.local.", handlers=[self.zeroconf_handler])
-		except Exception as err:  # pylint: disable=broad-except
-			logger.error("Failed to start zeroconf: %s", err, exc_info=True)
-
-	def zeroconf_handler(
-		self, zeroconf: Zeroconf, service_type: str, name: str, state_change: Any  # pylint: disable=unused-argument
-	) -> None:
-		info = zeroconf.get_service_info(service_type, name)
-		if not info:
-			return
+		self.config.fill_config_from_default()
 		logger.info(
-			"opsi config service detected: server=%s, port=%s, version=%s",
-			info.server,
-			info.port,
-			info.properties.get(b"version", b"").decode(),
+			"Got config: service_address='%s', service_username='%s', client_id='%s'",
+			self.config.service_address,
+			self.config.service_username,
+			self.config.client_id,
 		)
-		logger.debug(info)
-
-		if self.service_address:
-			return
-
-		ifaces = list(get_ip_interfaces())
-		logger.info("Local ip interfaces: %s", [iface.compressed for iface in ifaces])
-		for service_address in info.parsed_addresses():
-			logger.info("Service address: %s", service_address)
-			try:
-				service_address = ipaddress.ip_address(service_address)
-			except ValueError as err:
-				logger.warning("Failed to parse service address '%s': %s", service_address, err)
-			for iface in ifaces:
-				if service_address in iface.network:
-					logger.info("Service address '%s' in network '%s'", service_address, iface.network)
-					service_url = f"https://{service_address}:{info.port}"
-					if service_url not in self.zeroconf_addresses:
-						self.zeroconf_addresses.append(service_url)
-				logger.debug("Service address '%s' not in network '%s'", service_address, iface.network)
-
-		self.zeroconf_idx += 1
-		if self.zeroconf_idx >= len(self.zeroconf_addresses):
-			self.zeroconf_idx = 0
-
-		self.service_address = self.zeroconf_addresses[self.zeroconf_idx]
-		if self.dialog:
-			self.dialog.update()
-		self.show_message(f"opsi config services found: {len(self.zeroconf_addresses)}", display_seconds=3)
 
 	def copy_installation_files(self) -> None:
 		self.cleanup()
-		self.show_message(f"Copy installation files from '{self.base_dir}' to '{self.tmp_dir}'")
-		shutil.copytree(str(self.base_dir), str(self.tmp_dir))
+		self.show_message(f"Copy installation files from '{self.config.base_dir}' to '{self.tmp_dir}'")
+		shutil.copytree(str(self.config.base_dir), str(self.tmp_dir))
 		self.show_message(f"Installation files succesfully copied to '{self.tmp_dir}'", "success")
-		self.base_dir = self.tmp_dir
-		self.setup_script = self.base_dir / self.setup_script_name
-
-	def find_setup_script(self) -> None:
-		# iterating over full_path and all its parents
-		for path in (self.full_path / "something").parents:
-			script = path / self.setup_script_name
-			if script.exists():
-				self.setup_script = script
-				self.base_dir = path
-				break
-
-		if not self.setup_script:
-			raise RuntimeError(f"{self.setup_script_name} not found")
+		self.config.base_dir = self.tmp_dir
+		self.config.setup_script = self.config.base_dir / SETUP_SCRIPT_NAME
 
 	def run_setup_script(self) -> None:
+		if not (self.config.service_address and self.config.client_id and self.config.client_key and self.config.finalize and self.backend):
+			raise ValueError("Incomplete data - cannot run setup_script.")
 		self.show_message("Running setup script")
 
 		if platform.system().lower() == "windows":
 			oca_package = "opsi-client-agent"
-			opsi_script = self.base_dir / "files" / "opsi-script" / "opsi-script.exe"
+			opsi_script = self.config.base_dir / "files" / "opsi-script" / "opsi-script.exe"
 			log_dir = Path(r"c:\opsi.org\log")
 			param_char = "/"
 		elif platform.system().lower() == "linux":
 			oca_package = "opsi-linux-client-agent"
-			opsi_script = self.base_dir / "files" / "opsi-script" / "opsi-script"
+			opsi_script = self.config.base_dir / "files" / "opsi-script" / "opsi-script"
 			log_dir = Path("/var/log/opsi-script")
 			param_char = "-"
 		elif platform.system().lower() == "darwin":
-			opsi_script = self.base_dir / "files" / "opsi-script.app" / "Contents" / "MacOS" / "opsi-script"
+			opsi_script = self.config.base_dir / "files" / "opsi-script.app" / "Contents" / "MacOS" / "opsi-script"
 			oca_package = "opsi-mac-client-agent"
 			log_dir = Path("/var/log/opsi-script")
 			param_char = "-"
@@ -368,103 +134,93 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				logger.error("Could not create log directory %s due to %s\n still trying to continue", exc, log_dir, exc_info=True)
 		self.opsi_script_logfile = log_dir / "opsi-client-agent.log"
 		arg_list = [
-			str(self.setup_script),
+			str(self.config.setup_script),
 			str(self.opsi_script_logfile),
 			f"{param_char}servicebatch",
 			f"{param_char}productid",
 			oca_package,
 			f"{param_char}opsiservice",
-			self.service_address,
+			self.config.service_address,
 			f"{param_char}clientid",
-			self.client_id,
+			self.config.client_id,
 			f"{param_char}username",
-			self.client_id,
+			self.config.client_id,
 			f"{param_char}password",
-			self.client_key,
+			self.config.client_key,
 			f"{param_char}parameter",
-			self.finalize,
+			self.config.finalize,
 		]
 		if platform.system().lower() == "windows":
 			arg_string = ",".join([f'"{arg}"' for arg in arg_list])
 			ps_script = f'Start-Process -Verb runas -FilePath "{opsi_script}" -ArgumentList {arg_string} -Wait'
 			command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
 		else:
-			command = [opsi_script] + arg_list
+			command = [str(opsi_script)] + arg_list
 
-		self.backend.set_poc_to_installing(oca_package, self.client_id)
+		self.backend.set_poc_to_installing(oca_package, self.config.client_id)
 		logger.info("Executing: %s\n", command)
 		subprocess.call(command)
 
-	def check_values(self) -> None:
-		if not self.service_address:
-			raise ValueError("Service address undefined")
-
-		if not self.client_id:
-			raise ValueError("Client id undefined")
-
-		if "://" not in self.service_address:
-			self.service_address = f"https://{self.service_address}"
-		url = urlparse(self.service_address)
-		port = url.port or DEFAULT_CONFIG_SERVICE_PORT
-		hostname = str(url.hostname)
-		if ":" in hostname:
-			hostname = f"[{hostname}]"
-		self.service_address = f"{url.scheme}://{hostname}:{port}{url.path}"
-
-		self.client_id = forceHostId(self.client_id)
-
 	def install(self) -> bool:
 		try:
+			if not self.config.client_id:
+				raise ValueError("Client id undefined.")
 			installed_oca_version = get_installed_oca_version()
 			this_oca_version = get_this_oca_version()
 			logger.debug("opsi-client-agent versions: installed=%s, this=%s", installed_oca_version, this_oca_version)
-			if (self.install_condition == "notinstalled" and installed_oca_version) or (
-				self.install_condition == "outdated" and installed_oca_version == this_oca_version
+			if (self.config.install_condition == "notinstalled" and installed_oca_version) or (
+				self.config.install_condition == "outdated" and installed_oca_version == this_oca_version
 			):
-				self.show_message(f"Skipping installation as condition {self.install_condition} is not met.")
+				self.show_message(f"Skipping installation as condition {self.config.install_condition} is not met.")
 				return False
-			self.check_values()
+			self.config.check_values()
 			self.service_setup()
+			if not self.backend:
+				raise ValueError("Backend is not initialized.")
+
 			self.run_setup_script()
 			self.show_message("Evaluating script result")
-			self.backend.evaluate_success(self.client_id)
+			self.backend.evaluate_success(self.config.client_id)
 			return True
 		except Exception as err:  # pylint: disable=broad-except
 			logger.error(err, exc_info=True)
 			raise
 
 	def service_setup(self) -> None:
+		if not self.config.client_id:
+			raise ValueError("Client id undefined.")
+
 		if self.dialog:
 			self.dialog.set_button_enabled("install", False)
 
 		self.show_message("Connecting to service...")
 
-		password = self.service_password
+		password = self.config.service_password or ""
 		if password.startswith("{crypt}"):
 			password = decode_password(password)
 
-		self.backend = Backend(address=self.service_address, username=self.service_username, password=password)
+		self.backend = Backend(address=self.config.service_address, username=self.config.service_username, password=password)
 
 		self.show_message("Connected", "success")
-		if "." not in self.client_id:  # pylint: disable=unsupported-membership-test
-			self.client_id = f"{self.client_id}.{self.backend.get_domain()}"
+		if "." not in self.config.client_id:  # pylint: disable=unsupported-membership-test
+			self.config.client_id = f"{self.config.client_id}.{self.backend.get_domain()}"
 			if self.dialog:
 				self.dialog.update()
 
 		client = self.backend.get_or_create_client(
-			self.client_id, force_create=self.force_recreate_client, set_mac_address=self.set_mac_address
+			self.config.client_id, force_create=self.config.force_recreate_client, set_mac_address=self.config.set_mac_address
 		)
-		self.client_key = client.opsiHostKey
-		self.client_id = client.id
+		self.config.client_key = client.opsiHostKey
+		self.config.client_id = str(client.id)
 		self.show_message("Client exists", "success")
-		if self.depot:
-			if self.client_id == self.service_username:
+		if self.config.depot:
+			if self.config.client_id == self.config.service_username:
 				raise PermissionError("Authorization error: Need opsi admin privileges to assign to depot", "error")
-			self.backend.assign_client_to_depot(self.client_id, self.depot)
-		if self.group:
-			if self.client_id == self.service_username:
+			self.backend.assign_client_to_depot(self.config.client_id, self.config.depot)
+		if self.config.group:
+			if self.config.client_id == self.config.service_username:
 				raise PermissionError("Authorization error: Need opsi admin privileges to add to hostgroup", "error")
-			self.backend.put_client_into_group(self.client_id, self.group)
+			self.backend.put_client_into_group(self.config.client_id, self.config.group)
 		if self.dialog:
 			self.dialog.update()
 
@@ -486,7 +242,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				self.clear_message_timer = threading.Timer(display_seconds, self.show_message, args=[""])
 				self.clear_message_timer.start()
 
-	def show_logpath(self, logpath: Union[Path, str]) -> None:
+	def show_logpath(self, logpath: Optional[Union[Path, str]]) -> None:
 		logger.info("See logs at: %s", logpath)
 		if self.dialog:
 			self.dialog.show_logpath(logpath)
@@ -496,11 +252,13 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		sys.exit(1)
 
 	def on_install_button(self) -> None:
+		if not self.dialog:
+			raise ValueError("How did we end up here?")
 		self.dialog.set_button_enabled("install", False)
 		try:
 			# install returns True if installation successfull, False if skipped and throws Exception on error
 			if self.install():
-				self.show_message("Installation completed", "success")
+				self.show_message("Installation completed (closing in 5 Seconds)", "success")
 			if self.dialog:
 				# if using a dialog, wait for 5 Seconds before closing
 				for _num in range(5):
@@ -508,20 +266,28 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 				self.dialog.close()
 		except BackendAuthenticationError:
 			self.show_message("Authentication error, wrong username or password", "error")
-			self.show_logpath(self.cmdline_args.log_file)
+			self.show_logpath(self.config.log_file)
 		except InstallationUnsuccessful as err:
 			self.show_message(f"Installation Unsuccessful: {err}", "error")
-			self.show_logpath(self.opsi_script_logfile)
+			self.show_logpath(self.opsi_script_logfile or "Undefined logfile.")
 		except Exception as err:  # pylint: disable=broad-except
 			self.show_message(str(err), "error")
-			self.show_logpath(self.cmdline_args.log_file)
+			self.show_logpath(self.config.log_file)
 		self.dialog.set_button_enabled("install", True)
 
 	def on_zeroconf_button(self) -> None:
-		self.service_address = None
 		if self.dialog:
 			self.dialog.update()
-		self.start_zeroconf()
+		self.config.service_address = None
+		self.show_message("Searching for opsi config services", display_seconds=5)
+		self.config.fill_config_from_zeroconf()
+		for _sec in range(5):
+			if self.config.service_address:
+				break
+			time.sleep(1)
+		self.show_message(f"opsi config services found: {len(self.config.zeroconf_addresses)}", display_seconds=3)
+		if self.dialog:
+			self.dialog.update()
 
 	def cleanup(self) -> None:
 		if self.tmp_dir.is_dir():
@@ -532,7 +298,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		if platform.system().lower() != "windows":
 			if os.geteuid() != 0:
 				# not root
-				if self.use_gui and platform.system().lower() == "linux":
+				if self.config.use_gui and platform.system().lower() == "linux":
 					try:
 						subprocess.call(["xhost", "+si:localuser:root"])
 					except subprocess.SubprocessError as err:
@@ -542,9 +308,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		else:
 			if self.full_path.drive != Path(tempfile.gettempdir()).drive:
 				self.copy_installation_files()
+			if not self.config.base_dir:
+				raise ValueError("Installation base directory not defined.")
 			if ctypes.windll.shell32.IsUserAnAdmin() == 0:  # type: ignore
 				# not elevated
-				new_path = self.base_dir / "oca-installation-helper.exe"
+				new_path = self.config.base_dir / "oca-installation-helper.exe"
 				arg_string = "-ArgumentList " + ",".join([f'"{arg}"' for arg in sys.argv[1:]]) if sys.argv[1:] else ""
 				ps_script = f'Start-Process -Verb runas -FilePath "{str(new_path)}" {arg_string} -Wait'
 				command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
@@ -556,18 +324,20 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes,too-ma
 		error = None
 		try:
 			try:
-				self.find_setup_script()
 				self.ensure_admin()
-				if self.interactive:
-					if self.use_gui:
+				self.configure_from_reg_file()
+				if self.config.interactive:
+					if self.config.use_gui:
 						self.dialog = GUIDialog(self)
 						self.dialog.show()
 					else:
 						self.dialog = ConsoleDialog(self)
 						self.dialog.show()
-				self.get_config()
+				self.configure_from_zeroconf_default()
+				if self.dialog:
+					self.dialog.update()
 
-				if self.interactive and self.dialog:
+				if self.config.interactive and self.dialog:
 					self.dialog.wait()
 				else:
 					self.install()
@@ -640,9 +410,6 @@ def main() -> None:
 		return
 
 	log_level = args.log_level.upper()
-	if log_level == "TRACE":
-		log_level = "DEBUG"
-
 	if log_level != "NONE":
 		log_file = Path(args.log_file)
 		if log_file.exists():

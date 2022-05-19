@@ -73,19 +73,19 @@ class GUIDialog(threading.Thread):
 		sg.SetOptions(element_padding=((1, 1), 0))
 		layout = [
 			[sg.Text("Client-ID")],
-			[sg.Input(key="client_id", size=(WIDTH, 1), default_text=self.inst_helper.client_id)],
+			[sg.Input(key="client_id", size=(WIDTH, 1), default_text=self.inst_helper.config.client_id)],
 			[sg.Text("", font="Any 3")],
 			[sg.Text("Opsi Service url")],
 			[
-				sg.Input(key="service_address", size=(WIDTH - 15, 1), default_text=self.inst_helper.service_address),
+				sg.Input(key="service_address", size=(WIDTH - 15, 1), default_text=self.inst_helper.config.service_address),
 				sg.Button("Zeroconf", key="zeroconf", size=(15, 1)),
 			],
 			[sg.Text("", font="Any 3")],
 			[sg.Text("Username")],
-			[sg.Input(key="service_username", size=(WIDTH, 1), default_text=self.inst_helper.service_username)],
+			[sg.Input(key="service_username", size=(WIDTH, 1), default_text=self.inst_helper.config.service_username)],
 			[sg.Text("", font="Any 3")],
 			[sg.Text("Password")],
-			[sg.Input(key="service_password", size=(WIDTH, 1), default_text=self.inst_helper.service_password, password_char="*")],
+			[sg.Input(key="service_password", size=(WIDTH, 1), default_text=self.inst_helper.config.service_password, password_char="*")],
 			[sg.Text("", font="Any 3")],
 			[sg.Text(size=(WIDTH, 3), key="message")],
 			[sg.Text("", font="Any 3")],
@@ -111,7 +111,7 @@ class GUIDialog(threading.Thread):
 
 			if values:
 				for key, val in values.items():
-					setattr(self.inst_helper, key, val)
+					setattr(self.inst_helper.config, key, val)
 
 			if event in (sg.WINDOW_CLOSED, "cancel"):
 				self.inst_helper.on_cancel_button()
@@ -124,7 +124,7 @@ class GUIDialog(threading.Thread):
 
 	def update(self):
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
-			self.window[attr].update(getattr(self.inst_helper, attr))
+			self.window[attr].update(getattr(self.inst_helper.config, attr))
 		self.window.refresh()
 
 	def set_button_enabled(self, button_id, enabled):

@@ -221,16 +221,6 @@ class Config:  # pylint: disable=too-many-instance-attributes
 			try:
 				hkey = winreg.OpenKey(key, sub_key)
 				(value, _type) = winreg.QueryValueEx(hkey, value_name)
-			except FileNotFoundError:  # x86 on x64
-				if "\\SOFTWARE" in sub_key:
-					logger.debug("Requesting key %s and value %s", sub_key.replace("\\SOFTWARE", "\\SOFTWARE\\WOW6432Node"), value_name)
-					wow6432_key = None
-					try:
-						wow6432_key = winreg.OpenKey(key, sub_key.replace("\\SOFTWARE", "\\SOFTWARE\\WOW6432Node"))
-						(value, _type) = winreg.QueryValueEx(wow6432_key, value_name)
-					finally:
-						if wow6432_key:
-							winreg.CloseKey(wow6432_key)
 			finally:
 				if hkey:
 					winreg.CloseKey(hkey)
@@ -240,7 +230,7 @@ class Config:  # pylint: disable=too-many-instance-attributes
 		try:
 			install_params_string = get_registry_value(
 				winreg.HKEY_LOCAL_MACHINE,  # type: ignore[attr-defined]
-				"\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\opsi-client-agent",
+				"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\opsi-client-agent",
 				"INSTALL_PARAMS",
 			)
 		except Exception as error:  # pylint: disable=broad-except

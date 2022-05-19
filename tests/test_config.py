@@ -46,7 +46,7 @@ def test_fill_config_from_files():
 			installation_helper.config.check_values()
 
 
-# default < zeroconf < registry < file < params
+# default < zeroconf < file < registry < params
 
 
 def test_priority_of_sources():

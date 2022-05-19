@@ -248,7 +248,8 @@ class Config:  # pylint: disable=too-many-instance-attributes
 		self.depot = self.depot or args.depot
 		self.group = self.group or args.group
 		self.dns_domain = self.dns_domain or args.dns_domain
-		self.interactive = self.interactive or args.interactive
+		if args.non_interactive is not None:
+			self.interactive = not args.non_interactive
 
 	def check_values(self) -> None:
 		if not self.service_address:

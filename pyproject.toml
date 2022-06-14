@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "oca-installation-helper"
-version = "4.2.0.19"
+version = "4.2.0.20"
 description = "opsi-client-agent installation helper"
 homepage = "https://www.opsi.org"
 license = "AGPL-3.0"

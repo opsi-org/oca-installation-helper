@@ -123,8 +123,11 @@ class GUIDialog(threading.Thread):
 				self.open_logs()
 
 	def update(self):
+		if not self.window:
+			return
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
-			self.window[attr].update(getattr(self.inst_helper.config, attr))
+			if hasattr(self.window, attr):
+				self.window[attr].update(getattr(self.inst_helper.config, attr))
 		self.window.refresh()
 
 	def set_button_enabled(self, button_id, enabled):

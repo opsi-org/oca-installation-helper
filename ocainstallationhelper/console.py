@@ -74,8 +74,11 @@ class ConsoleDialog(threading.Thread):  # pylint: disable=too-many-instance-attr
 		self.join()
 
 	def update(self):
+		if not self.inputs:
+			return
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
-			self.inputs[attr].set(getattr(self.inst_helper.config, attr) or "")
+			if hasattr(self.inputs, attr):
+				self.inputs[attr].set(getattr(self.inst_helper.config, attr) or "")
 		self._redraw()
 
 	def set_button_enabled(self, button_id, enabled):

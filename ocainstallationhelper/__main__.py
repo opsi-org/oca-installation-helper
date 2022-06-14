@@ -332,8 +332,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 						self.dialog = GUIDialog(self)
 						self.dialog.show()
 					else:
-						self.dialog = ConsoleDialog(self)
-						self.dialog.show()
+						if platform.system().lower() == "windows":
+							logger.warning("Console dialog currently not implemented on windows")
+						else:
+							self.dialog = ConsoleDialog(self)
+							self.dialog.show()
 				self.configure_from_zeroconf_default()
 				if self.dialog:
 					self.dialog.update()

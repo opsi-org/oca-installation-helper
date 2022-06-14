@@ -19,6 +19,8 @@ from picotui.context import Context  # type: ignore[import]
 from picotui.menu import Screen  # type: ignore[import]
 from picotui.widgets import C_BLACK, C_WHITE, Dialog, WButton, WLabel, WTextEntry  # type: ignore[import]
 
+from opsicommon.logging import logger  # type: ignore[import]
+
 
 class WDialogTextEntry(WTextEntry):
 	def __init__(self, w, text):
@@ -121,60 +123,67 @@ class ConsoleDialog(threading.Thread):  # pylint: disable=too-many-instance-attr
 	def _on_zeroconf(self, _widget):  # pylint: disable=unused-argument
 		self.inst_helper.on_zeroconf_button()
 
+	def _run(self):
+		width = 80
+		height = 14
+		padding = 3
+		label_width = 18
+		button_y = 11
+		button_w = 14
+
+		self.dialog = Dialog(x=1, y=1, w=width, h=height, title="opsi client agent installer")
+
+		self.inputs["client_id"] = WDialogTextEntry(w=width - 2 * padding - label_width - 1, text="")
+		self.inputs["client_id"].on("changed", self._on_change)
+		self.inputs["service_address"] = WDialogTextEntry(w=width - 2 * padding - label_width - 1, text="")
+		self.inputs["service_address"].on("changed", self._on_change)
+		self.inputs["service_username"] = WDialogTextEntry(w=width - 2 * padding - label_width - 1, text="")
+		self.inputs["service_username"].on("changed", self._on_change)
+		self.inputs["service_password"] = WDialogTextEntry(w=width - 2 * padding - label_width - 1, text="")
+		self.inputs["service_password"].password_char = "*"
+		self.inputs["service_password"].on("changed", self._on_change)
+
+		self.dialog.add(x=padding, y=2, widget=WLabel(w=label_width, text="Client-ID:"))
+		self.dialog.add(x=padding + label_width + 1, y=2, widget=self.inputs["client_id"])
+		self.dialog.add(x=padding, y=3, widget=WLabel(w=label_width, text="Opsi Service url:"))
+		self.dialog.add(x=padding + label_width + 1, y=3, widget=self.inputs["service_address"])
+		self.dialog.add(x=padding, y=4, widget=WLabel(w=label_width, text="Username:"))
+		self.dialog.add(x=padding + label_width + 1, y=4, widget=self.inputs["service_username"])
+		self.dialog.add(x=padding, y=5, widget=WLabel(w=label_width, text="Password:"))
+		self.dialog.add(x=padding + label_width + 1, y=5, widget=self.inputs["service_password"])
+
+		self.message = WLabel(w=width - padding * 2, text="")
+		self.dialog.add(x=padding, y=8, widget=self.message)
+
+		self.buttons["zeroconf"] = WButton(w=button_w, text="Zeroconf")
+		self.dialog.add(x=padding, y=button_y, widget=self.buttons["zeroconf"])
+		self.buttons["zeroconf"].on("click", self._on_zeroconf)
+
+		self.buttons["cancel"] = WButton(w=button_w, text="Cancel")
+		self.dialog.add(x=width - padding - button_w * 2 - 1, y=button_y, widget=self.buttons["cancel"])
+		self.buttons["cancel"].on("click", self._on_cancel)
+
+		self.buttons["install"] = WButton(w=button_w, text="Install")
+		self.dialog.add(x=width - padding - button_w, y=button_y, widget=self.buttons["install"])
+		self.buttons["install"].on("click", self._on_install)
+
+		self.logpath = WLabel(w=width - padding * 2, text="")
+		self.dialog.add(x=padding, y=12, widget=self.logpath)
+
+		self._redraw()
+		Screen.set_screen_redraw(self._screen_redraw)
+
+		# Not using Dialog.loop, as it loops forever
+		while not self._closed:
+			key = self.dialog.get_input()
+			res = self.dialog.handle_input(key)
+			if res is not None and res is not True:
+				break
+
 	def run(self):
-		with Context():
-			width = 80
-			height = 14
-			padding = 3
-			label_width = 18
-			button_y = 11
-			button_w = 14
-
-			self.dialog = Dialog(x=1, y=1, w=width, h=height, title="opsi client agent installer")
-
-			self.inputs["client_id"] = WDialogTextEntry(w=width - 2 * padding - label_width - 1, text="")
-			self.inputs["client_id"].on("changed", self._on_change)
-			self.inputs["service_address"] = WDialogTextEntry(w=width - 2 * padding - label_width - 1, text="")
-			self.inputs["service_address"].on("changed", self._on_change)
-			self.inputs["service_username"] = WDialogTextEntry(w=width - 2 * padding - label_width - 1, text="")
-			self.inputs["service_username"].on("changed", self._on_change)
-			self.inputs["service_password"] = WDialogTextEntry(w=width - 2 * padding - label_width - 1, text="")
-			self.inputs["service_password"].password_char = "*"
-			self.inputs["service_password"].on("changed", self._on_change)
-
-			self.dialog.add(x=padding, y=2, widget=WLabel(w=label_width, text="Client-ID:"))
-			self.dialog.add(x=padding + label_width + 1, y=2, widget=self.inputs["client_id"])
-			self.dialog.add(x=padding, y=3, widget=WLabel(w=label_width, text="Opsi Service url:"))
-			self.dialog.add(x=padding + label_width + 1, y=3, widget=self.inputs["service_address"])
-			self.dialog.add(x=padding, y=4, widget=WLabel(w=label_width, text="Username:"))
-			self.dialog.add(x=padding + label_width + 1, y=4, widget=self.inputs["service_username"])
-			self.dialog.add(x=padding, y=5, widget=WLabel(w=label_width, text="Password:"))
-			self.dialog.add(x=padding + label_width + 1, y=5, widget=self.inputs["service_password"])
-
-			self.message = WLabel(w=width - padding * 2, text="")
-			self.dialog.add(x=padding, y=8, widget=self.message)
-
-			self.buttons["zeroconf"] = WButton(w=button_w, text="Zeroconf")
-			self.dialog.add(x=padding, y=button_y, widget=self.buttons["zeroconf"])
-			self.buttons["zeroconf"].on("click", self._on_zeroconf)
-
-			self.buttons["cancel"] = WButton(w=button_w, text="Cancel")
-			self.dialog.add(x=width - padding - button_w * 2 - 1, y=button_y, widget=self.buttons["cancel"])
-			self.buttons["cancel"].on("click", self._on_cancel)
-
-			self.buttons["install"] = WButton(w=button_w, text="Install")
-			self.dialog.add(x=width - padding - button_w, y=button_y, widget=self.buttons["install"])
-			self.buttons["install"].on("click", self._on_install)
-
-			self.logpath = WLabel(w=width - padding * 2, text="")
-			self.dialog.add(x=padding, y=12, widget=self.logpath)
-
-			self._redraw()
-			Screen.set_screen_redraw(self._screen_redraw)
-
-			# Not using Dialog.loop, as it loops forever
-			while not self._closed:
-				key = self.dialog.get_input()
-				res = self.dialog.handle_input(key)
-				if res is not None and res is not True:
-					break
+		try:
+			with Context():
+				return self._run()
+		except Exception as err:  # pylint: disable=broad-except
+			logger.error(err, exc_info=True)
+			raise

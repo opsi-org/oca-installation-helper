@@ -163,6 +163,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 	def install(self) -> bool:
 		try:
+			logger.info("Starting installation")
 			if not self.config.client_id:
 				raise ValueError("Client id undefined.")
 			installed_oca_version = get_installed_oca_version()
@@ -343,6 +344,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					self.install()
 
 			except Exception as err:  # pylint: disable=broad-except
+				logger.error(err, exc_info=True)
 				error = err
 				self.show_message(str(err), "error")
 				if self.dialog:

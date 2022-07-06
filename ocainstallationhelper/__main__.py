@@ -364,6 +364,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				logger.error(err)
 				error = err
 
+		if self.config.end_marker:
+			with open(self.config.end_marker, "wb"):
+				pass
+
 		if error:
 			print(f"ERROR: {error}", file=sys.stderr)
 			sys.exit(1)
@@ -398,6 +402,7 @@ def parse_args(args: List[str] = None):
 	parser.add_argument("--dns-domain", default=None, help="DNS domain for assembling client id (ignored if client id is given).")
 	parser.add_argument("--no-set-mac-address", action="store_true", help="Avoid retrieving and setting mac-address on client creation.")
 	parser.add_argument("--end-command", default=None, help="Run this command at the end.")
+	parser.add_argument("--end-marker", default=None, help="Create this marker file at the end.")
 	parser.add_argument(
 		"--read-conf-files",
 		nargs="*",

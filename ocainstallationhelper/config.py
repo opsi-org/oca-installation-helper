@@ -55,6 +55,7 @@ class Config:  # pylint: disable=too-many-instance-attributes
 		self.force_recreate_client: bool = cmdline_args.force_recreate_client
 		self.read_conf_files: Tuple[Path, ...] = cmdline_args.read_conf_files
 		self.install_condition: Optional[str] = cmdline_args.install_condition
+		self.end_command: Optional[str] = cmdline_args.end_command
 
 		self.log_file: Optional[str] = cmdline_args.log_file
 		# iterating over full_path and all its parents
@@ -75,7 +76,7 @@ class Config:  # pylint: disable=too-many-instance-attributes
 			"Config from cmdline: interactive=%s, client_id=%s, service_address=%s, "
 			"service_username=%s, service_password=%s, depot=%s, group=%s, "
 			"force_recreate_client=%s, finalize=%s, dns_domain=%s, "
-			"read_conf_files=%s, install_condition=%s, set_mac_address=%s",
+			"read_conf_files=%s, install_condition=%s, set_mac_address=%s, end_command=%s",
 			self.interactive,
 			self.client_id,
 			self.service_address,
@@ -89,6 +90,7 @@ class Config:  # pylint: disable=too-many-instance-attributes
 			self.read_conf_files,
 			self.install_condition,
 			self.set_mac_address,
+			self.end_command,
 		)
 
 	def get_config_file_paths(self) -> List[Path]:

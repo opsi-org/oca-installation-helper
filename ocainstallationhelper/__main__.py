@@ -324,40 +324,46 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 	def run(self) -> None:  # pylint: disable=too-many-branches
 		error = None
 		try:
-			try:
-				self.ensure_admin()
-				self.configure_from_reg_file()
-				if self.config.interactive:
-					if self.config.use_gui:
-						self.dialog = GUIDialog(self)
-						self.dialog.show()
-					else:
-						if platform.system().lower() == "windows":
-							logger.warning("Console dialog currently not implemented on windows")
-						else:
-							self.dialog = ConsoleDialog(self)
-							self.dialog.show()
-				self.configure_from_zeroconf_default()
-				if self.dialog:
-					self.dialog.update()
-
-				if self.config.interactive and self.dialog:
-					self.dialog.wait()
+			self.ensure_admin()
+			self.configure_from_reg_file()
+			if self.config.interactive:
+				if self.config.use_gui:
+					self.dialog = GUIDialog(self)
+					self.dialog.show()
 				else:
-					self.install()
-
-			except Exception as err:  # pylint: disable=broad-except
-				logger.error(err, exc_info=True)
-				error = err
-				self.show_message(str(err), "error")
-				if self.dialog:
-					for _num in range(3):
-						time.sleep(1)
-			else:
-				self.cleanup()
-		finally:
+					if platform.system().lower() == "windows":
+						logger.warning("Console dialog currently not implemented on windows")
+					else:
+						self.dialog = ConsoleDialog(self)
+						self.dialog.show()
+			self.configure_from_zeroconf_default()
 			if self.dialog:
-				self.dialog.close()
+				self.dialog.update()
+
+			if self.config.interactive and self.dialog:
+				self.dialog.wait()
+			else:
+				self.install()
+
+		except Exception as err:  # pylint: disable=broad-except
+			logger.error(err, exc_info=True)
+			error = err
+			self.show_message(str(err), "error")
+			if self.dialog:
+				for _num in range(3):
+					time.sleep(1)
+		else:
+			self.cleanup()
+		if self.dialog:
+			self.dialog.close()
+
+		if self.config.end_command:
+			try:
+				subprocess.check_call(self.config.end_command, shell=True)
+			except subprocess.CalledProcessError as err:
+				logger.error(err)
+				error = err
+
 		if error:
 			print(f"ERROR: {error}", file=sys.stderr)
 			sys.exit(1)
@@ -391,6 +397,7 @@ def parse_args(args: List[str] = None):
 	parser.add_argument("--finalize", default="noreboot", choices=f_actions, help="Action to perform after successfull installation.")
 	parser.add_argument("--dns-domain", default=None, help="DNS domain for assembling client id (ignored if client id is given).")
 	parser.add_argument("--no-set-mac-address", action="store_true", help="Avoid retrieving and setting mac-address on client creation.")
+	parser.add_argument("--end-command", default=None, help="Run this command at the end.")
 	parser.add_argument(
 		"--read-conf-files",
 		nargs="*",

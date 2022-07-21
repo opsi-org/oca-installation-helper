@@ -116,7 +116,6 @@ build:pyinstaller-windows-x86:
     - Invoke-WebRequest -UseBasicParsing -Uri "$OPSIDEVTOOLS_URL_WINDOWS_X86" -OutFile opsi-dev-tools.zip
     - Expand-Archive opsi-dev-tools.zip -DestinationPath .
     - .\opsi-dev-tool.exe --self-install -l info
-    - .\opsi-dev-tool.exe --self-upgrade -l info
     - poetry install
     - poetry run .\opsi-dev-cli -l info pyinstaller build
     - .\opsi-dev-tool -l info --signserver-sign dist\oca-installation-helper.exe

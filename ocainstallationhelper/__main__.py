@@ -37,7 +37,11 @@ from ocainstallationhelper import (
 )
 from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
 from ocainstallationhelper.console import ConsoleDialog
-from ocainstallationhelper.gui import GUIDialog
+
+try:
+	from ocainstallationhelper.gui import GUIDialog
+except ImportError:
+	logger.warning("Import error: Could not import GUIDialog.")
 from ocainstallationhelper.config import Config, SETUP_SCRIPT_NAME
 
 monkeypatch_subprocess_for_frozen()

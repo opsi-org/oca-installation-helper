@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "oca-installation-helper"
-version = "4.2.0.21"
+version = "4.2.0.22"
 description = "opsi-client-agent installation helper"
 homepage = "https://www.opsi.org"
 license = "AGPL-3.0"
@@ -26,7 +26,6 @@ python-opsi-common = "^4.2.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"
-opsi-dev-tools = "^1.0.43"
 pyinstaller = "^5.0"
 pylint = "^2.6.0"
 pytest-cov = "^3.0.0"

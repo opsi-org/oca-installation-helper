@@ -95,6 +95,8 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			self.config.service_username,
 			self.config.client_id,
 		)
+		if self.dialog:
+			self.dialog.update()
 
 	def copy_installation_files(self) -> None:
 		self.cleanup()

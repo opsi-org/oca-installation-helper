@@ -126,7 +126,7 @@ class GUIDialog(threading.Thread):
 		if not self.window:
 			return
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
-			if hasattr(self.window, attr):
+			if attr in self.window.AllKeysDict:
 				self.window[attr].update(getattr(self.inst_helper.config, attr))
 		self.window.refresh()
 

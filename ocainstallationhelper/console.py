@@ -79,7 +79,7 @@ class ConsoleDialog(threading.Thread):  # pylint: disable=too-many-instance-attr
 		if not self.inputs:
 			return
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
-			if hasattr(self.inputs, attr):
+			if attr in self.inputs:
 				self.inputs[attr].set(getattr(self.inst_helper.config, attr) or "")
 		self._redraw()
 

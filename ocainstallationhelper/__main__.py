@@ -85,9 +85,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 					break
 				time.sleep(1)
 			self.show_message(f"opsi config services found: {len(self.config.zeroconf_addresses)}", display_seconds=3)
-		logger.info("Filling empty config fields from default.")
 		if self.dialog:
 			self.dialog.update()
+		logger.info("Filling empty config fields from default.")
 		self.config.fill_config_from_default()
 		logger.info(
 			"Got config: service_address='%s', service_username='%s', client_id='%s'",

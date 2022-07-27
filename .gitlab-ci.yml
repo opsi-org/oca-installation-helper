@@ -133,6 +133,6 @@ build:pyinstaller-windows-x86:
 viruscheck:virustotal:
   stage: viruscheck
   script:
-    - opsi-dev-cli -l info --output-type simple virustotal check dist/oca-installation-helper.exe --allow-detections=8
+    - opsi-dev-cli -l info --output-format simple virustotal check dist/oca-installation-helper.exe --allow-detections=8
   only:
     - tags

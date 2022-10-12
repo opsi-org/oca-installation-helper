@@ -165,7 +165,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 		self.backend.set_poc_to_installing(oca_package, self.config.client_id)
 		logger.info("Executing: %s\n", command)
-		with subprocess.Popen(command, stderr=subprocess.STDOUT, stdout=subprocess.PIPE) as proc:
+		with subprocess.Popen(command, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE) as proc:
 			out = proc.communicate()[0]
 			logger.info("Command exit code: %s", proc.returncode)
 			logger.info("Command output: %s", out)

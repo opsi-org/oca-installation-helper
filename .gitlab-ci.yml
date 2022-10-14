@@ -108,7 +108,7 @@ build:pyinstaller-linux-x64:
     - '[ "$CI_COMMIT_TAG" = "" ] && opsi-dev-cli -l info binary push dist/oca-installation-helper --prerelease="$CI_JOB_ID"'
     - '[ "$CI_COMMIT_TAG" = "" ] || opsi-dev-cli -l info binary push dist/oca-installation-helper'
 
-build:pyinstaller-linux-x64:
+build:pyinstaller-linux-arm64:
   stage: build
   tags:
     - arm64

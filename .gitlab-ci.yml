@@ -108,6 +108,17 @@ build:pyinstaller-linux-x64:
     - '[ "$CI_COMMIT_TAG" = "" ] && opsi-dev-cli -l info binary push dist/oca-installation-helper --prerelease="$CI_JOB_ID"'
     - '[ "$CI_COMMIT_TAG" = "" ] || opsi-dev-cli -l info binary push dist/oca-installation-helper'
 
+build:pyinstaller-linux-arm64:
+  stage: build
+  tags:
+    - arm64
+  script:
+    - poetry install
+    - poetry run opsi-dev-cli -l info pyinstaller build
+    - ./dist/oca-installation-helper --version
+    - '[ "$CI_COMMIT_TAG" = "" ] && opsi-dev-cli -l info binary push dist/oca-installation-helper --prerelease="$CI_JOB_ID"'
+    - '[ "$CI_COMMIT_TAG" = "" ] || opsi-dev-cli -l info binary push dist/oca-installation-helper'
+
 build:pyinstaller-windows-x86:
   stage: build
   tags:

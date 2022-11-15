@@ -17,7 +17,6 @@ test:pytest-darwin:
   artifacts:
     name: 'oca-installation-helper_test_darwin'
     paths:
-      - coverage.xml
       - testreport.xml
       - coverage_darwin
     expire_in: 3 days
@@ -25,7 +24,7 @@ test:pytest-darwin:
 test:pytest-windows:
   stage: test
   tags:
-    - win10-py38
+    - win10-py310
   script:
     - poetry install
     - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
@@ -33,7 +32,6 @@ test:pytest-windows:
   artifacts:
     name: 'oca-installation-helper_test_windows'
     paths:
-      - coverage.xml
       - testreport.xml
       - coverage_windows
     expire_in: 3 days
@@ -47,7 +45,6 @@ test:pytest-linux:
   artifacts:
     name: 'oca-installation-helper_test_linux'
     paths:
-      - coverage.xml
       - testreport.xml
       - coverage_linux
     reports:

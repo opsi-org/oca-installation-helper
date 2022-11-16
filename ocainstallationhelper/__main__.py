@@ -417,7 +417,7 @@ def parse_args(args: List[str] = None):
 		nargs="*",
 		metavar="FILE",
 		default=("install.conf", "config.ini", "opsiclientd.conf"),
-		help="config files to scan for informations, if empty no files are read (default: install.conf config.ini opsiclientd.conf)",
+		help="config files to scan for informations (default: install.conf config.ini opsiclientd.conf)",
 	)
 	parser.add_argument(
 		"--install-condition",

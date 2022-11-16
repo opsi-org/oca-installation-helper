@@ -24,6 +24,10 @@ class Backend:
 
 	def put_client_into_group(self, client_id: str, group: str) -> None:
 		try:
+			found_group = self.service.execute_rpc("group_getObjects", [[], {"id": group, "type": "HostGroup"}])
+			if not found_group:
+				logger.warning("HostGroup %s not found. Creating...", group)
+				self.service.execute_rpc("group_createHostGroup", [group])
 			self.service.execute_rpc(
 				"objectToGroup_createObjects",
 				[

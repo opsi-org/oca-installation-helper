@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "oca-installation-helper"
-version = "4.2.0.23"
+version = "4.2.0.24"
 description = "opsi-client-agent installation helper"
 homepage = "https://www.opsi.org"
 license = "AGPL-3.0"
@@ -15,7 +15,7 @@ name = "uib"
 url = "http://pypi.uib.gmbh:8080/simple/"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
+python = ">=3.10,<3.11"
 zeroconf = "^0.38.0"
 pysimplegui = "^4.39.1"
 psutil = "^5.8.0"

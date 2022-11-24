@@ -339,7 +339,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		try:
 			if cache_dir and cache_dir.exists():
 				logger.info("Deleting opsiclientd WAN cache.")
-				cache_dir.unlink()
+				shutil.rmtree(cache_dir)
 		except Exception as error:  # pylint: disable=broad-except
 			logger.warning("Failed to clean up cache: %s", error)
 

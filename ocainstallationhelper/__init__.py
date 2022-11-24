@@ -30,6 +30,11 @@ THIS_OCA_VERSION_FILE = Path("files/opsi-client-agent.version")
 WINDOWS_OCA_VERSION_FILE = Path(os.path.expandvars("%programfiles%")) / "opsi.org" / "opsi-client-agent" / "opsi-client-agent.version"
 POSIX_OCA_VERSION_FILE = Path("/etc/opsi-client-agent/opsi-client-agent.version")
 VERSION_PATTERN = re.compile(r"[0-9.]+-[0-9.~]+")
+CACHE_DIRS = {
+	"windows": Path("c:\\opsi.org\\cache"),
+	"linux": Path("/var/cache/opsi-client-agent"),
+	"darwin": Path("/var/cache/opsi-client-agent"),
+}
 
 
 def encode_password(cleartext):

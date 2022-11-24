@@ -38,7 +38,8 @@ def test_fill_config_from_files():
 				"interactive =\n",
 				encoding="utf-8",
 			)
-			installation_helper.config.fill_config_from_files(config_files=[installconf])
+			installation_helper.config.read_conf_files = [installconf]
+			installation_helper.config.fill_config_from_files()
 			assert installation_helper.config.client_id == "dummy.domain.local"
 			assert installation_helper.config.service_address == "https://192.168.0.1:4447/rpc"
 			assert installation_helper.config.service_username == "dummyuser"
@@ -54,7 +55,8 @@ def test_priority_of_sources():
 		with tempfile.TemporaryDirectory() as tempdir:
 			installconf = Path(tempdir) / "install.conf"
 			installconf.write_text("service_address = from_file\nservice_username = from_file\n", encoding="utf-8")
-			installation_helper.config.fill_config_from_files(config_files=[Path(installconf)])
+			installation_helper.config.read_conf_files = [installconf]
+			installation_helper.config.fill_config_from_files()
 			installation_helper.config.fill_config_from_default()
 
 			assert installation_helper.config.client_id  # assembled from hostname

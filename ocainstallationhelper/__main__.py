@@ -34,6 +34,7 @@ from ocainstallationhelper import (
 	logger,
 	monkeypatch_subprocess_for_frozen,
 	show_message,
+	CACHE_DIRS,
 )
 from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
 from ocainstallationhelper.console import ConsoleDialog
@@ -48,7 +49,7 @@ monkeypatch_subprocess_for_frozen()
 
 
 class InstallationHelper:  # pylint: disable=too-many-instance-attributes
-	def __init__(self, cmdline_args: argparse.Namespace, full_path: Path = None) -> None:
+	def __init__(self, cmdline_args: argparse.Namespace, full_path: Optional[Path] = None) -> None:
 		# macos does not use DISPLAY. gui does not work properly on macos right now.
 		self.dialog: Optional[Union[ConsoleDialog, GUIDialog]] = None
 		self.clear_message_timer: Optional[threading.Timer] = None
@@ -184,6 +185,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				self.show_message(f"Skipping installation as condition {self.config.install_condition} is not met.")
 				return False
 			self.config.check_values()
+			self.cleanup_cache()
 			self.service_setup()
 			if not self.backend:
 				raise ValueError("Backend is not initialized.")
@@ -209,7 +211,9 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		if password.startswith("{crypt}"):
 			password = decode_password(password)
 
-		self.backend = Backend(address=self.config.service_address, username=self.config.service_username, password=password)
+		if self.config.service_address is None or self.config.service_username is None or password is None:
+			raise ValueError("Incomplete data - cannot run service_setup.")
+		self.backend = Backend(self.config.service_address, self.config.service_username, password)
 
 		self.show_message("Connected", "success")
 		if "." not in self.config.client_id:  # pylint: disable=unsupported-membership-test
@@ -234,7 +238,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		if self.dialog:
 			self.dialog.update()
 
-	def show_message(self, message: str, severity: str = None, display_seconds: float = 0) -> None:
+	def show_message(self, message: str, severity: Optional[str] = None, display_seconds: float = 0) -> None:
 		if self.clear_message_timer:
 			self.clear_message_timer.cancel()
 
@@ -330,6 +334,15 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				os.execvp("powershell", command)
 			logger.info("Running elevated. Continuing execution.")
 
+	def cleanup_cache(self) -> None:
+		cache_dir = CACHE_DIRS.get(platform.system().lower())
+		try:
+			if cache_dir and cache_dir.exists():
+				logger.info("Deleting opsiclientd WAN cache.")
+				cache_dir.unlink()
+		except Exception as error:  # pylint: disable=broad-except
+			logger.warning("Failed to clean up cache: %s", error)
+
 	def run(self) -> None:  # pylint: disable=too-many-branches
 		error = None
 		try:
@@ -387,7 +400,7 @@ class ArgumentParser(argparse.ArgumentParser):
 		show_message(message, message_type="stderr")
 
 
-def parse_args(args: List[str] = None):
+def parse_args(args: Optional[List[str]] = None):
 	if args is None:
 		args = sys.argv[1:]  # executable path is not processed
 	f_actions = ["noreboot", "reboot", "shutdown"]

@@ -34,7 +34,7 @@ from ocainstallationhelper import (
 	logger,
 	monkeypatch_subprocess_for_frozen,
 	show_message,
-	CACHE_DIRS,
+	CONFIG_CACHE_DIRS,
 )
 from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
 from ocainstallationhelper.console import ConsoleDialog
@@ -335,7 +335,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			logger.info("Running elevated. Continuing execution.")
 
 	def cleanup_cache(self) -> None:
-		cache_dir = CACHE_DIRS.get(platform.system().lower())
+		cache_dir = CONFIG_CACHE_DIRS.get(platform.system().lower())
 		try:
 			if cache_dir and cache_dir.exists():
 				logger.info("Deleting opsiclientd WAN cache.")

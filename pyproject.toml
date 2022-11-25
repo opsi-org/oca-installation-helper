@@ -28,10 +28,10 @@ python-opsi-common = "^4.2.0"
 pytest = "^7.0"
 pyinstaller = "^5.0"
 pylint = "^2.6.0"
-pytest-cov = "^3.0.0"
+pytest-cov = "^4.0.0"
 tan = "^22.0"
-flake8 = "^4.0.1"
-mypy = "^0.950"
+flake8 = "^6.0"
+mypy = "^0.991"
 types-psutil = "^5.8.20"
 
 [tool.black]

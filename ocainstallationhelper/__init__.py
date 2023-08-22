@@ -18,13 +18,13 @@ import socket
 import subprocess
 import sys
 from pathlib import Path
-from typing import Generator, Union
+from typing import Generator
 
 import netifaces  # type: ignore[import]
 import psutil
-from opsicommon.logging import logger  # type: ignore[import]
+from opsicommon.logging import get_logger  # type: ignore[import]
 
-__version__ = "4.2.0.24"
+__version__ = "4.2.0.25"
 KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
 THIS_OCA_VERSION_FILE = Path("files/opsi-client-agent.version")
 WINDOWS_OCA_VERSION_FILE = Path(os.path.expandvars("%programfiles%")) / "opsi.org" / "opsi-client-agent" / "opsi-client-agent.version"
@@ -35,6 +35,7 @@ CONFIG_CACHE_DIRS = {
 	"linux": Path("/var/cache/opsi-client-agent/config"),
 	"darwin": Path("/var/cache/opsi-client-agent/config"),
 }
+logger = get_logger("oca-installation-helper")
 
 
 def encode_password(cleartext):
@@ -100,7 +101,7 @@ def get_mac_address():
 	return mac
 
 
-def get_ip_interfaces() -> Generator[Union[ipaddress.IPv4Interface, ipaddress.IPv6Interface], None, None]:
+def get_ip_interfaces() -> Generator[ipaddress.IPv4Interface | ipaddress.IPv6Interface, None, None]:
 	for snics in psutil.net_if_addrs().values():
 		for snic in snics:
 			if snic.family not in (socket.AF_INET, socket.AF_INET6) or not snic.address or not snic.netmask:

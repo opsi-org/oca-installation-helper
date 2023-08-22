@@ -17,7 +17,7 @@ class InstallationUnsuccessful(Exception):
 class Backend:
 	def __init__(self, address: str, username: str, password: str) -> None:
 		self.service: JSONRPCClient = JSONRPCClient(address=address, username=username, password=password)
-		self.service_address: str = self.service.base_url
+		self.service_address: str | None = self.service.base_url
 
 	def get_domain(self) -> str:
 		return self.service.execute_rpc("getDomain")

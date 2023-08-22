@@ -13,7 +13,6 @@ import platform
 import signal
 import threading
 import time
-from typing import Dict
 
 from picotui.context import Context  # type: ignore[import]
 from picotui.menu import Screen  # type: ignore[import]
@@ -52,8 +51,8 @@ class ConsoleDialog(threading.Thread):  # pylint: disable=too-many-instance-attr
 		threading.Thread.__init__(self)
 		self.daemon = True
 		self.inst_helper = installation_helper
-		self.inputs: Dict[str, WTextEntry] = {}
-		self.buttons: Dict[str, WButton] = {}
+		self.inputs: dict[str, WTextEntry] = {}
+		self.buttons: dict[str, WButton] = {}
 		self._closed = False
 		self.dialog = None
 		self.message = None

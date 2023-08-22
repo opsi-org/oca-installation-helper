@@ -1,4 +1,4 @@
-image: docker.uib.gmbh/opsi/dev/pybuilder:uib-python-3.10
+image: docker.uib.gmbh/opsi/dev/pybuilder:uib-python-3.11
 
 stages:
   - test
@@ -9,7 +9,7 @@ stages:
 test:pytest-darwin:
   stage: test
   tags:
-    - macos_catalina
+    - catalina-py311-x64
   script:
     - poetry install
     - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
@@ -24,7 +24,7 @@ test:pytest-darwin:
 test:pytest-windows:
   stage: test
   tags:
-    - win10-py310
+    - win10-py311-x86
   script:
     - poetry install
     - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
@@ -63,6 +63,7 @@ test:pylint-pytest:
       artifacts: true
   script:
     - apt-get update
+    - apt-get --yes --allow-downgrades install libsqlite3-0=3.16.2-5+deb9u1
     - apt-get --yes install sqlite3
     - poetry install
     - poetry run pylint --disable=R,fixme ocainstallationhelper tests
@@ -88,7 +89,7 @@ test:pylint-pytest:
 build:pyinstaller-darwin-x64:
   stage: build
   tags:
-    - macos_catalina
+    - catalina-py311-x64
   script:
     - poetry install
     - poetry run opsi-dev-cli -l info pyinstaller build
@@ -108,7 +109,7 @@ build:pyinstaller-linux-x64:
 build:pyinstaller-linux-arm64:
   stage: build
   tags:
-    - arm64
+    - linux-arm64
   script:
     - poetry install
     - poetry run opsi-dev-cli -l info pyinstaller build
@@ -119,11 +120,11 @@ build:pyinstaller-linux-arm64:
 build:pyinstaller-windows-x86:
   stage: build
   tags:
-    - win10-py310
+    - win10-py311-x86
   script:
     - Invoke-WebRequest -UseBasicParsing -Uri "$OPSIDEVTOOLS_URL_WINDOWS_X86" -OutFile opsi-dev-tools.zip
     - Expand-Archive opsi-dev-tools.zip -DestinationPath .
-    - .\opsi-dev-tool.exe --self-install -l info
+    - Copy-Item opsi-dev-tool.exe opsi-dev-cli.exe
     - poetry install
     - poetry run .\opsi-dev-cli -l info pyinstaller build
     - .\opsi-dev-tool -l info --signserver-sign dist\oca-installation-helper.exe

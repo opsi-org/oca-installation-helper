@@ -19,7 +19,7 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from typing import IO, List, Optional, Union
+from typing import IO
 
 import opsicommon  # type: ignore[import]
 from opsicommon.exceptions import BackendAuthenticationError  # type: ignore[import]
@@ -49,11 +49,11 @@ monkeypatch_subprocess_for_frozen()
 
 
 class InstallationHelper:  # pylint: disable=too-many-instance-attributes
-	def __init__(self, cmdline_args: argparse.Namespace, full_path: Optional[Path] = None) -> None:
+	def __init__(self, cmdline_args: argparse.Namespace, full_path: Path | None = None) -> None:
 		# macos does not use DISPLAY. gui does not work properly on macos right now.
-		self.dialog: Optional[Union[ConsoleDialog, GUIDialog]] = None
-		self.clear_message_timer: Optional[threading.Timer] = None
-		self.backend: Optional[Backend] = None
+		self.dialog: ConsoleDialog | GUIDialog | None = None
+		self.clear_message_timer: threading.Timer | None = None
+		self.backend: Backend | None = None
 
 		self.full_path: Path
 		if full_path is None:
@@ -61,16 +61,12 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		else:
 			self.full_path = full_path
 		self.should_stop: bool = False
-		self.opsi_script_logfile: Optional[Path] = None
+		self.opsi_script_logfile: Path | None = None
 		self.tmp_dir: Path = Path(tempfile.gettempdir()) / "oca-installation-helper-tmp"
 		if not self.full_path.is_absolute():
 			self.full_path = (Path() / self.full_path).absolute()
 		logger.info("Installation helper running from '%s', working dir '%s'", self.full_path, Path(".").absolute())
 		self.config = Config(cmdline_args, self.full_path)
-
-	def get_config(self) -> None:
-		self.configure_from_reg_file()
-		self.configure_from_zeroconf_default()
 
 	def configure_from_reg_file(self) -> None:
 		if platform.system().lower() == "windows":
@@ -138,7 +134,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			try:
 				log_dir.mkdir(parents=True)
 			except Exception as exc:  # pylint: disable=broad-except
-				logger.error("Could not create log directory %s due to %s\n still trying to continue", exc, log_dir, exc_info=True)
+				logger.error("Could not create log directory %s due to %s\n still trying to continue", log_dir, exc, exc_info=True)
 		self.opsi_script_logfile = log_dir / "opsi-client-agent.log"
 		arg_list = [
 			str(self.config.setup_script),
@@ -158,7 +154,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			self.config.finalize,
 		]
 		if platform.system().lower() == "windows":
-			arg_string = ",".join([f'"{arg}"' for arg in arg_list])
+			arg_string = ",".join([f"'\"{arg}\"'" for arg in arg_list])  # Enclosing by ' and " to be robust against spaces in params
 			ps_script = f'Start-Process -Verb runas -FilePath "{opsi_script}" -ArgumentList {arg_string} -Wait'
 			command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
 		else:
@@ -238,7 +234,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		if self.dialog:
 			self.dialog.update()
 
-	def show_message(self, message: str, severity: Optional[str] = None, display_seconds: float = 0) -> None:
+	def show_message(self, message: str, severity: str | None = None, display_seconds: float = 0) -> None:
 		if self.clear_message_timer:
 			self.clear_message_timer.cancel()
 
@@ -256,7 +252,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				self.clear_message_timer = threading.Timer(display_seconds, self.show_message, args=[""])
 				self.clear_message_timer.start()
 
-	def show_logpath(self, logpath: Optional[Union[Path, str]]) -> None:
+	def show_logpath(self, logpath: Path | str | None) -> None:
 		logger.info("See logs at: %s", logpath)
 		if self.dialog:
 			self.dialog.show_logpath(logpath)
@@ -396,11 +392,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 
 
 class ArgumentParser(argparse.ArgumentParser):
-	def _print_message(self, message: str, file: Optional[IO[str]] = None) -> None:
+	def _print_message(self, message: str, file: IO[str] | None = None) -> None:
 		show_message(message, message_type="stderr")
 
 
-def parse_args(args: Optional[List[str]] = None):
+def parse_args(args: list[str] | None = None):
 	if args is None:
 		args = sys.argv[1:]  # executable path is not processed
 	f_actions = ["noreboot", "reboot", "shutdown"]

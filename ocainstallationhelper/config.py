@@ -13,7 +13,7 @@ import socket
 
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, Tuple
 from urllib.parse import urlparse
 from zeroconf import ServiceBrowser, Zeroconf
 
@@ -31,15 +31,15 @@ DEFAULT_CONFIG_SERVICE_PORT = 4447
 
 class Config:  # pylint: disable=too-many-instance-attributes
 	def __init__(self, cmdline_args: argparse.Namespace, full_path) -> None:
-		self.client_id: Optional[str] = cmdline_args.client_id
-		self.client_key: Optional[str] = None
-		self.service_address: Optional[str] = cmdline_args.service_address
-		self.service_username: Optional[str] = cmdline_args.service_username
-		self.service_password: Optional[str] = cmdline_args.service_password
-		self.finalize: Optional[str] = cmdline_args.finalize
-		self.dns_domain: Optional[str] = cmdline_args.dns_domain
-		self.depot: Optional[str] = cmdline_args.depot
-		self.group: Optional[str] = cmdline_args.group
+		self.client_id: str | None = cmdline_args.client_id
+		self.client_key: str | None = None
+		self.service_address: str | None = cmdline_args.service_address
+		self.service_username: str | None = cmdline_args.service_username
+		self.service_password: str | None = cmdline_args.service_password
+		self.finalize: str | None = cmdline_args.finalize
+		self.dns_domain: str | None = cmdline_args.dns_domain
+		self.depot: str | None = cmdline_args.depot
+		self.group: str | None = cmdline_args.group
 
 		self.use_gui: bool = platform.system().lower() == "windows" or os.environ.get("DISPLAY") not in (None, "")
 		if cmdline_args.gui:
@@ -54,11 +54,11 @@ class Config:  # pylint: disable=too-many-instance-attributes
 		self.interactive: bool = not cmdline_args.non_interactive
 		self.force_recreate_client: bool = cmdline_args.force_recreate_client
 		self.read_conf_files: Tuple[Path, ...] = cmdline_args.read_conf_files
-		self.install_condition: Optional[str] = cmdline_args.install_condition
-		self.end_command: Optional[str] = cmdline_args.end_command
-		self.end_marker: Optional[str] = cmdline_args.end_marker
+		self.install_condition: str | None = cmdline_args.install_condition
+		self.end_command: str | None = cmdline_args.end_command
+		self.end_marker: str | None = cmdline_args.end_marker
 
-		self.log_file: Optional[str] = cmdline_args.log_file
+		self.log_file: str | None = cmdline_args.log_file
 		# iterating over full_path and all its parents
 		for path in (full_path / "something").parents:
 			script = path / SETUP_SCRIPT_NAME
@@ -67,10 +67,11 @@ class Config:  # pylint: disable=too-many-instance-attributes
 				self.base_dir: Path = path
 				break
 		else:  # did not find a setup_script
+			logger.error("Setup script %s not found!", SETUP_SCRIPT_NAME)
 			raise RuntimeError(f"{SETUP_SCRIPT_NAME} not found")
 
-		self.zeroconf: Optional[Zeroconf] = None
-		self.zeroconf_addresses: List[str] = []
+		self.zeroconf: Zeroconf | None = None
+		self.zeroconf_addresses: list[str] = []
 		self.zeroconf_idx: int = -1
 
 		logger.debug(
@@ -96,7 +97,7 @@ class Config:  # pylint: disable=too-many-instance-attributes
 			self.end_marker,
 		)
 
-	def get_config_file_paths(self) -> List[Path]:
+	def get_config_file_paths(self) -> list[Path]:
 		if not self.base_dir:
 			raise ValueError("No base dir given.")
 
@@ -127,8 +128,8 @@ class Config:  # pylint: disable=too-many-instance-attributes
 		placeholder_regex = re.compile(r"#\@(\w+)\**#+")
 		placeholder_regex_new = re.compile(r"%([\w\-]+)%")
 
-		def get_value_from_config_file(key_tuples: List[Tuple[str, str]]) -> Optional[str]:
-			for (section, key) in key_tuples:
+		def get_value_from_config_file(key_tuples: list[Tuple[str, str]]) -> str | None:
+			for section, key in key_tuples:
 				result = config.get(section, key, fallback=None)
 				if result and not placeholder_regex.search(result) and not placeholder_regex_new.search(result):
 					return result
@@ -293,7 +294,7 @@ class Config:  # pylint: disable=too-many-instance-attributes
 			"opsi config service detected: server=%s, port=%s, version=%s",
 			info.server,
 			info.port,
-			info.properties.get(b"version", b"").decode(),
+			info.properties.get(b"version", b"").decode(),  # type: ignore[union-attr]
 		)
 		logger.debug(info)
 

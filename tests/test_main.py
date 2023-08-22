@@ -33,7 +33,8 @@ def test_copy_files():
 			)
 
 			installation_helper.config.base_dir = base_dir
-			installation_helper.get_config()
+			installation_helper.configure_from_reg_file()
+			installation_helper.configure_from_zeroconf_default()
 			installation_helper.copy_installation_files()
 			assert (installation_helper.tmp_dir / "install.conf").exists()
 			installation_helper.cleanup()

@@ -99,14 +99,19 @@ class Backend:
 		if not client or force_create:
 			# id, opsiHostKey, description, notes, hardwareAddress, ipAddress,
 			# inventoryNumber, oneTimePassword, created, lastSeen
-			mac_address = get_mac_address() if set_mac_address else None
-			client_config = [client_id, None, None, None, mac_address]
+			client_config = [client_id, None, None, None, None]
 			logger.info("Creating client: %s", client_config)
 			self.service.execute_rpc("host_createOpsiClient", client_config)
 			client = self.service.execute_rpc("host_getObjects", [[], {"id": client_id}])
 			if not client:
 				raise RuntimeError(f"Failed to create client {client}")
 			logger.info("Client created")
+
+		# If no hardwareAddress is set on client object, add it
+		if set_mac_address and not client[0].hardwareAddress:
+			logger.info("Setting mac address to fill previously empty entry.")
+			client[0].hardwareAddress = get_mac_address()
+			self.service.execute_rpc("host_updateObjects", client)
 
 		logger.debug("got client objects %s", client)
 		return client[0]

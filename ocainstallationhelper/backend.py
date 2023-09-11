@@ -109,6 +109,7 @@ class Backend:
 
 		# If no hardwareAddress is set on client object, add it
 		if set_mac_address and not client[0].hardwareAddress:
+			logger.info("Setting mac address to fill previously empty entry.")
 			client[0].hardwareAddress = get_mac_address()
 			self.service.execute_rpc("host_updateObjects", client)
 

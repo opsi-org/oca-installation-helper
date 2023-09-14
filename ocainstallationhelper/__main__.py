@@ -38,12 +38,12 @@ from ocainstallationhelper import (
 )
 from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
 from ocainstallationhelper.console import ConsoleDialog
-
-try:
-	from ocainstallationhelper.gui import GUIDialog
-except ImportError:
-	logger.warning("Import error: Could not import GUIDialog.")
 from ocainstallationhelper.config import Config, SETUP_SCRIPT_NAME
+
+if platform.system().lower() == "darwin":
+	logger.warning("Not importing GUIDialog (tkinter dependency).")
+else:
+	from ocainstallationhelper.gui import GUIDialog
 
 monkeypatch_subprocess_for_frozen()
 

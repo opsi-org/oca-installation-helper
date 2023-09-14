@@ -24,7 +24,7 @@ import netifaces  # type: ignore[import]
 import psutil
 from opsicommon.logging import get_logger  # type: ignore[import]
 
-__version__ = "4.2.0.26"
+__version__ = "4.2.0.27"
 KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
 THIS_OCA_VERSION_FILE = Path("files/opsi-client-agent.version")
 WINDOWS_OCA_VERSION_FILE = Path(os.path.expandvars("%programfiles%")) / "opsi.org" / "opsi-client-agent" / "opsi-client-agent.version"

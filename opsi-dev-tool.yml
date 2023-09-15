@@ -12,8 +12,5 @@ pyinstaller-poetry:
     windows: opsi.ico
     linux: opsi.ico
     darwin: opsi.icns
-  hidden_imports:
-    linux:
-      - _tkinter
   extra_args:
     - "--noconsole"

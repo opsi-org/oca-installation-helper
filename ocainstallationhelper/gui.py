@@ -14,8 +14,6 @@ import subprocess
 import threading
 import time
 
-import _tkinter  # pylint: disable=unused-import
-
 import PySimpleGUI.PySimpleGUI  # type: ignore[import]
 from opsicommon.logging import logger  # type: ignore[import]
 

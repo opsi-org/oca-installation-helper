@@ -39,8 +39,6 @@ test:pytest-windows:
 test:pytest-linux:
   stage: test
   script:
-    - apt update
-    - apt install -y python3-tk
     - poetry install
     - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - mv .coverage coverage_linux
@@ -102,8 +100,6 @@ build:pyinstaller-darwin-x64:
 build:pyinstaller-linux-x64:
   stage: build
   script:
-    - apt update
-    - apt install -y python3-tk
     - poetry install
     - poetry run opsi-dev-cli -l info pyinstaller build
     - ./dist/oca-installation-helper --version

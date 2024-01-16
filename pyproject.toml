@@ -22,6 +22,9 @@ line-length = 140
 target-version = [ "py311",]
 use-tabs = true
 
+[tool.ruff]
+line-length = 140
+
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
 zeroconf = "^0.131.0"
@@ -44,9 +47,6 @@ types-psutil = "^5.8.20"
 
 [tool.poetry.scripts]
 oca-installation-helper = "ocainstallationhelper.__main__:main"
-
-[tool.ruff]
-line-length = 140
 
 [tool.ruff.format]
 indent-style = "tab"

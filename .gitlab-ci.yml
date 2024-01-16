@@ -11,6 +11,7 @@ test:pytest-darwin:
   tags:
     - catalina-py311-x64
   script:
+    - poetry lock --no-update
     - poetry install
     - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - mv .coverage coverage_darwin
@@ -26,6 +27,7 @@ test:pytest-windows:
   tags:
     - win10-py311-x86
   script:
+    - poetry lock --no-update
     - poetry install
     - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - Rename-Item -Path .coverage -NewName coverage_windows
@@ -39,6 +41,7 @@ test:pytest-windows:
 test:pytest-linux:
   stage: test
   script:
+    - poetry lock --no-update
     - poetry install
     - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - mv .coverage coverage_linux
@@ -65,6 +68,7 @@ test:pylint-pytest:
     - apt-get update
     - apt-get --yes --allow-downgrades install libsqlite3-0=3.16.2-5+deb9u1
     - apt-get --yes install sqlite3
+    - poetry lock --no-update
     - poetry install
     - poetry run pylint --disable=R,fixme ocainstallationhelper tests
     - poetry run flake8 ocainstallationhelper tests
@@ -91,6 +95,7 @@ build:pyinstaller-darwin-x64:
   tags:
     - catalina-py311-x64
   script:
+    - poetry lock --no-update
     - poetry install
     - poetry run opsi-dev-cli -l info pyinstaller build
     - ./dist/oca-installation-helper --version
@@ -100,6 +105,7 @@ build:pyinstaller-darwin-x64:
 build:pyinstaller-linux-x64:
   stage: build
   script:
+    - poetry lock --no-update
     - poetry install
     - poetry run opsi-dev-cli -l info pyinstaller build
     - ./dist/oca-installation-helper --version
@@ -111,6 +117,7 @@ build:pyinstaller-linux-arm64:
   tags:
     - linux-arm64
   script:
+    - poetry lock --no-update
     - poetry install
     - poetry run opsi-dev-cli -l info pyinstaller build
     - ./dist/oca-installation-helper --version
@@ -125,6 +132,7 @@ build:pyinstaller-windows-x86:
     - Invoke-WebRequest -UseBasicParsing -Uri "$OPSIDEVTOOLS_URL_WINDOWS_X86" -OutFile opsi-dev-tools.zip
     - Expand-Archive opsi-dev-tools.zip -DestinationPath .
     - Copy-Item opsi-dev-tool.exe opsi-dev-cli.exe
+    - poetry lock --no-update
     - poetry install
     - poetry run .\opsi-dev-cli -l info pyinstaller build
     - .\opsi-dev-tool -l info --signserver-sign dist\oca-installation-helper.exe

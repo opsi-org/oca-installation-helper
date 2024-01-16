@@ -5,6 +5,9 @@ pyinstaller-poetry:
       binaries:
         - oca-installation-helper
   dirname: ocainstallationhelper
+  hidden_imports:
+    all:
+      - zeroconf._utils.ipaddress
   data_files:
     - src: opsi.ico
       dst: .

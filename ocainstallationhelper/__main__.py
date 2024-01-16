@@ -65,7 +65,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.tmp_dir: Path = Path(tempfile.gettempdir()) / "oca-installation-helper-tmp"
 		if not self.full_path.is_absolute():
 			self.full_path = (Path() / self.full_path).absolute()
-		logger.info("Installation helper running from '%s', working dir '%s'", self.full_path, Path(".").absolute())
+		logger.info(
+			"Installation helper running from '%s', working dir '%s'",
+			self.full_path,
+			Path().absolute(),
+		)
 		self.config = Config(cmdline_args, self.full_path)
 
 	def configure_from_reg_file(self) -> None:
@@ -85,7 +89,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				if self.config.service_address:
 					break
 				time.sleep(1)
-			self.show_message(f"opsi config services found: {len(self.config.zeroconf_addresses)}", display_seconds=3)
+			self.show_message(
+				f"opsi config services found: {len(self.config.zeroconf_addresses)}",
+				display_seconds=3,
+			)
 		if self.dialog:
 			self.dialog.update()
 		logger.info("Filling empty config fields from default.")
@@ -134,7 +141,12 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			try:
 				log_dir.mkdir(parents=True)
 			except Exception as exc:  # pylint: disable=broad-except
-				logger.error("Could not create log directory %s due to %s\n still trying to continue", log_dir, exc, exc_info=True)
+				logger.error(
+					"Could not create log directory %s due to %s\n still trying to continue",
+					log_dir,
+					exc,
+					exc_info=True,
+				)
 		self.opsi_script_logfile = log_dir / "opsi-client-agent.log"
 		arg_list = [
 			str(self.config.setup_script),
@@ -154,15 +166,34 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			self.config.finalize,
 		]
 		if platform.system().lower() == "windows":
+			try:
+				output = subprocess.check_output(["powershell", "-command", "$PSVersionTable"])
+				logger.debug("Found powershell with following version information:\n%s", output)
+			except subprocess.CalledProcessError as error:
+				logger.error("Cannot execute powershell. Maybe missing in system PATH? Error: %s", error)
+				raise error
 			arg_string = ",".join([f"'\"{arg}\"'" for arg in arg_list])  # Enclosing by ' and " to be robust against spaces in params
 			ps_script = f'Start-Process -Verb runas -FilePath "{opsi_script}" -ArgumentList {arg_string} -Wait'
-			command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
+			command = [
+				"powershell",
+				"-ExecutionPolicy",
+				"bypass",
+				"-WindowStyle",
+				"hidden",
+				"-command",
+				ps_script,
+			]
 		else:
 			command = [str(opsi_script)] + arg_list
 
 		self.backend.set_poc_to_installing(oca_package, self.config.client_id)
 		logger.info("Executing: %s\n", command)
-		with subprocess.Popen(command, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE) as proc:
+		with subprocess.Popen(
+			command,
+			stderr=subprocess.STDOUT,
+			stdout=subprocess.PIPE,
+			stdin=subprocess.PIPE,
+		) as proc:
 			out = proc.communicate()[0]
 			logger.info("Command exit code: %s", proc.returncode)
 			logger.info("Command output: %s", out)
@@ -174,7 +205,11 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				raise ValueError("Client id undefined.")
 			installed_oca_version = get_installed_oca_version()
 			this_oca_version = get_this_oca_version()
-			logger.debug("opsi-client-agent versions: installed=%s, this=%s", installed_oca_version, this_oca_version)
+			logger.debug(
+				"opsi-client-agent versions: installed=%s, this=%s",
+				installed_oca_version,
+				this_oca_version,
+			)
 			if (self.config.install_condition == "notinstalled" and installed_oca_version) or (
 				self.config.install_condition == "outdated" and installed_oca_version == this_oca_version
 			):
@@ -218,18 +253,26 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				self.dialog.update()
 
 		client = self.backend.get_or_create_client(
-			self.config.client_id, force_create=self.config.force_recreate_client, set_mac_address=self.config.set_mac_address
+			self.config.client_id,
+			force_create=self.config.force_recreate_client,
+			set_mac_address=self.config.set_mac_address,
 		)
 		self.config.client_key = client.opsiHostKey
 		self.config.client_id = str(client.id)
 		self.show_message("Client exists", "success")
 		if self.config.depot:
 			if self.config.client_id == self.config.service_username:
-				raise PermissionError("Authorization error: Need opsi admin privileges to assign to depot", "error")
+				raise PermissionError(
+					"Authorization error: Need opsi admin privileges to assign to depot",
+					"error",
+				)
 			self.backend.assign_client_to_depot(self.config.client_id, self.config.depot)
 		if self.config.group:
 			if self.config.client_id == self.config.service_username:
-				raise PermissionError("Authorization error: Need opsi admin privileges to add to hostgroup", "error")
+				raise PermissionError(
+					"Authorization error: Need opsi admin privileges to add to hostgroup",
+					"error",
+				)
 			self.backend.put_client_into_group(self.config.client_id, self.config.group)
 		if self.dialog:
 			self.dialog.update()
@@ -295,7 +338,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			if self.config.service_address:
 				break
 			time.sleep(1)
-		self.show_message(f"opsi config services found: {len(self.config.zeroconf_addresses)}", display_seconds=3)
+		self.show_message(
+			f"opsi config services found: {len(self.config.zeroconf_addresses)}",
+			display_seconds=3,
+		)
 		if self.dialog:
 			self.dialog.update()
 
@@ -325,8 +371,19 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 				new_path = self.config.base_dir / "oca-installation-helper.exe"
 				arg_string = "-ArgumentList " + ",".join([f'"{arg}"' for arg in sys.argv[1:]]) if sys.argv[1:] else ""
 				ps_script = f'Start-Process -Verb runas -FilePath "{str(new_path)}" {arg_string} -Wait'
-				command = ["powershell", "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
-				logger.info("Not running elevated. Rerunning oca-installation-helper as admin: %s\n", command)
+				command = [
+					"powershell",
+					"-ExecutionPolicy",
+					"bypass",
+					"-WindowStyle",
+					"hidden",
+					"-command",
+					ps_script,
+				]
+				logger.info(
+					"Not running elevated. Rerunning oca-installation-helper as admin: %s\n",
+					command,
+				)
 				os.execvp("powershell", command)
 			logger.info("Running elevated. Continuing execution.")
 
@@ -403,11 +460,26 @@ def parse_args(args: list[str] | None = None):
 	condition_choices = ["always", "notinstalled", "outdated"]
 	parser = ArgumentParser()
 	parser.add_argument("--version", action="version", version=__version__)
-	parser.add_argument("--log-file", default=str(Path(tempfile.gettempdir()) / "oca-installation-helper.log"))
-	parser.add_argument("--log-level", default="warning", choices=["none", "debug", "info", "warning", "error", "critical"])
+	parser.add_argument(
+		"--log-file",
+		default=str(Path(tempfile.gettempdir()) / "oca-installation-helper.log"),
+	)
+	parser.add_argument(
+		"--log-level",
+		default="warning",
+		choices=["none", "debug", "info", "warning", "error", "critical"],
+	)
 	parser.add_argument("--service-address", default=None, help="Service address to use.")
-	parser.add_argument("--service-username", default=None, help="Username to use for service connection.")
-	parser.add_argument("--service-password", default=None, help="Password to use for service connection.")
+	parser.add_argument(
+		"--service-username",
+		default=None,
+		help="Username to use for service connection.",
+	)
+	parser.add_argument(
+		"--service-password",
+		default=None,
+		help="Password to use for service connection.",
+	)
 	parser.add_argument("--client-id", default=None, help="Client id to use.")
 	parser.add_argument("--non-interactive", action="store_true", help="Do not ask questions.")
 	parser.add_argument("--no-gui", action="store_true", help="Do not use gui.")
@@ -415,10 +487,27 @@ def parse_args(args: list[str] | None = None):
 	parser.add_argument("--encode-password", action="store", metavar="PASSWORD", help="Encode PASSWORD.")
 	parser.add_argument("--depot", help="Assign client to specified depot.", metavar="DEPOT")
 	parser.add_argument("--group", help="Insert client into specified host group.", metavar="HOSTGROUP")
-	parser.add_argument("--force-recreate-client", action="store_true", help="Always call host_createOpsiClient, even if it exists.")
-	parser.add_argument("--finalize", default="noreboot", choices=f_actions, help="Action to perform after successfull installation.")
-	parser.add_argument("--dns-domain", default=None, help="DNS domain for assembling client id (ignored if client id is given).")
-	parser.add_argument("--no-set-mac-address", action="store_true", help="Avoid retrieving and setting mac-address on client creation.")
+	parser.add_argument(
+		"--force-recreate-client",
+		action="store_true",
+		help="Always call host_createOpsiClient, even if it exists.",
+	)
+	parser.add_argument(
+		"--finalize",
+		default="noreboot",
+		choices=f_actions,
+		help="Action to perform after successfull installation.",
+	)
+	parser.add_argument(
+		"--dns-domain",
+		default=None,
+		help="DNS domain for assembling client id (ignored if client id is given).",
+	)
+	parser.add_argument(
+		"--no-set-mac-address",
+		action="store_true",
+		help="Avoid retrieving and setting mac-address on client creation.",
+	)
 	parser.add_argument("--end-command", default=None, help="Run this command at the end.")
 	parser.add_argument("--end-marker", default=None, help="Create this marker file at the end.")
 	parser.add_argument(

@@ -19,12 +19,12 @@ url = "http://pypi.uib.gmbh:8080/simple/"
 
 [tool.black]
 line-length = 140
-target-version = [ "py39", "py310",]
+target-version = [ "py311",]
 use-tabs = true
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
-zeroconf = "^0.80.0"
+zeroconf = "^0.131.0"
 pysimplegui = "^4.39.1"
 psutil = "^5.8.0"
 picotui = "^1.2"
@@ -34,11 +34,11 @@ python-opsi-common = "^4.3.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0"
-pyinstaller = "^5.0"
-pylint = "^2.6.0"
+pyinstaller = "^6.0"
+pylint = "^3.0"
 pytest-cov = "^4.0.0"
 tan = "^23.7"
-flake8 = "^6.0"
+flake8 = "^7.0"
 mypy = "^1.5.1"
 types-psutil = "^5.8.20"
 

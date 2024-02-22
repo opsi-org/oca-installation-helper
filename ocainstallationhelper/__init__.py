@@ -24,7 +24,7 @@ import netifaces  # type: ignore[import]
 import psutil
 from opsicommon.logging import get_logger  # type: ignore[import]
 
-__version__ = "4.3.0.1"
+__version__ = "4.3.0.2"
 KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
 THIS_OCA_VERSION_FILE = Path("files/opsi-client-agent.version")
 WINDOWS_OCA_VERSION_FILE = Path(os.path.expandvars("%programfiles%")) / "opsi.org" / "opsi-client-agent" / "opsi-client-agent.version"
@@ -57,7 +57,7 @@ def decode_password(cipher):
 
 
 def monkeypatch_subprocess_for_frozen():
-	from subprocess import Popen as Popen_orig  # pylint: disable=import-outside-toplevel
+	from subprocess import Popen as Popen_orig
 
 	class PopenPatched(Popen_orig):
 		def __init__(self, *args, **kwargs):
@@ -81,22 +81,22 @@ def get_resource_path(relative_path):
 	"""Get absolute path to resource, works for dev and for PyInstaller"""
 	try:
 		# PyInstaller creates a temp folder and stores path in _MEIPASS
-		base_path = sys._MEIPASS  # pylint: disable=protected-access,no-member
-	except Exception:  # pylint: disable=broad-except
+		base_path = sys._MEIPASS
+	except Exception:
 		base_path = Path(".").absolute()
 
 	return os.path.join(base_path, relative_path)
 
 
 def get_mac_address():
-	gateways = netifaces.gateways()  # pylint: disable=c-extension-no-member
+	gateways = netifaces.gateways()
 	logger.debug("Gateways: %s", gateways)
 	if "default" not in gateways:
 		return None
 	default_if = list(gateways["default"].values())[0][1]
 	logger.info("Default interface: %s", default_if)
-	addrs = netifaces.ifaddresses(default_if)  # pylint: disable=c-extension-no-member
-	mac = addrs[netifaces.AF_LINK][0]["addr"]  # pylint: disable=c-extension-no-member
+	addrs = netifaces.ifaddresses(default_if)
+	mac = addrs[netifaces.AF_LINK][0]["addr"]
 	logger.info("Default mac address: %s", mac)
 	return mac
 
@@ -141,7 +141,7 @@ def get_this_oca_version():
 
 def show_message(message: str, message_type: str = "stdout") -> None:
 	if platform.system().lower() == "windows":
-		from .gui import show_message as _show_message  # pylint: disable=import-outside-toplevel
+		from .gui import show_message as _show_message
 
 		_show_message(message)
 	else:

@@ -46,7 +46,7 @@ class WDialogTextEntry(WTextEntry):
 		self.attr_reset()
 
 
-class ConsoleDialog(threading.Thread):  # pylint: disable=too-many-instance-attributes
+class ConsoleDialog(threading.Thread):
 	def __init__(self, installation_helper) -> None:
 		threading.Thread.__init__(self)
 		self.daemon = True
@@ -86,7 +86,7 @@ class ConsoleDialog(threading.Thread):  # pylint: disable=too-many-instance-attr
 		self.buttons[button_id].disabled = not enabled
 		self._redraw()
 
-	def show_message(self, message, severity=None):  # pylint: disable=unused-argument
+	def show_message(self, message, severity=None):
 		self.message.t = message
 		self._redraw()
 
@@ -94,32 +94,32 @@ class ConsoleDialog(threading.Thread):  # pylint: disable=too-many-instance-attr
 		self.logpath.t = f"See logs at: {logpath}"
 		self._redraw()
 
-	def _sigwinch_handler(self, *args):  # pylint: disable=unused-argument
+	def _sigwinch_handler(self, *args):
 		self._redraw()
 
 	def _redraw(self):
 		try:
 			self._screen_redraw(Screen)
-		except Exception:  # pylint: disable=broad-except
+		except Exception:
 			pass
 
-	def _screen_redraw(self, screen, allow_cursor=False):  # pylint: disable=unused-argument
+	def _screen_redraw(self, screen, allow_cursor=False):
 		# screen.attr_color(C_WHITE, C_BLUE)
 		screen.cls()
 		screen.attr_reset()
 		self.dialog.redraw()
 
-	def _on_change(self, _widget):  # pylint: disable=unused-argument
+	def _on_change(self, _widget):
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
 			setattr(self.inst_helper.config, attr, self.inputs[attr].get())
 
-	def _on_cancel(self, _widget):  # pylint: disable=unused-argument
+	def _on_cancel(self, _widget):
 		self.inst_helper.on_cancel_button()
 
-	def _on_install(self, _widget):  # pylint: disable=unused-argument
+	def _on_install(self, _widget):
 		self.inst_helper.on_install_button()
 
-	def _on_zeroconf(self, _widget):  # pylint: disable=unused-argument
+	def _on_zeroconf(self, _widget):
 		self.inst_helper.on_zeroconf_button()
 
 	def _run(self):
@@ -183,6 +183,6 @@ class ConsoleDialog(threading.Thread):  # pylint: disable=too-many-instance-attr
 		try:
 			with Context():
 				return self._run()
-		except Exception as err:  # pylint: disable=broad-except
+		except Exception as err:
 			logger.error(err, exc_info=True)
 			raise

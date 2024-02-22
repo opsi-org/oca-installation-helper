@@ -29,7 +29,7 @@ SETUP_SCRIPT_NAME = "setup.opsiscript"
 DEFAULT_CONFIG_SERVICE_PORT = 4447
 
 
-class Config:  # pylint: disable=too-many-instance-attributes
+class Config:
 	def __init__(self, cmdline_args: argparse.Namespace, full_path) -> None:
 		self.client_id: str | None = cmdline_args.client_id
 		self.client_key: str | None = None
@@ -123,7 +123,7 @@ class Config:  # pylint: disable=too-many-instance-attributes
 				logger.info("No permission to open file '%s'", path)
 		return result
 
-	def fill_config_from_files(self) -> None:  # pylint: disable=too-many-branches
+	def fill_config_from_files(self) -> None:
 		config_files = self.get_config_file_paths()
 		placeholder_regex = re.compile(r"#\@(\w+)\**#+")
 		placeholder_regex_new = re.compile(r"%([\w\-]+)%")
@@ -195,7 +195,7 @@ class Config:  # pylint: disable=too-many-instance-attributes
 						"*" * len(self.service_password or ""),
 						self.dns_domain or "",
 					)
-			except Exception as err:  # pylint: disable=broad-except
+			except Exception as err:
 				logger.error(err, exc_info=True)
 
 	@property
@@ -218,7 +218,7 @@ class Config:  # pylint: disable=too-many-instance-attributes
 	def fill_config_from_registry(self, parse_args_function: Callable) -> None:
 		if platform.system().lower() != "windows":
 			return
-		import winreg  # pylint: disable=import-outside-toplevel,import-error
+		import winreg
 
 		def get_registry_value(key, sub_key, value_name):
 			logger.debug("Requesting key %s and value %s", sub_key, value_name)
@@ -238,7 +238,7 @@ class Config:  # pylint: disable=too-many-instance-attributes
 				"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\opsi-client-agent",
 				"INSTALL_PARAMS",
 			)
-		except Exception as error:  # pylint: disable=broad-except
+		except Exception as error:
 			logger.info("Could not open registry key, skipping fill_config_from_registry.")
 			logger.debug("Caught Error %s", error, exc_info=True)
 			return
@@ -281,12 +281,10 @@ class Config:  # pylint: disable=too-many-instance-attributes
 		try:
 			self.zeroconf = Zeroconf()
 			ServiceBrowser(zc=self.zeroconf, type_="_opsics._tcp.local.", handlers=[self.zeroconf_handler])
-		except Exception as err:  # pylint: disable=broad-except
+		except Exception as err:
 			logger.error("Failed to start zeroconf: %s", err, exc_info=True)
 
-	def zeroconf_handler(
-		self, zeroconf: Zeroconf, service_type: str, name: str, state_change: Any  # pylint: disable=unused-argument
-	) -> None:
+	def zeroconf_handler(self, zeroconf: Zeroconf, service_type: str, name: str, state_change: Any) -> None:
 		info = zeroconf.get_service_info(service_type, name)
 		if not info:
 			return

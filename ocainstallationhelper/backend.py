@@ -40,7 +40,7 @@ class Backend:
 				],
 			)
 			logger.notice("Added %s to group %s", client_id, group)
-		except Exception as err:  # pylint: disable=broad-except
+		except Exception as err:
 			logger.warning("Adding %s to group %s failed: %s", client_id, group, err)
 
 	def assign_client_to_depot(self, client_id: str, depot: str) -> None:
@@ -57,7 +57,7 @@ class Backend:
 				],
 			)
 			logger.notice("Assigned %s to depot %s", client_id, depot)
-		except Exception as err:  # pylint: disable=broad-except
+		except Exception as err:
 			logger.warning("Assigning %s to depot %s failed: %s", client_id, depot, err)
 
 	def set_poc_to_installing(self, product_id: str, client_id: str) -> None:

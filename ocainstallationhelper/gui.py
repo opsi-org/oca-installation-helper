@@ -31,8 +31,8 @@ def _create_error_message():
 	pass
 
 
-PySimpleGUI.PySimpleGUI._refresh_debugger = _refresh_debugger  # pylint: disable=protected-access
-PySimpleGUI.PySimpleGUI._create_error_message = _create_error_message  # pylint: disable=protected-access
+PySimpleGUI.PySimpleGUI._refresh_debugger = _refresh_debugger
+PySimpleGUI.PySimpleGUI._create_error_message = _create_error_message
 
 sg = PySimpleGUI.PySimpleGUI
 

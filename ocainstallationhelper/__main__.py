@@ -48,7 +48,7 @@ else:
 monkeypatch_subprocess_for_frozen()
 
 
-class InstallationHelper:  # pylint: disable=too-many-instance-attributes
+class InstallationHelper:
 	def __init__(self, cmdline_args: argparse.Namespace, full_path: Path | None = None) -> None:
 		# macos does not use DISPLAY. gui does not work properly on macos right now.
 		self.dialog: ConsoleDialog | GUIDialog | None = None
@@ -140,7 +140,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		if not log_dir.exists():
 			try:
 				log_dir.mkdir(parents=True)
-			except Exception as exc:  # pylint: disable=broad-except
+			except Exception as exc:
 				logger.error(
 					"Could not create log directory %s due to %s\n still trying to continue",
 					log_dir,
@@ -225,7 +225,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			self.show_message("Evaluating script result")
 			self.backend.evaluate_success(self.config.client_id)
 			return True
-		except Exception as err:  # pylint: disable=broad-except
+		except Exception as err:
 			logger.error(err, exc_info=True)
 			raise
 
@@ -247,7 +247,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		self.backend = Backend(self.config.service_address, self.config.service_username, password)
 
 		self.show_message("Connected", "success")
-		if "." not in self.config.client_id:  # pylint: disable=unsupported-membership-test
+		if "." not in self.config.client_id:
 			self.config.client_id = f"{self.config.client_id}.{self.backend.get_domain()}"
 			if self.dialog:
 				self.dialog.update()
@@ -323,7 +323,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 		except InstallationUnsuccessful as err:
 			self.show_message(f"Installation Unsuccessful: {err}", "error")
 			self.show_logpath(self.opsi_script_logfile or "Undefined logfile.")
-		except Exception as err:  # pylint: disable=broad-except
+		except Exception as err:
 			self.show_message(str(err), "error")
 			self.show_logpath(self.config.log_file)
 		self.dialog.set_button_enabled("install", True)
@@ -393,10 +393,10 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			if cache_dir and cache_dir.exists():
 				logger.info("Deleting opsiclientd WAN cache.")
 				shutil.rmtree(cache_dir)
-		except Exception as error:  # pylint: disable=broad-except
+		except Exception as error:
 			logger.warning("Failed to clean up cache: %s", error)
 
-	def run(self) -> None:  # pylint: disable=too-many-branches
+	def run(self) -> None:
 		error = None
 		try:
 			self.ensure_admin()
@@ -420,7 +420,7 @@ class InstallationHelper:  # pylint: disable=too-many-instance-attributes
 			else:
 				self.install()
 
-		except Exception as err:  # pylint: disable=broad-except
+		except Exception as err:
 			logger.error(err, exc_info=True)
 			error = err
 			self.show_message(str(err), "error")

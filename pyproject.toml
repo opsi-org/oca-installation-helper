@@ -21,14 +21,6 @@ priority = "primary"
 [[tool.poetry.source]]
 name = "PyPI"
 
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.2.2"
-pytest = "^7.0"
-pyinstaller = "^6.0"
-pytest-cov = "^4.0.0"
-mypy = "^1.5.1"
-types-psutil = "^5.8.20"
-
 [tool.black]
 line-length = 140
 target-version = [ "py311",]
@@ -52,3 +44,11 @@ oca-installation-helper = "ocainstallationhelper.__main__:main"
 
 [tool.ruff.format]
 indent-style = "tab"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.2.2"
+pytest = "^7.0"
+pyinstaller = "^6.0"
+pytest-cov = "^4.0.0"
+mypy = "^1.5.1"
+types-psutil = "^5.8.20"

@@ -15,14 +15,14 @@ import os
 import platform
 import re
 import socket
-import subprocess
 import sys
+import threading
 from pathlib import Path
 from typing import Generator
 
 import netifaces  # type: ignore[import]
 import psutil
-from opsicommon.logging import get_logger  # type: ignore[import]
+from opsicommon.logging import get_logger
 
 __version__ = "4.3.0.2"
 KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
@@ -36,6 +36,32 @@ CONFIG_CACHE_DIRS = {
 	"darwin": Path("/var/cache/opsi-client-agent/config"),
 }
 logger = get_logger("oca-installation-helper")
+
+
+class Dialog(threading.Thread):
+	def __init__(self, installation_helper) -> None:
+		pass
+
+	def update(self) -> None:
+		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
+
+	def set_button_enabled(self, button: str, state: bool) -> None:
+		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
+
+	def show_message(self, message: str, severity: str | None) -> None:
+		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
+
+	def show_logpath(self, logpath: Path | str | None) -> None:
+		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
+
+	def close(self) -> None:
+		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
+
+	def show(self) -> None:
+		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
+
+	def wait(self) -> None:
+		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
 
 
 def encode_password(cleartext):
@@ -54,27 +80,6 @@ def decode_password(cipher):
 		key_c = KEY[num % len(KEY)]
 		cleartext += chr((ord(char) - ord(key_c) + 256) % 256)
 	return cleartext
-
-
-def monkeypatch_subprocess_for_frozen():
-	from subprocess import Popen as Popen_orig
-
-	class PopenPatched(Popen_orig):
-		def __init__(self, *args, **kwargs):
-			if kwargs.get("env") is None:
-				kwargs["env"] = os.environ.copy()
-			lp_orig = kwargs["env"].get("LD_LIBRARY_PATH_ORIG")
-			if lp_orig is not None:
-				# Restore the original, unmodified value
-				kwargs["env"]["LD_LIBRARY_PATH"] = lp_orig
-			else:
-				# This happens when LD_LIBRARY_PATH was not set.
-				# Remove the env var as a last resort
-				kwargs["env"].pop("LD_LIBRARY_PATH", None)
-
-			super().__init__(*args, **kwargs)
-
-	subprocess.Popen = PopenPatched
 
 
 def get_resource_path(relative_path):

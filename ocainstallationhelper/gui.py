@@ -17,7 +17,7 @@ import time
 import PySimpleGUI.PySimpleGUI  # type: ignore[import]
 from opsicommon.logging import logger  # type: ignore[import]
 
-from ocainstallationhelper import get_resource_path
+from ocainstallationhelper import get_resource_path, Dialog
 
 SG_THEME = "Default1"  # "Reddit"
 WIDTH = 70
@@ -48,7 +48,7 @@ def show_message(message):
 	sg.popup_scrolled(message, title="opsi client agent installer", icon=get_icon(), auto_close=True, auto_close_duration=20)
 
 
-class GUIDialog(threading.Thread):
+class GUIDialog(Dialog):
 	def __init__(self, installation_helper) -> None:
 		threading.Thread.__init__(self)
 		self.daemon = True

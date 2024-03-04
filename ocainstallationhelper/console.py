@@ -18,7 +18,8 @@ from picotui.context import Context  # type: ignore[import]
 from picotui.menu import Screen  # type: ignore[import]
 from picotui.widgets import C_BLACK, C_WHITE, Dialog, WButton, WLabel, WTextEntry  # type: ignore[import]
 
-from opsicommon.logging import logger  # type: ignore[import]
+from ocainstallationhelper import logger
+from ocainstallationhelper import Dialog as BaseDialog
 
 
 class WDialogTextEntry(WTextEntry):
@@ -46,7 +47,7 @@ class WDialogTextEntry(WTextEntry):
 		self.attr_reset()
 
 
-class ConsoleDialog(threading.Thread):
+class ConsoleDialog(BaseDialog):
 	def __init__(self, installation_helper) -> None:
 		threading.Thread.__init__(self)
 		self.daemon = True

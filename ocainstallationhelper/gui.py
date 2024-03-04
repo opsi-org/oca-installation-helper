@@ -17,8 +17,7 @@ import time
 import PySimpleGUI.PySimpleGUI  # type: ignore[import]
 from opsicommon.logging import logger  # type: ignore[import]
 
-from ocainstallationhelper import get_resource_path
-from ocainstallationhelper.__init__ import Dialog
+from ocainstallationhelper import get_resource_path, Dialog
 
 SG_THEME = "Default1"  # "Reddit"
 WIDTH = 70

@@ -21,9 +21,8 @@ import time
 from pathlib import Path
 from typing import IO
 
-import opsicommon  # type: ignore[import]
-from opsicommon.exceptions import BackendAuthenticationError  # type: ignore[import]
-from opsicommon.logging import logging_config  # type: ignore[import]
+from opsicommon.exceptions import BackendAuthenticationError
+from opsicommon.logging import logging_config, NAME_TO_LEVEL, LEVEL_TO_OPSI_LEVEL
 from opsicommon.system.subprocess import patch_popen
 
 from ocainstallationhelper import (
@@ -547,7 +546,7 @@ def main() -> None:
 		if log_file.exists():
 			log_file.unlink()
 		logging_config(
-			file_level=getattr(opsicommon.logging, f"LOG_{log_level}"),
+			file_level=LEVEL_TO_OPSI_LEVEL[NAME_TO_LEVEL[log_level]],
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
 			log_file=str(log_file),
 		)

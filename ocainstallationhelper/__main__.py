@@ -24,6 +24,7 @@ from typing import IO
 import opsicommon  # type: ignore[import]
 from opsicommon.exceptions import BackendAuthenticationError  # type: ignore[import]
 from opsicommon.logging import logging_config  # type: ignore[import]
+from opsicommon.system.subprocess import patch_popen
 
 from ocainstallationhelper import (
 	__version__,
@@ -32,26 +33,20 @@ from ocainstallationhelper import (
 	get_installed_oca_version,
 	get_this_oca_version,
 	logger,
-	monkeypatch_subprocess_for_frozen,
 	show_message,
 	CONFIG_CACHE_DIRS,
 )
 from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
-from ocainstallationhelper.console import ConsoleDialog
 from ocainstallationhelper.config import Config, SETUP_SCRIPT_NAME
+from ocainstallationhelper import Dialog
 
-if platform.system().lower() == "darwin":
-	logger.warning("Not importing GUIDialog (tkinter dependency).")
-else:
-	from ocainstallationhelper.gui import GUIDialog
-
-monkeypatch_subprocess_for_frozen()
+patch_popen()
 
 
 class InstallationHelper:
 	def __init__(self, cmdline_args: argparse.Namespace, full_path: Path | None = None) -> None:
 		# macos does not use DISPLAY. gui does not work properly on macos right now.
-		self.dialog: ConsoleDialog | GUIDialog | None = None
+		self.dialog: Dialog | None = None
 		self.clear_message_timer: threading.Timer | None = None
 		self.backend: Backend | None = None
 
@@ -403,12 +398,25 @@ class InstallationHelper:
 			self.configure_from_reg_file()
 			if self.config.interactive:
 				if self.config.use_gui:
-					self.dialog = GUIDialog(self)
-					self.dialog.show()
+					if platform.system().lower() == "darwin":
+						logger.error("Console dialog currently not implemented on macos. Use --no-gui instead.")
+					else:
+						try:
+							from ocainstallationhelper.gui import GUIDialog  # only import if needed
+						except ImportError as err:
+							logger.error(err)
+							raise RuntimeError(
+								"Cannot import GUIDialog. Use --no-gui instead or install required libraries (like libxcb))"
+							) from err
+						self.dialog = GUIDialog(self)  # type: ignore[assignment]
+						assert self.dialog
+						self.dialog.show()
 				else:
 					if platform.system().lower() == "windows":
-						logger.warning("Console dialog currently not implemented on windows")
+						logger.error("Console dialog currently not implemented on windows. Use --gui instead")
 					else:
+						from ocainstallationhelper.console import ConsoleDialog  # only import if needed
+
 						self.dialog = ConsoleDialog(self)
 						self.dialog.show()
 			self.configure_from_zeroconf_default()

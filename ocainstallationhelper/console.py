@@ -46,7 +46,7 @@ class WDialogTextEntry(WTextEntry):
 		self.attr_reset()
 
 
-class ConsoleDialog(threading.Thread):
+class ConsoleDialog(Dialog):
 	def __init__(self, installation_helper) -> None:
 		threading.Thread.__init__(self)
 		self.daemon = True

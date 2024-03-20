@@ -1,5 +1,5 @@
 [build-system]
-requires = ["poetry>=0.12"]
+requires = [ "poetry>=0.12",]
 build-backend = "poetry.masonry.api"
 
 [tool.poetry]
@@ -8,9 +8,8 @@ version = "4.3.0.3"
 description = "opsi-client-agent installation helper"
 homepage = "https://www.opsi.org"
 license = "AGPL-3.0"
-authors = ["uib GmbH <info@uib.de>"]
-maintainers = ["uib GmbH <info@uib.de>"]
-
+authors = [ "uib GmbH <info@uib.de>",]
+maintainers = [ "uib GmbH <info@uib.de>",]
 [[tool.poetry.packages]]
 include = "ocainstallationhelper"
 
@@ -30,7 +29,7 @@ line-length = 140
 disallow_untyped_calls = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
-disable_error_code = ["import-untyped"]
+disable_error_code = [ "import-untyped",]
 follow_imports = "silent"
 incremental = false
 

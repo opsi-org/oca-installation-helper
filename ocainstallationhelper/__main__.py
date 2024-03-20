@@ -22,22 +22,16 @@ from pathlib import Path
 from typing import IO
 
 from opsicommon.exceptions import BackendAuthenticationError
-from opsicommon.logging import logging_config, NAME_TO_LEVEL, LEVEL_TO_OPSI_LEVEL
+from opsicommon.logging import (LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL,
+                                logging_config)
 from opsicommon.system.subprocess import patch_popen
 
-from ocainstallationhelper import (
-	__version__,
-	decode_password,
-	encode_password,
-	get_installed_oca_version,
-	get_this_oca_version,
-	logger,
-	show_message,
-	CONFIG_CACHE_DIRS,
-)
+from ocainstallationhelper import (CONFIG_CACHE_DIRS, Dialog, __version__,
+                                   decode_password, encode_password,
+                                   get_installed_oca_version,
+                                   get_this_oca_version, logger, show_message)
 from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
-from ocainstallationhelper.config import Config, SETUP_SCRIPT_NAME
-from ocainstallationhelper import Dialog
+from ocainstallationhelper.config import SETUP_SCRIPT_NAME, Config
 
 patch_popen()
 
@@ -414,7 +408,8 @@ class InstallationHelper:
 					if platform.system().lower() == "windows":
 						logger.error("Console dialog currently not implemented on windows. Use --gui instead")
 					else:
-						from ocainstallationhelper.console import ConsoleDialog  # only import if needed
+						from ocainstallationhelper.console import \
+						    ConsoleDialog  # only import if needed
 
 						self.dialog = ConsoleDialog(self)
 						self.dialog.show()
@@ -474,7 +469,10 @@ def parse_args(args: list[str] | None = None):
 	parser.add_argument(
 		"--log-level",
 		default="warning",
-		choices=["none", "debug", "info", "warning", "error", "critical"],
+		choices=[
+			"0", "none", "1", "essential", "2", "critical", "3", "error", "4", "warning",
+			"5", "notice", "6", "info", "7", "debug", "8", "trace", "9", "secret"
+		],
 	)
 	parser.add_argument("--service-address", default=None, help="Service address to use.")
 	parser.add_argument(
@@ -540,13 +538,17 @@ def main() -> None:
 		show_message("{crypt}" + encode_password(args.encode_password))
 		return
 
-	log_level = args.log_level.upper()
-	if log_level != "NONE":
+	try:
+		log_level = int(args.log_level)
+	except ValueError:
+		log_level = LEVEL_TO_OPSI_LEVEL[NAME_TO_LEVEL[args.log_level.upper()]]
+
+	if log_level != 0:
 		log_file = Path(args.log_file)
 		if log_file.exists():
 			log_file.unlink()
 		logging_config(
-			file_level=LEVEL_TO_OPSI_LEVEL[NAME_TO_LEVEL[log_level]],
+			file_level=log_level,
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
 			log_file=str(log_file),
 		)

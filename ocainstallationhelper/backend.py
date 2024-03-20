@@ -95,23 +95,23 @@ class Backend:
 			raise InstallationUnsuccessful(f"Installation of {product_id} on client {client_id} unsuccessful")
 
 	def get_or_create_client(self, client_id: str, force_create: bool = False, set_mac_address: bool = True) -> OpsiClient:
-		client = self.service.execute_rpc("host_getObjects", [[], {"id": client_id}])
-		if not client or force_create:
+		clients = self.service.execute_rpc("host_getObjects", [[], {"id": client_id}])
+		if not clients or force_create:
 			# id, opsiHostKey, description, notes, hardwareAddress, ipAddress,
 			# inventoryNumber, oneTimePassword, created, lastSeen
-			client_config = [client_id, None, None, None, get_mac_address()]
-			logger.info("Creating client: %s", client_config)
-			self.service.execute_rpc("host_createOpsiClient", client_config)
-			client = self.service.execute_rpc("host_getObjects", [[], {"id": client_id}])
-			if not client:
-				raise RuntimeError(f"Failed to create client {client}")
+			client_args = [client_id, None, None, None, get_mac_address()]
+			logger.info("Creating client: %s", client_args)
+			self.service.execute_rpc("host_createOpsiClient", client_args)
+			clients = self.service.execute_rpc("host_getObjects", [[], {"id": client_id}])
+			if not clients:
+				raise RuntimeError(f"Failed to create client {clients}")
 			logger.info("Client created")
 
 		# If no hardwareAddress is set on client object, add it
-		if set_mac_address and not client[0].hardwareAddress:
+		if set_mac_address and not clients[0].hardwareAddress:
 			logger.info("Setting mac address to fill previously empty entry.")
-			client[0].hardwareAddress = get_mac_address()
-			self.service.execute_rpc("host_updateObjects", client)
+			clients[0].hardwareAddress = get_mac_address()
+			self.service.execute_rpc("host_updateObjects", clients)
 
-		logger.debug("got client objects %s", client)
-		return client[0]
+		logger.debug("got client objects %s", clients)
+		return clients[0]

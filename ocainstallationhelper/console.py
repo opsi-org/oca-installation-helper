@@ -9,32 +9,42 @@
 opsi-client-agent installation_helper console output component
 """
 
+from __future__ import annotations
+
 import platform
 import signal
 import threading
 import time
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
-from picotui.context import Context  # type: ignore[import]
-from picotui.menu import Screen  # type: ignore[import]
-from picotui.widgets import C_BLACK, C_WHITE, Dialog, WButton, WLabel, WTextEntry  # type: ignore[import]
+from picotui.context import Context
+from picotui.menu import Screen
+from picotui.widgets import C_BLACK, C_WHITE, Dialog, WButton, Widget, WLabel, WTextEntry
 
-from ocainstallationhelper import logger
 from ocainstallationhelper import Dialog as BaseDialog
+from ocainstallationhelper import get_logger
+
+if TYPE_CHECKING:
+	from ocainstallationhelper.__main__ import InstallationHelper
+
+
+logger = get_logger()
 
 
 class WDialogTextEntry(WTextEntry):
-	def __init__(self, w, text):
+	def __init__(self, w: int, text: str) -> None:
 		self.password_char = None
 		super().__init__(w, text)
 
-	def handle_edit_key(self, key):
+	def handle_edit_key(self, key: int | None) -> Any:
 		res = None
 		if key is not None:
 			res = super().handle_edit_key(key)
 		self.signal("changed")
 		return res
 
-	def show_line(self, l, i):  # noqa: E741
+	def show_line(self, l: str | None, i: int) -> None:  # noqa: E741
 		if l is None:
 			l = ""  # noqa: E741
 		self.attr_color(C_BLACK, C_WHITE)
@@ -48,34 +58,34 @@ class WDialogTextEntry(WTextEntry):
 
 
 class ConsoleDialog(BaseDialog):
-	def __init__(self, installation_helper) -> None:
+	def __init__(self, installation_helper: InstallationHelper) -> None:
 		threading.Thread.__init__(self)
 		self.daemon = True
 		self.inst_helper = installation_helper
 		self.inputs: dict[str, WTextEntry] = {}
 		self.buttons: dict[str, WButton] = {}
 		self._closed = False
-		self.dialog = None
-		self.message = None
-		self.logpath = None
+		self.dialog: Dialog | None = None
+		self.message: WLabel | None = None
+		self.logpath: WLabel | None = None
 		if platform.system().lower() != "windows":
 			signal.signal(signal.SIGWINCH, self._sigwinch_handler)
 
-	def show(self):
+	def show(self) -> None:
 		self.start()
 		time.sleep(1)
 
-	def close(self):
+	def close(self) -> None:
 		self._closed = True
 		Screen.goto(0, 50)
 		Screen.cursor(True)
 		Screen.deinit_tty()
 		print()
 
-	def wait(self):
+	def wait(self) -> None:
 		self.join()
 
-	def update(self):
+	def update(self) -> None:
 		if not self.inputs:
 			return
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
@@ -83,47 +93,50 @@ class ConsoleDialog(BaseDialog):
 				self.inputs[attr].set(getattr(self.inst_helper.config, attr) or "")
 		self._redraw()
 
-	def set_button_enabled(self, button_id, enabled):
+	def set_button_enabled(self, button_id: str, enabled: bool) -> None:
 		self.buttons[button_id].disabled = not enabled
 		self._redraw()
 
-	def show_message(self, message, severity=None):
+	def show_message(self, message: str, severity: str | None = None) -> None:
+		assert self.message
 		self.message.t = message
 		self._redraw()
 
-	def show_logpath(self, logpath):
+	def show_logpath(self, logpath: Path | str | None) -> None:
+		assert self.logpath
 		self.logpath.t = f"See logs at: {logpath}"
 		self._redraw()
 
-	def _sigwinch_handler(self, *args):
+	def _sigwinch_handler(self, *args: Any) -> None:
 		self._redraw()
 
-	def _redraw(self):
+	def _redraw(self) -> None:
 		try:
 			self._screen_redraw(Screen)
 		except Exception:
 			pass
 
-	def _screen_redraw(self, screen, allow_cursor=False):
+	def _screen_redraw(self, screen: Screen, allow_cursor: bool = False) -> None:
+		assert self.dialog
 		# screen.attr_color(C_WHITE, C_BLUE)
 		screen.cls()
 		screen.attr_reset()
 		self.dialog.redraw()
 
-	def _on_change(self, _widget):
+	def _on_change(self, _widget: Widget) -> None:
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
 			setattr(self.inst_helper.config, attr, self.inputs[attr].get())
 
-	def _on_cancel(self, _widget):
+	def _on_cancel(self, _widget: Widget) -> None:
 		self.inst_helper.on_cancel_button()
 
-	def _on_install(self, _widget):
+	def _on_install(self, _widget: Widget) -> None:
 		self.inst_helper.on_install_button()
 
-	def _on_zeroconf(self, _widget):
+	def _on_zeroconf(self, _widget: Widget) -> None:
 		self.inst_helper.on_zeroconf_button()
 
-	def _run(self):
+	def _run(self) -> None:
 		width = 80
 		height = 14
 		padding = 3
@@ -132,6 +145,7 @@ class ConsoleDialog(BaseDialog):
 		button_w = 14
 
 		self.dialog = Dialog(x=1, y=1, w=width, h=height, title="opsi client agent installer")
+		assert self.dialog
 
 		self.inputs["client_id"] = WDialogTextEntry(w=width - 2 * padding - label_width - 1, text="")
 		self.inputs["client_id"].on("changed", self._on_change)
@@ -180,7 +194,7 @@ class ConsoleDialog(BaseDialog):
 			if res is not None and res is not True:
 				break
 
-	def run(self):
+	def run(self) -> None:
 		try:
 			with Context():
 				return self._run()

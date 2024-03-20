@@ -9,6 +9,8 @@
 opsi-client-agent installation_helper
 """
 
+from __future__ import annotations
+
 import base64
 import ipaddress
 import os
@@ -18,13 +20,18 @@ import socket
 import sys
 import threading
 from pathlib import Path
-from typing import Generator
+from typing import TYPE_CHECKING, Generator
 
 import netifaces  # type: ignore[import]
 import psutil
 from opsicommon.logging import get_logger
 
+if TYPE_CHECKING:
+	from ocainstallationhelper.__main__ import InstallationHelper
+
 __version__ = "4.3.0.2"
+
+
 KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
 THIS_OCA_VERSION_FILE = Path("files/opsi-client-agent.version")
 WINDOWS_OCA_VERSION_FILE = Path(os.path.expandvars("%programfiles%")) / "opsi.org" / "opsi-client-agent" / "opsi-client-agent.version"
@@ -39,7 +46,7 @@ logger = get_logger("oca-installation-helper")
 
 
 class Dialog(threading.Thread):
-	def __init__(self, installation_helper) -> None:
+	def __init__(self, installation_helper: InstallationHelper) -> None:
 		pass
 
 	def update(self) -> None:
@@ -64,7 +71,7 @@ class Dialog(threading.Thread):
 		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
 
 
-def encode_password(cleartext):
+def encode_password(cleartext: str) -> str:
 	cipher = ""
 	for num, char in enumerate(cleartext):
 		key_c = KEY[num % len(KEY)]
@@ -72,7 +79,7 @@ def encode_password(cleartext):
 	return base64.urlsafe_b64encode(cipher.encode("utf-8")).decode("ascii")
 
 
-def decode_password(cipher):
+def decode_password(cipher: str) -> str:
 	cipher = cipher.replace("{crypt}", "")
 	cleartext = ""
 	cipher = base64.urlsafe_b64decode(cipher).decode("utf-8")
@@ -82,18 +89,18 @@ def decode_password(cipher):
 	return cleartext
 
 
-def get_resource_path(relative_path):
+def get_resource_path(relative_path: str) -> str:
 	"""Get absolute path to resource, works for dev and for PyInstaller"""
 	try:
 		# PyInstaller creates a temp folder and stores path in _MEIPASS
-		base_path = sys._MEIPASS
-	except Exception:
+		base_path = getattr(sys, "_MEIPASS")
+	except AttributeError:
 		base_path = Path(".").absolute()
 
 	return os.path.join(base_path, relative_path)
 
 
-def get_mac_address():
+def get_mac_address() -> str | None:
 	gateways = netifaces.gateways()
 	logger.debug("Gateways: %s", gateways)
 	if "default" not in gateways:
@@ -121,7 +128,7 @@ def get_ip_interfaces() -> Generator[ipaddress.IPv4Interface | ipaddress.IPv6Int
 				continue
 
 
-def get_versionfile_content(version_file):
+def get_versionfile_content(version_file: Path) -> str | None:
 	if not version_file.exists():
 		return None
 	content = version_file.read_text(encoding="utf-8")
@@ -130,7 +137,7 @@ def get_versionfile_content(version_file):
 	return None
 
 
-def get_installed_oca_version():
+def get_installed_oca_version() -> str | None:
 	if platform.system().lower() == "windows":
 		version_file = WINDOWS_OCA_VERSION_FILE
 	elif platform.system().lower() in ("linux", "darwin"):
@@ -140,7 +147,7 @@ def get_installed_oca_version():
 	return get_versionfile_content(version_file)
 
 
-def get_this_oca_version():
+def get_this_oca_version() -> str | None:
 	return get_versionfile_content(THIS_OCA_VERSION_FILE)
 
 

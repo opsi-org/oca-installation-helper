@@ -4,13 +4,13 @@ oca-installation-helper tests
 config tests
 """
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 from .utils import get_installation_helper
 
 
-def test_fill_config_from_params():
+def test_fill_config_from_params() -> None:
 	with get_installation_helper(
 		["--client-id", "client.domain.local", "--service-address", "https://server.domain.local:4447"]
 	) as installation_helper:
@@ -18,14 +18,14 @@ def test_fill_config_from_params():
 		assert installation_helper.config.service_address == "https://server.domain.local:4447"
 
 
-def test_fill_config_from_default():
+def test_fill_config_from_default() -> None:
 	with get_installation_helper() as installation_helper:
 		assert not installation_helper.config.client_id
 		installation_helper.config.fill_config_from_default()
 		assert installation_helper.config.client_id
 
 
-def test_fill_config_from_files():
+def test_fill_config_from_files() -> None:
 	with get_installation_helper() as installation_helper:
 		with tempfile.TemporaryDirectory() as tempdir:
 			installconf = Path(tempdir) / "install.conf"
@@ -38,7 +38,7 @@ def test_fill_config_from_files():
 				"interactive =\n",
 				encoding="utf-8",
 			)
-			installation_helper.config.read_conf_files = [installconf]
+			installation_helper.config.read_conf_files = (installconf,)
 			installation_helper.config.fill_config_from_files()
 			assert installation_helper.config.client_id == "dummy.domain.local"
 			assert installation_helper.config.service_address == "https://192.168.0.1:4447/rpc"
@@ -50,12 +50,12 @@ def test_fill_config_from_files():
 # default < zeroconf < file < registry < params
 
 
-def test_priority_of_sources():
+def test_priority_of_sources() -> None:
 	with get_installation_helper(["--service-username", "from_param"]) as installation_helper:
 		with tempfile.TemporaryDirectory() as tempdir:
 			installconf = Path(tempdir) / "install.conf"
 			installconf.write_text("service_address = from_file\nservice_username = from_file\n", encoding="utf-8")
-			installation_helper.config.read_conf_files = [installconf]
+			installation_helper.config.read_conf_files = (installconf,)
 			installation_helper.config.fill_config_from_files()
 			installation_helper.config.fill_config_from_default()
 

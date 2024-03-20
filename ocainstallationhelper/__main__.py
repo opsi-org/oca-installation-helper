@@ -22,14 +22,20 @@ from pathlib import Path
 from typing import IO
 
 from opsicommon.exceptions import BackendAuthenticationError
-from opsicommon.logging import (LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL,
-                                logging_config)
+from opsicommon.logging import LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL, logging_config
 from opsicommon.system.subprocess import patch_popen
 
-from ocainstallationhelper import (CONFIG_CACHE_DIRS, Dialog, __version__,
-                                   decode_password, encode_password,
-                                   get_installed_oca_version,
-                                   get_this_oca_version, logger, show_message)
+from ocainstallationhelper import (
+	CONFIG_CACHE_DIRS,
+	Dialog,
+	__version__,
+	decode_password,
+	encode_password,
+	get_installed_oca_version,
+	get_this_oca_version,
+	logger,
+	show_message,
+)
 from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
 from ocainstallationhelper.config import SETUP_SCRIPT_NAME, Config
 
@@ -408,8 +414,7 @@ class InstallationHelper:
 					if platform.system().lower() == "windows":
 						logger.error("Console dialog currently not implemented on windows. Use --gui instead")
 					else:
-						from ocainstallationhelper.console import \
-						    ConsoleDialog  # only import if needed
+						from ocainstallationhelper.console import ConsoleDialog  # only import if needed
 
 						self.dialog = ConsoleDialog(self)
 						self.dialog.show()
@@ -455,7 +460,7 @@ class ArgumentParser(argparse.ArgumentParser):
 		show_message(message, message_type="stderr")
 
 
-def parse_args(args: list[str] | None = None):
+def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 	if args is None:
 		args = sys.argv[1:]  # executable path is not processed
 	f_actions = ["noreboot", "reboot", "shutdown"]
@@ -470,8 +475,26 @@ def parse_args(args: list[str] | None = None):
 		"--log-level",
 		default="warning",
 		choices=[
-			"0", "none", "1", "essential", "2", "critical", "3", "error", "4", "warning",
-			"5", "notice", "6", "info", "7", "debug", "8", "trace", "9", "secret"
+			"0",
+			"none",
+			"1",
+			"essential",
+			"2",
+			"critical",
+			"3",
+			"error",
+			"4",
+			"warning",
+			"5",
+			"notice",
+			"6",
+			"info",
+			"7",
+			"debug",
+			"8",
+			"trace",
+			"9",
+			"secret",
 		],
 	)
 	parser.add_argument("--service-address", default=None, help="Service address to use.")

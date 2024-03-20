@@ -4,33 +4,33 @@ opsi-client-agent installation_helper config class
 
 import argparse
 import codecs
+import ipaddress
 import os
 import platform
 import re
-import ipaddress
-
 import socket
-
 from configparser import ConfigParser
 from pathlib import Path
 from typing import Any, Callable, Tuple
 from urllib.parse import urlparse
+
+from opsicommon.logging import get_logger
+from opsicommon.types import forceHostId
 from zeroconf import ServiceBrowser, Zeroconf
 
+from ocainstallationhelper import get_ip_interfaces
 
-from opsicommon.types import forceHostId  # type: ignore[import]
-
-from ocainstallationhelper import (
-	get_ip_interfaces,
-	logger,
-)
+if platform.system().lower() == "windows":
+	import winreg  # type: ignore[import]
 
 SETUP_SCRIPT_NAME = "setup.opsiscript"
 DEFAULT_CONFIG_SERVICE_PORT = 4447
 
+logger = get_logger()
+
 
 class Config:
-	def __init__(self, cmdline_args: argparse.Namespace, full_path) -> None:
+	def __init__(self, cmdline_args: argparse.Namespace, full_path: Path) -> None:
 		self.client_id: str | None = cmdline_args.client_id
 		self.client_key: str | None = None
 		self.service_address: str | None = cmdline_args.service_address
@@ -218,17 +218,16 @@ class Config:
 	def fill_config_from_registry(self, parse_args_function: Callable) -> None:
 		if platform.system().lower() != "windows":
 			return
-		import winreg
 
-		def get_registry_value(key, sub_key, value_name):
+		def get_registry_value(key: Any, sub_key: str, value_name: str) -> Any:
 			logger.debug("Requesting key %s and value %s", sub_key, value_name)
 			hkey = None
 			try:
-				hkey = winreg.OpenKey(key, sub_key)
-				(value, _type) = winreg.QueryValueEx(hkey, value_name)
+				hkey = winreg.OpenKey(key, sub_key)  # type: ignore[attr-defined]
+				(value, _type) = winreg.QueryValueEx(hkey, value_name)  # type: ignore[attr-defined]
 			finally:
 				if hkey:
-					winreg.CloseKey(hkey)
+					winreg.CloseKey(hkey)  # type: ignore[attr-defined]
 			return value
 
 		# or HKEY_LOCAL_MACHINE\SOFTWARE\opsi.org\general ?
@@ -275,7 +274,7 @@ class Config:
 
 		self.client_id = forceHostId(self.client_id)
 
-	def fill_config_from_zeroconf(self):
+	def fill_config_from_zeroconf(self) -> None:
 		if self.zeroconf:
 			self.zeroconf.close()
 		try:

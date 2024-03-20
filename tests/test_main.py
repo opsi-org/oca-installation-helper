@@ -4,19 +4,19 @@ oca-installation-helper tests
 main tests
 """
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 from .utils import get_installation_helper
 
 
-def test_helper_object():
+def test_helper_object() -> None:
 	with get_installation_helper() as installation_helper:
 		ocdconf = installation_helper.config.opsiclientd_conf
 		assert ocdconf.name == "opsiclientd.conf"
 
 
-def test_copy_files():
+def test_copy_files() -> None:
 	with get_installation_helper() as installation_helper:
 		with tempfile.TemporaryDirectory() as tempdir:
 			base_dir = Path(tempdir)

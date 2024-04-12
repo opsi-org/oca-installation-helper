@@ -104,7 +104,7 @@ class GUIDialog(Dialog):
 				sg.Button("Cancel", key="cancel", size=(10, 1)),
 				sg.Button("Install", key="install", size=(10, 1), bind_return_key=True),
 			],
-			[sg.Button("Open logs", key="logs", size=(10, 1), disabled=True)],
+			[sg.Button("Open logs", key="logs", size=(10, 1), disabled=False)],
 		]
 
 		height = 370

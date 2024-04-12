@@ -93,9 +93,9 @@ class Backend:
 				[
 					{
 						"type": "ProductPropertyState",
-						"clientId": client_id,
 						"productId": self.product_id,
 						"propertyId": property_id,
+						"objectId": client_id,
 						"values": value if isinstance(value, list) else [value],  # type: ignore
 					}
 				]

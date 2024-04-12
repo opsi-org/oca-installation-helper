@@ -36,7 +36,7 @@ incremental = false
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
 zeroconf = "^0.132"
-pysimplegui = "^5.0"
+pysimplegui = ">=4,<5"
 psutil = "^5.8"
 picotui = "^1.2"
 netifaces = "^0.11"

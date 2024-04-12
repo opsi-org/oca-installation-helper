@@ -87,9 +87,6 @@ class Backend:
 		)
 
 	def set_product_property(self, client_id: str, property_id: str, value: list[str] | str | bool) -> None:
-		if not isinstance(value, list):
-			value = [value]
-
 		self.service.execute_rpc(
 			"productPropertyState_createObjects",
 			[
@@ -99,7 +96,7 @@ class Backend:
 						"clientId": client_id,
 						"productId": self.product_id,
 						"propertyId": property_id,
-						"values": value,
+						"values": value if isinstance(value, list) else [value],  # type: ignore
 					}
 				]
 			],

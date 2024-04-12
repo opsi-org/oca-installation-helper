@@ -70,7 +70,7 @@ test:pylint-pytest:
     - apt-get --yes install sqlite3
     - poetry lock --no-update
     - poetry install
-    - poetry run ruff ocainstallationhelper tests
+    - poetry run ruff check ocainstallationhelper tests
     - poetry run mypy ocainstallationhelper tests
     - for db in coverage_*; do sqlite3 $db 'update file set path=replace(substr(path,instr(path,"ocainstallationhelper")),"\","/");'; done
     - echo -e '[run]\nrelative_files = True\n' > .coveragerc

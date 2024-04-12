@@ -254,6 +254,12 @@ class InstallationHelper:
 		self.config.client_key = client.opsiHostKey
 		self.config.client_id = str(client.id)
 		self.show_message("Client exists", "success")
+
+		if self.config.setup_after_install:
+			self.backend.set_product_property(
+				client_id=self.config.client_id, property_id="setup_after_install", value=self.config.setup_after_install
+			)
+
 		if self.config.depot:
 			if self.config.client_id == self.config.service_username:
 				raise PermissionError(
@@ -261,6 +267,7 @@ class InstallationHelper:
 					"error",
 				)
 			self.backend.assign_client_to_depot(self.config.client_id, self.config.depot)
+
 		if self.config.group:
 			if self.config.client_id == self.config.service_username:
 				raise PermissionError(
@@ -268,6 +275,7 @@ class InstallationHelper:
 					"error",
 				)
 			self.backend.put_client_into_group(self.config.client_id, self.config.group)
+
 		if self.dialog:
 			self.dialog.update()
 
@@ -550,6 +558,11 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 		default="always",
 		choices=condition_choices,
 		help="Under which condition should the client-agent be installed.",
+	)
+	parser.add_argument(
+		"--setup-after-install",
+		default=None,
+		help="Comma separated list of products to set to setup after installation.",
 	)
 
 	return parser.parse_args(args)

@@ -18,6 +18,14 @@ class Backend:
 	def __init__(self, address: str, username: str, password: str) -> None:
 		self.service: JSONRPCClient = JSONRPCClient(address=address, username=username, password=password)
 		self.service_address: str | None = self.service.base_url
+		if platform.system().lower() == "windows":
+			self.product_id = "opsi-client-agent"
+		elif platform.system().lower() == "linux":
+			self.product_id = "opsi-linux-client-agent"
+		elif platform.system().lower() == "darwin":
+			self.product_id = "opsi-mac-client-agent"
+		else:
+			raise ValueError(f"Platform {platform.system().lower()} unknown. Aborting.")
 
 	def get_domain(self) -> str:
 		return self.service.execute_rpc("getDomain")
@@ -78,21 +86,33 @@ class Backend:
 			],
 		)
 
-	def evaluate_success(self, client_id: str) -> None:
-		if platform.system().lower() == "windows":
-			product_id = "opsi-client-agent"
-		elif platform.system().lower() == "linux":
-			product_id = "opsi-linux-client-agent"
-		elif platform.system().lower() == "darwin":
-			product_id = "opsi-mac-client-agent"
-		else:
-			raise ValueError(f"Platform {platform.system().lower()} unknown. Aborting.")
+	def set_product_property(self, client_id: str, property_id: str, value: list[str] | str | bool) -> None:
+		if not isinstance(value, list):
+			value = [value]
 
-		product_on_client = self.service.execute_rpc("productOnClient_getObjects", [[], {"productId": product_id, "clientId": client_id}])
+		self.service.execute_rpc(
+			"productPropertyState_createObjects",
+			[
+				[
+					{
+						"type": "ProductPropertyState",
+						"clientId": client_id,
+						"productId": self.product_id,
+						"propertyId": property_id,
+						"values": value,
+					}
+				]
+			],
+		)
+
+	def evaluate_success(self, client_id: str) -> None:
+		product_on_client = self.service.execute_rpc(
+			"productOnClient_getObjects", [[], {"productId": self.product_id, "clientId": client_id}]
+		)
 		if not product_on_client or not product_on_client[0]:
-			raise InstallationUnsuccessful(f"Product {product_id} not found on client {client_id}")
+			raise InstallationUnsuccessful(f"Product {self.product_id} not found on client {client_id}")
 		if not product_on_client[0].installationStatus == "installed":
-			raise InstallationUnsuccessful(f"Installation of {product_id} on client {client_id} unsuccessful")
+			raise InstallationUnsuccessful(f"Installation of {self.product_id} on client {client_id} unsuccessful")
 
 	def get_or_create_client(self, client_id: str, force_create: bool = False, set_mac_address: bool = True) -> OpsiClient:
 		clients = self.service.execute_rpc("host_getObjects", [[], {"id": client_id}])

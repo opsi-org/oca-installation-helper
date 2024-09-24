@@ -22,7 +22,8 @@ import PySimpleGUI.PySimpleGUI  # type: ignore[import]
 from opsicommon.logging import get_logger
 from PySimpleGUI.PySimpleGUI import Window
 
-from ocainstallationhelper import Dialog, get_resource_path
+from ocainstallationhelper import Dialog
+from ocainstallationhelper.utils import get_resource_path
 
 if TYPE_CHECKING:
 	from ocainstallationhelper.__main__ import InstallationHelper
@@ -102,7 +103,7 @@ class GUIDialog(Dialog):
 			[
 				sg.Text("", size=(35, 1)),
 				sg.Button("Cancel", key="cancel", size=(10, 1)),
-				sg.Button("Install", key="install", size=(10, 1), bind_return_key=True),
+				sg.Button("Install", key="install", size=(10, 1), bind_return_key=True, disabled=True),
 			],
 			[sg.Button("Open logs", key="logs", size=(10, 1), disabled=False)],
 		]

@@ -18,7 +18,7 @@ from opsicommon.logging import get_logger
 from opsicommon.types import forceHostId
 from zeroconf import ServiceBrowser, Zeroconf
 
-from ocainstallationhelper import get_ip_interfaces
+from ocainstallationhelper.utils import get_ip_interfaces
 
 if platform.system().lower() == "windows":
 	import winreg  # type: ignore[import]
@@ -30,7 +30,7 @@ logger = get_logger()
 
 
 class Config:
-	def __init__(self, cmdline_args: argparse.Namespace, full_path: Path) -> None:
+	def __init__(self, cmdline_args: argparse.Namespace) -> None:
 		self.client_id: str | None = cmdline_args.client_id
 		self.client_key: str | None = None
 		self.service_address: str | None = cmdline_args.service_address
@@ -60,18 +60,8 @@ class Config:
 		self.install_condition: str | None = cmdline_args.install_condition
 		self.end_command: str | None = cmdline_args.end_command
 		self.end_marker: str | None = cmdline_args.end_marker
-
+		self.opsi_script: Path | None = None
 		self.log_file: str | None = cmdline_args.log_file
-		# iterating over full_path and all its parents
-		for path in (full_path / "something").parents:
-			script = path / SETUP_SCRIPT_NAME
-			if script.exists():
-				self.setup_script: Path = script
-				self.base_dir: Path = path
-				break
-		else:  # did not find a setup_script
-			logger.error("Setup script %s not found!", SETUP_SCRIPT_NAME)
-			raise RuntimeError(f"{SETUP_SCRIPT_NAME} not found")
 
 		self.zeroconf: Zeroconf | None = None
 		self.zeroconf_addresses: list[str] = []
@@ -100,18 +90,15 @@ class Config:
 			self.end_marker,
 		)
 
-	def get_config_file_paths(self) -> list[Path]:
-		if not self.base_dir:
-			raise ValueError("No base dir given.")
-
+	def get_config_file_paths(self, base_dir: Path) -> list[Path]:
 		result = []
 		for conffile in self.read_conf_files:
 			if conffile == "install.conf":
-				path = self.base_dir / "files" / "custom" / "install.conf"
+				path = base_dir / "files" / "custom" / "install.conf"
 				if not path.exists():
-					path = self.base_dir / "install.conf"
+					path = base_dir / "install.conf"
 			elif conffile == "config.ini":
-				path = self.base_dir / "files" / "opsi" / "cfg" / "config.ini"
+				path = base_dir / "files" / "opsi" / "cfg" / "config.ini"
 			elif conffile == "opsiclientd.conf":
 				path = self.opsiclientd_conf
 			else:
@@ -126,8 +113,8 @@ class Config:
 				logger.info("No permission to open file '%s'", path)
 		return result
 
-	def fill_config_from_files(self) -> None:
-		config_files = self.get_config_file_paths()
+	def fill_config_from_files(self, base_dir: Path) -> None:
+		config_files = self.get_config_file_paths(base_dir)
 		placeholder_regex = re.compile(r"#\@(\w+)\**#+")
 		placeholder_regex_new = re.compile(r"%([\w\-]+)%")
 
@@ -211,6 +198,26 @@ class Config:
 			return Path("/etc/opsi-client-agent/opsiclientd.conf")
 		raise ValueError(f"Unrecognised platform {platform.system()}.")
 
+	@property
+	def oca_package(self) -> str:
+		if platform.system().lower() == "windows":
+			return "opsi-client-agent"
+		if platform.system().lower() == "linux":
+			return "opsi-linux-client-agent"
+		if platform.system().lower() == "darwin":
+			return "opsi-mac-client-agent"
+		raise NotImplementedError(f"Not implemented for {platform.system()}")
+
+	@property
+	def opsi_script_path(self) -> Path:
+		if platform.system().lower() == "windows":
+			return Path("windows") / "x86" / "opsi-script.exe"
+		if platform.system().lower() == "linux":
+			return Path("linux") / "x64" / "opsi-script"
+		if platform.system().lower() == "darwin":
+			return Path("macos") / "x64" / "opsi-script.app" / "Contents" / "MacOS" / "opsi-script"
+		raise NotImplementedError(f"Not implemented for {platform.system()}")
+
 	def fill_config_from_default(self) -> None:
 		# Do not overwrite client_id if explicitely set by parameter or found in config file
 		if not self.client_id:
@@ -265,6 +272,12 @@ class Config:
 
 		if not self.client_id:
 			raise ValueError("Client id undefined.")
+
+		if not self.client_key:
+			raise ValueError("Client key not defined.")
+
+		if not self.finalize:
+			raise ValueError("'finalize' parameter undefined.")
 
 		if "://" not in self.service_address:
 			self.service_address = f"https://{self.service_address}"

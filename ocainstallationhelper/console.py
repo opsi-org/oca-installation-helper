@@ -23,13 +23,10 @@ from picotui.menu import Screen
 from picotui.widgets import C_BLACK, C_WHITE, Dialog, WButton, Widget, WLabel, WTextEntry
 
 from ocainstallationhelper import Dialog as BaseDialog
-from ocainstallationhelper import get_logger
+from ocainstallationhelper import logger
 
 if TYPE_CHECKING:
 	from ocainstallationhelper.__main__ import InstallationHelper
-
-
-logger = get_logger()
 
 
 class WDialogTextEntry(WTextEntry):
@@ -178,6 +175,7 @@ class ConsoleDialog(BaseDialog):
 		self.buttons["cancel"].on("click", self._on_cancel)
 
 		self.buttons["install"] = WButton(w=button_w, text="Install")
+		self.set_button_enabled("install", False)
 		self.dialog.add(x=width - padding - button_w, y=button_y, widget=self.buttons["install"])
 		self.buttons["install"].on("click", self._on_install)
 

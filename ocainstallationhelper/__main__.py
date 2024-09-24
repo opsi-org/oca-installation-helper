@@ -25,54 +25,32 @@ from opsicommon.exceptions import BackendAuthenticationError
 from opsicommon.logging import LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL, logging_config
 from opsicommon.system.subprocess import patch_popen
 
-from ocainstallationhelper import (
-	CONFIG_CACHE_DIRS,
-	Dialog,
-	__version__,
+from ocainstallationhelper import CONFIG_CACHE_DIRS, Dialog, __version__, logger
+from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
+from ocainstallationhelper.config import SETUP_SCRIPT_NAME, Config
+from ocainstallationhelper.utils import (
 	decode_password,
 	encode_password,
 	get_installed_oca_version,
 	get_this_oca_version,
-	logger,
+	make_executable,
 	show_message,
 )
-from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
-from ocainstallationhelper.config import SETUP_SCRIPT_NAME, Config
 
 patch_popen()
 
 
 class InstallationHelper:
-	def __init__(self, cmdline_args: argparse.Namespace, full_path: Path | None = None) -> None:
+	def __init__(self, cmdline_args: argparse.Namespace) -> None:
 		# macos does not use DISPLAY. gui does not work properly on macos right now.
 		self.dialog: Dialog | None = None
 		self.clear_message_timer: threading.Timer | None = None
 		self.backend: Backend | None = None
-
-		self.full_path: Path
-		if full_path is None:
-			self.full_path = Path(sys.argv[0])
-		else:
-			self.full_path = full_path
 		self.should_stop: bool = False
 		self.opsi_script_logfile: Path | None = None
 		self.tmp_dir: Path = Path(tempfile.gettempdir()) / "oca-installation-helper-tmp"
-		if not self.full_path.is_absolute():
-			self.full_path = (Path() / self.full_path).absolute()
-		logger.info(
-			"Installation helper running from '%s', working dir '%s'",
-			self.full_path,
-			Path().absolute(),
-		)
-		self.config = Config(cmdline_args, self.full_path)
-
-	def configure_from_reg_file(self) -> None:
-		if platform.system().lower() == "windows":
-			logger.info("Filling empty config fields from windows registry.")
-			self.config.fill_config_from_registry(parse_args)
-
-		logger.info("Filling empty config fields from config files.")
-		self.config.fill_config_from_files()
+		self.config = Config(cmdline_args)
+		self.base_dir: Path
 
 	def configure_from_zeroconf_default(self) -> None:
 		logger.info("Filling empty config fields from zeroconf information.")
@@ -100,54 +78,47 @@ class InstallationHelper:
 		if self.dialog:
 			self.dialog.update()
 
-	def copy_installation_files(self) -> None:
+	def copy_installation_files(self) -> Path:
+		if not self.backend:
+			raise ValueError("No backend connection.")
 		self.cleanup()
-		self.show_message(f"Copy installation files from '{self.config.base_dir}' to '{self.tmp_dir}'")
-		shutil.copytree(str(self.config.base_dir), str(self.tmp_dir))
+		self.show_message(f"Copying installation files from depot to '{self.tmp_dir}'")
+		self.tmp_dir.mkdir(parents=True, exist_ok=True)
+		self.backend.get_from_depot(self.config.oca_package, self.tmp_dir)
+		self.backend.get_from_depot("opsi-script", self.tmp_dir)
 		self.show_message(f"Installation files succesfully copied to '{self.tmp_dir}'", "success")
-		self.config.base_dir = self.tmp_dir
-		self.config.setup_script = self.config.base_dir / SETUP_SCRIPT_NAME
+		self.config.opsi_script = self.tmp_dir / "opsi-script" / self.config.opsi_script_path
+		make_executable(self.config.opsi_script)
+		return self.tmp_dir / self.config.oca_package
 
 	def run_setup_script(self) -> None:
-		if not (self.config.service_address and self.config.client_id and self.config.client_key and self.config.finalize and self.backend):
-			raise ValueError("Incomplete data - cannot run setup_script.")
+		if not self.backend:
+			raise ValueError("No backend connection.")
+		if not self.base_dir:
+			raise ValueError("No base directory set.")
+		self.config.check_values()
+		assert self.config.service_address and self.config.client_id and self.config.client_key and self.config.finalize  # for mypy
 		self.show_message("Running setup script")
 
-		if platform.system().lower() == "windows":
-			oca_package = "opsi-client-agent"
-			opsi_script = self.config.base_dir / "files" / "opsi-script" / "opsi-script.exe"
-			log_dir = Path(r"c:\opsi.org\log")
-			param_char = "/"
-		elif platform.system().lower() == "linux":
-			oca_package = "opsi-linux-client-agent"
-			opsi_script = self.config.base_dir / "files" / "opsi-script" / "opsi-script"
-			log_dir = Path("/var/log/opsi-script")
-			param_char = "-"
-		elif platform.system().lower() == "darwin":
-			opsi_script = self.config.base_dir / "files" / "opsi-script.app" / "Contents" / "MacOS" / "opsi-script"
-			oca_package = "opsi-mac-client-agent"
-			log_dir = Path("/var/log/opsi-script")
-			param_char = "-"
-		else:
-			raise NotImplementedError(f"Not implemented for {platform.system()}")
-
-		if not log_dir.exists():
+		opsi_script_log_dir = Path(r"c:\opsi.org\log") if platform.system().lower() == "windows" else Path("/var/log/opsi-script")
+		param_char = "/" if platform.system().lower() == "windows" else "-"
+		if not opsi_script_log_dir.exists():
 			try:
-				log_dir.mkdir(parents=True)
+				opsi_script_log_dir.mkdir(parents=True)
 			except Exception as exc:
 				logger.error(
 					"Could not create log directory %s due to %s\n still trying to continue",
-					log_dir,
+					opsi_script_log_dir,
 					exc,
 					exc_info=True,
 				)
-		self.opsi_script_logfile = log_dir / "opsi-client-agent.log"
-		arg_list = [
-			str(self.config.setup_script),
+		self.opsi_script_logfile = opsi_script_log_dir / "opsi-client-agent.log"
+		arg_list: list[str] = [
+			str(self.base_dir / SETUP_SCRIPT_NAME),
 			str(self.opsi_script_logfile),
 			f"{param_char}servicebatch",
 			f"{param_char}productid",
-			oca_package,
+			self.config.oca_package,
 			f"{param_char}opsiservice",
 			self.config.service_address,
 			f"{param_char}clientid",
@@ -167,7 +138,7 @@ class InstallationHelper:
 				logger.error("Cannot execute powershell. Maybe missing in system PATH? Error: %s", error)
 				raise error
 			arg_string = ",".join([f"'\"{arg}\"'" for arg in arg_list])  # Enclosing by ' and " to be robust against spaces in params
-			ps_script = f'Start-Process -Verb runas -FilePath "{opsi_script}" -ArgumentList {arg_string} -Wait'
+			ps_script = f'Start-Process -Verb runas -FilePath "{self.config.opsi_script}" -ArgumentList {arg_string} -Wait'
 			command = [
 				"powershell",
 				"-ExecutionPolicy",
@@ -178,9 +149,9 @@ class InstallationHelper:
 				ps_script,
 			]
 		else:
-			command = [str(opsi_script)] + arg_list
+			command = [str(self.config.opsi_script)] + arg_list
 
-		self.backend.set_poc_to_installing(oca_package, self.config.client_id)
+		self.backend.set_poc_to_installing(self.config.oca_package, self.config.client_id)
 		logger.info("Executing: %s\n", command)
 		with subprocess.Popen(
 			command,
@@ -193,10 +164,11 @@ class InstallationHelper:
 			logger.info("Command output: %s", out)
 
 	def install(self) -> bool:
+		if not self.backend:
+			raise ValueError("No backend connection.")
 		try:
+			assert self.config.client_id  # for mypy
 			logger.info("Starting installation")
-			if not self.config.client_id:
-				raise ValueError("Client id undefined.")
 			installed_oca_version = get_installed_oca_version()
 			this_oca_version = get_this_oca_version()
 			logger.debug(
@@ -209,12 +181,9 @@ class InstallationHelper:
 			):
 				self.show_message(f"Skipping installation as condition {self.config.install_condition} is not met.")
 				return False
-			self.config.check_values()
 			self.cleanup_cache()
 			self.service_setup()
-			if not self.backend:
-				raise ValueError("Backend is not initialized.")
-
+			self.config.check_values()
 			self.run_setup_script()
 			self.show_message("Evaluating script result")
 			self.backend.evaluate_success(self.config.client_id)
@@ -224,35 +193,21 @@ class InstallationHelper:
 			raise
 
 	def service_setup(self) -> None:
-		if not self.config.client_id:
-			raise ValueError("Client id undefined.")
+		if not self.backend:
+			raise ValueError("No backend connection.")
+
+		assert self.config.client_id  # for mypy
 
 		if self.dialog:
 			self.dialog.set_button_enabled("install", False)
-
-		self.show_message("Connecting to service...")
-
-		password = self.config.service_password or ""
-		if password.startswith("{crypt}"):
-			password = decode_password(password)
-
-		if self.config.service_address is None or self.config.service_username is None or password is None:
-			raise ValueError("Incomplete data - cannot run service_setup.")
-		self.backend = Backend(self.config.service_address, self.config.service_username, password)
-
-		self.show_message("Connected", "success")
-		if "." not in self.config.client_id:
-			self.config.client_id = f"{self.config.client_id}.{self.backend.get_domain()}"
-			if self.dialog:
-				self.dialog.update()
 
 		client = self.backend.get_or_create_client(
 			self.config.client_id,
 			force_create=self.config.force_recreate_client,
 			set_mac_address=self.config.set_mac_address,
 		)
-		self.config.client_key = client.opsiHostKey
-		self.config.client_id = str(client.id)
+		self.config.client_key = client["opsiHostKey"]
+		self.config.client_id = str(client["id"])
 		self.show_message("Client exists", "success")
 
 		if self.config.setup_after_install:
@@ -364,15 +319,10 @@ class InstallationHelper:
 				print(f"{Path(sys.argv[0]).name} has to be run as root")
 				os.execvp("sudo", ["sudo"] + sys.argv)
 		else:
-			if self.full_path.drive != Path(tempfile.gettempdir()).drive:
-				self.copy_installation_files()
-			if not self.config.base_dir:
-				raise ValueError("Installation base directory not defined.")
 			if ctypes.windll.shell32.IsUserAnAdmin() == 0:  # type: ignore
 				# not elevated
-				new_path = self.config.base_dir / "oca-installation-helper.exe"
 				arg_string = "-ArgumentList " + ",".join([f'"{arg}"' for arg in sys.argv[1:]]) if sys.argv[1:] else ""
-				ps_script = f'Start-Process -Verb runas -FilePath "{str(new_path)}" {arg_string} -Wait'
+				ps_script = f'Start-Process -Verb runas -FilePath "{sys.argv[0]}" {arg_string} -Wait'
 				command = [
 					"powershell",
 					"-ExecutionPolicy",
@@ -402,7 +352,12 @@ class InstallationHelper:
 		error = None
 		try:
 			self.ensure_admin()
-			self.configure_from_reg_file()
+			if platform.system().lower() == "windows":
+				logger.info("Filling empty config fields from windows registry.")
+				self.config.fill_config_from_registry(parse_args)
+
+			logger.info("Filling empty config fields from config files.")
+			self.config.fill_config_from_files(base_dir=Path(sys.argv[0]).parent)  # using cwd as base dir
 			if self.config.interactive:
 				if self.config.use_gui:
 					if platform.system().lower() == "darwin":
@@ -426,10 +381,26 @@ class InstallationHelper:
 
 						self.dialog = ConsoleDialog(self)
 						self.dialog.show()
+			self.show_message("Loading data...")
 			self.configure_from_zeroconf_default()
-			if self.dialog:
-				self.dialog.update()
 
+			self.show_message("Connecting to service...")
+			password = self.config.service_password or ""
+			if password.startswith("{crypt}"):
+				password = decode_password(password)
+			if self.config.service_address is None or self.config.service_username is None or password is None:
+				raise ValueError("Incomplete data - cannot run service_setup.")
+			self.backend = Backend(self.config.service_address, self.config.service_username, password)
+			self.show_message("Connected", "success")
+			if self.config.client_id and "." not in self.config.client_id:
+				self.config.client_id = f"{self.config.client_id}.{self.backend.get_domain()}"
+				if self.dialog:
+					self.dialog.update()
+
+			self.base_dir = self.copy_installation_files()
+			self.config.fill_config_from_files(self.base_dir)  # using copy destination as base dir
+			if self.dialog:
+				self.dialog.set_button_enabled("install", True)
 			if self.config.interactive and self.dialog:
 				self.dialog.wait()
 			else:

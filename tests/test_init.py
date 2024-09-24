@@ -6,7 +6,7 @@ test for utility functions
 
 import re
 
-from ocainstallationhelper import (
+from ocainstallationhelper.utils import (
 	decode_password,
 	encode_password,
 	get_installed_oca_version,

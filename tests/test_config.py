@@ -4,7 +4,6 @@ oca-installation-helper tests
 config tests
 """
 
-import tempfile
 from pathlib import Path
 
 from .utils import get_installation_helper
@@ -25,40 +24,38 @@ def test_fill_config_from_default() -> None:
 		assert installation_helper.config.client_id
 
 
-def test_fill_config_from_files() -> None:
+def test_fill_config_from_files(temp_dir: Path) -> None:
 	with get_installation_helper() as installation_helper:
-		with tempfile.TemporaryDirectory() as tempdir:
-			installconf = Path(tempdir) / "install.conf"
-			installconf.write_text(
-				"client_id = dummy.domain.local\n"
-				"service_address = https://192.168.0.1:4447/rpc\n"
-				"service_username = dummyuser\n"
-				"service_password = dummypassword\n"
-				"dns_domain = should.be.ignored\n"
-				"interactive =\n",
-				encoding="utf-8",
-			)
-			installation_helper.config.read_conf_files = (installconf,)
-			installation_helper.config.fill_config_from_files()
-			assert installation_helper.config.client_id == "dummy.domain.local"
-			assert installation_helper.config.service_address == "https://192.168.0.1:4447/rpc"
-			assert installation_helper.config.service_username == "dummyuser"
-			assert installation_helper.config.service_password == "dummypassword"
-			installation_helper.config.check_values()
+		installconf = temp_dir / "install.conf"
+		installconf.write_text(
+			"client_id = dummy.domain.local\n"
+			"service_address = https://192.168.0.1:4447/rpc\n"
+			"service_username = dummyuser\n"
+			"service_password = dummypassword\n"
+			"dns_domain = should.be.ignored\n"
+			"interactive =\n",
+			encoding="utf-8",
+		)
+		installation_helper.config.read_conf_files = (installconf,)
+		installation_helper.config.fill_config_from_files(temp_dir)
+		assert installation_helper.config.client_id == "dummy.domain.local"
+		assert installation_helper.config.service_address == "https://192.168.0.1:4447/rpc"
+		assert installation_helper.config.service_username == "dummyuser"
+		assert installation_helper.config.service_password == "dummypassword"
+		installation_helper.config.check_values()
 
 
 # default < zeroconf < file < registry < params
 
 
-def test_priority_of_sources() -> None:
+def test_priority_of_sources(temp_dir: Path) -> None:
 	with get_installation_helper(["--service-username", "from_param"]) as installation_helper:
-		with tempfile.TemporaryDirectory() as tempdir:
-			installconf = Path(tempdir) / "install.conf"
-			installconf.write_text("service_address = from_file\nservice_username = from_file\n", encoding="utf-8")
-			installation_helper.config.read_conf_files = (installconf,)
-			installation_helper.config.fill_config_from_files()
-			installation_helper.config.fill_config_from_default()
+		installconf = temp_dir / "install.conf"
+		installconf.write_text("service_address = from_file\nservice_username = from_file\n", encoding="utf-8")
+		installation_helper.config.read_conf_files = (installconf,)
+		installation_helper.config.fill_config_from_files(temp_dir)
+		installation_helper.config.fill_config_from_default()
 
-			assert installation_helper.config.client_id  # assembled from hostname
-			assert installation_helper.config.service_address == "from_file"
-			assert installation_helper.config.service_username == "from_param"
+		assert installation_helper.config.client_id  # assembled from hostname
+		assert installation_helper.config.service_address == "from_file"
+		assert installation_helper.config.service_username == "from_param"

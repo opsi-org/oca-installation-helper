@@ -105,11 +105,15 @@ def get_mac_address() -> str | None:
 	logger.debug("Gateways: %s", gateways)
 	if "default" not in gateways:
 		return None
-	default_if = list(gateways["default"].values())[0][1]
-	logger.info("Default interface: %s", default_if)
-	addrs = netifaces.ifaddresses(default_if)
-	mac = addrs[netifaces.AF_LINK][0]["addr"]
-	logger.info("Default mac address: %s", mac)
+	try:
+		default_if = list(gateways["default"].values())[0][1]
+		logger.info("Default interface: %s", default_if)
+		addrs = netifaces.ifaddresses(default_if)
+		mac = addrs[netifaces.AF_LINK][0]["addr"]
+		logger.info("Default mac address: %s", mac)
+	except (KeyError, IndexError) as err:
+		logger.warning("Failed to get mac address: %s", err)
+		return None
 	return mac
 
 

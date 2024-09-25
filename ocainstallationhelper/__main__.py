@@ -100,7 +100,6 @@ class InstallationHelper:
 		self.show_message("Running setup script")
 
 		opsi_script_log_dir = Path(r"c:\opsi.org\log") if platform.system().lower() == "windows" else Path("/var/log/opsi-script")
-		param_char = "/" if platform.system().lower() == "windows" else "-"
 		if not opsi_script_log_dir.exists():
 			try:
 				opsi_script_log_dir.mkdir(parents=True)
@@ -115,18 +114,18 @@ class InstallationHelper:
 		arg_list: list[str] = [
 			str(self.base_dir / SETUP_SCRIPT_NAME),
 			str(self.opsi_script_logfile),
-			f"{param_char}servicebatch",
-			f"{param_char}productid",
+			"-servicebatch",
+			"-productid",
 			self.config.oca_package,
-			f"{param_char}opsiservice",
+			"-opsiservice",
 			self.config.service_address,
-			f"{param_char}clientid",
+			"-clientid",
 			self.config.client_id,
-			f"{param_char}username",
+			"-username",
 			self.config.client_id,
-			f"{param_char}password",
+			"-password",
 			self.config.client_key,
-			f"{param_char}parameter",
+			"-parameter",
 			self.config.finalize,
 		]
 		if platform.system().lower() == "windows":

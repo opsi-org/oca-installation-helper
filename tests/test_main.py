@@ -7,6 +7,7 @@ main tests
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 from .utils import get_installation_helper
@@ -23,14 +24,14 @@ popen_log = PopenLog()
 
 
 class FakePopen:
-	def __init__(self, command: list[str], **kwargs) -> None:
+	def __init__(self, command: list[str], **kwargs: dict[str, Any]) -> None:
 		self.command = command
 		self.returncode = 0
 
 	def __enter__(self) -> FakePopen:
 		return self
 
-	def __exit__(self, *args) -> None:
+	def __exit__(self, *args: tuple[Any]) -> None:
 		pass
 
 	def communicate(self) -> tuple[str, str]:
@@ -79,7 +80,7 @@ def test_run(tmp_path: Path) -> None:
 			"/var/log/opsi-script/opsi-client-agent.log",
 			"-servicebatch",
 			"-productid",
-			"opsi-linux-client-agent",
+			installation_helper.config.oca_package,
 			"-opsiservice",
 			"https://server.domain.local:4447",
 			"-clientid",

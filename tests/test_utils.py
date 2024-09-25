@@ -4,6 +4,7 @@ oca-installation-helper tests
 test for utility functions
 """
 
+import platform
 import re
 
 import pytest
@@ -42,6 +43,7 @@ def test_version_files() -> None:
 	assert get_this_oca_version() is None
 
 
+@pytest.mark.skipif(platform.system().lower() == "windows", reason="We do not want to open gui during test")
 def test_show_message(capsys: CaptureFixture) -> None:
 	show_message("test out")
 	out, err = capsys.readouterr()

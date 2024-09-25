@@ -56,7 +56,7 @@ class Config:
 
 		self.interactive: bool = not cmdline_args.non_interactive
 		self.force_recreate_client: bool = cmdline_args.force_recreate_client
-		self.read_conf_files: Tuple[Path, ...] = cmdline_args.read_conf_files
+		self.read_conf_files: Tuple[Path | str, ...] = cmdline_args.read_conf_files
 		self.install_condition: str | None = cmdline_args.install_condition
 		self.end_command: str | None = cmdline_args.end_command
 		self.end_marker: str | None = cmdline_args.end_marker
@@ -266,14 +266,14 @@ class Config:
 		if args.non_interactive is not None:
 			self.interactive = not args.non_interactive
 
-	def check_values(self) -> None:
+	def check_values(self, with_host_key: bool = True) -> None:
 		if not self.service_address:
 			raise ValueError("Service address undefined.")
 
 		if not self.client_id:
 			raise ValueError("Client id undefined.")
 
-		if not self.client_key:
+		if with_host_key and not self.client_key:
 			raise ValueError("Client key not defined.")
 
 		if not self.finalize:

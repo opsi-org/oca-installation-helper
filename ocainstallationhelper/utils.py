@@ -116,7 +116,7 @@ def show_message(message: str, message_type: str = "stdout") -> None:
 		if message_type == "stdout":
 			sys.stdout.write(message)
 		elif message_type == "stderr":
-			sys.stdout.write(message)
+			sys.stderr.write(message)
 		else:
 			raise ValueError(f"Invalid type {message_type} for show_message")
 

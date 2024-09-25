@@ -96,7 +96,6 @@ class InstallationHelper:
 			raise ValueError("No backend connection.")
 		if not self.base_dir:
 			raise ValueError("No base directory set.")
-		self.config.check_values()
 		assert self.config.service_address and self.config.client_id and self.config.client_key and self.config.finalize  # for mypy
 		self.show_message("Running setup script")
 

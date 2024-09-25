@@ -9,7 +9,7 @@ stages:
 test:pytest-darwin:
   stage: test
   tags:
-    - catalina-py311-x64
+    - catalina-py313-x64
   script:
     - poetry lock --no-update
     - poetry install
@@ -25,7 +25,7 @@ test:pytest-darwin:
 test:pytest-windows:
   stage: test
   tags:
-    - win10-py311-x86
+    - win10-py313-x86
   script:
     - poetry lock --no-update
     - poetry install
@@ -92,7 +92,7 @@ test:pylint-pytest:
 build:pyinstaller-darwin-x64:
   stage: build
   tags:
-    - catalina-py311-x64
+    - catalina-py313-x64
   script:
     - poetry lock --no-update
     - poetry install
@@ -126,7 +126,7 @@ build:pyinstaller-linux-arm64:
 build:pyinstaller-windows-x86:
   stage: build
   tags:
-    - win10-py311-x86
+    - win10-py313-x86
   script:
     - Invoke-WebRequest -UseBasicParsing -Uri "$OPSIDEVTOOLS_URL_WINDOWS_X86" -OutFile opsi-dev-tools.zip
     - Expand-Archive opsi-dev-tools.zip -DestinationPath .

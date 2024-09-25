@@ -34,7 +34,7 @@ follow_imports = "silent"
 incremental = false
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.12"
+python = ">=3.13,<3.14"
 zeroconf = "^0.132"
 pysimplegui = ">=4,<5"
 psutil = "^5.8"

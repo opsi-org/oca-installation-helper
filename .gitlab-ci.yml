@@ -1,4 +1,4 @@
-image: docker.uib.gmbh/opsi/dev/pybuilder:uib-python-3.13
+image: docker.uib.gmbh/opsi/dev/pybuilder:deb9-py3.13
 
 stages:
   - test
@@ -28,7 +28,10 @@ test:pytest-windows:
   tags:
     - win10-py313-x86
   script:
-    - poetry env use 3.13
+    - $pythonPath = py -3.13 -c "import sys; print(sys.executable)"
+    - poetry --version
+    - poetry env use $pythonPath
+    - poetry cache clear --all --quiet uibpypi
     - poetry lock --no-update
     - poetry install
     - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
@@ -134,7 +137,10 @@ build:pyinstaller-windows-x86:
     - Invoke-WebRequest -UseBasicParsing -Uri "$OPSIDEVTOOLS_URL_WINDOWS_X86" -OutFile opsi-dev-tools.zip
     - Expand-Archive opsi-dev-tools.zip -DestinationPath .
     - Copy-Item opsi-dev-tool.exe opsi-dev-cli.exe
-    - poetry env use 3.13
+    - $pythonPath = py -3.13 -c "import sys; print(sys.executable)"
+    - poetry --version
+    - poetry env use $pythonPath
+    - poetry cache clear --all --quiet uibpypi
     - poetry lock --no-update
     - poetry install
     - poetry run .\opsi-dev-cli -l info pyinstaller build

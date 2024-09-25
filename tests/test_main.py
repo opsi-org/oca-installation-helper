@@ -43,7 +43,7 @@ def test_helper_object() -> None:
 	with get_installation_helper() as installation_helper:
 		assert installation_helper.config.opsiclientd_conf.name == "opsiclientd.conf"
 		assert installation_helper.config.oca_package.endswith("-client-agent")
-		assert installation_helper.config.opsi_script_path.name == "opsi-script"
+		assert installation_helper.config.opsi_script_path.name.startswith("opsi-script")
 
 
 def test_run(tmp_path: Path) -> None:

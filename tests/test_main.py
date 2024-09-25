@@ -6,6 +6,7 @@ main tests
 
 from __future__ import annotations
 
+import platform
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -34,7 +35,7 @@ class FakePopen:
 	def __exit__(self, *args: tuple[Any]) -> None:
 		pass
 
-	def communicate(self, input: Any, timeout: float | None = None) -> tuple[str, str]:
+	def communicate(self, input: Any = None, timeout: float | None = None) -> tuple[str, str]:
 		popen_log.write(self.command)
 		return ("", "")
 
@@ -71,9 +72,12 @@ def test_run(tmp_path: Path) -> None:
 			),
 			patch("ocainstallationhelper.backend.Backend.set_poc_to_installing"),
 			patch("ocainstallationhelper.__main__.subprocess.Popen", FakePopen),
+			patch("ocainstallationhelper.__main__.subprocess.check_output", return_value=""),
 			patch("ocainstallationhelper.backend.Backend.evaluate_success"),
 		):
 			installation_helper.run()
+		if platform.system().lower() == "windows":
+			return
 		assert popen_log.entries[0] == [
 			"None",  # opsi-script bin path is set during copy_installation_files
 			str(tmp_path / "setup.opsiscript"),

@@ -34,7 +34,7 @@ class FakePopen:
 	def __exit__(self, *args: tuple[Any]) -> None:
 		pass
 
-	def communicate(self) -> tuple[str, str]:
+	def communicate(self, input: Any, timeout: float | None = None) -> tuple[str, str]:
 		popen_log.write(self.command)
 		return ("", "")
 

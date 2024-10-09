@@ -36,12 +36,12 @@ incremental = false
 [tool.poetry.dependencies]
 python = ">=3.13,<3.14"
 zeroconf = "^0.135"
-pysimplegui = "<5.0"
 psutil = "^5.8"
-picotui = "^1.2"
 netifaces = "^0.11"
 msgpack = "^1.0"
 python-opsi-common = ">=4.4,<4.5"
+textual = "^0.81.0"
+#pythonnet =  {git = "https://github.com/pythonnet/pythonnet.git", branch="python3.13"}  # until there is proper python3.13 support
 
 [tool.poetry.scripts]
 oca-installation-helper = "ocainstallationhelper.__main__:main"

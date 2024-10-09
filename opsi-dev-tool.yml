@@ -9,7 +9,6 @@ pyinstaller-poetry:
     all:
     - zeroconf._utils.ipaddress
     - zeroconf._handlers.answers
-    - tkinter
   data_files:
     - src: opsi.ico
       dst: .

@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import os
 import re
-import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -38,27 +37,24 @@ CONFIG_CACHE_DIRS = {
 logger = get_logger("oca-installation-helper")
 
 
-class Dialog(threading.Thread):
+class Dialog:
 	def __init__(self, installation_helper: InstallationHelper) -> None:
 		pass
 
-	def update(self) -> None:
+	async def update(self) -> None:
 		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
 
-	def set_button_enabled(self, button: str, state: bool) -> None:
+	async def set_button_enabled(self, button: str, state: bool) -> None:
 		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
 
-	def show_message(self, message: str, severity: str | None) -> None:
+	async def show_message(self, message: str, severity: str | None) -> None:
 		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
 
-	def show_logpath(self, logpath: Path | str | None) -> None:
+	async def show_logpath(self, logpath: Path | str | None) -> None:
 		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
 
 	def close(self) -> None:
 		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
 
-	def show(self) -> None:
-		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
-
-	def wait(self) -> None:
+	def run_gui(self) -> None:
 		raise NotImplementedError("Methods of Dialog must be implemented by subclass")

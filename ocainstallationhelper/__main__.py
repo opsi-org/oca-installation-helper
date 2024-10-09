@@ -9,6 +9,7 @@ opsi-client-agent installation_helper
 """
 
 import argparse
+import asyncio
 import ctypes
 import os
 import platform
@@ -52,21 +53,21 @@ class InstallationHelper:
 		self.config = Config(cmdline_args)
 		self.base_dir: Path
 
-	def configure_from_zeroconf_default(self) -> None:
+	async def configure_from_zeroconf_default(self) -> None:
 		logger.info("Filling empty config fields from zeroconf information.")
 		if not self.config.service_address:
-			self.show_message("Searching for opsi config services", display_seconds=5)
+			await self.show_message("Searching for opsi config services", display_seconds=5)
 			self.config.fill_config_from_zeroconf()
 			for _sec in range(5):
 				if self.config.service_address:
 					break
 				time.sleep(1)
-			self.show_message(
+			await self.show_message(
 				f"opsi config services found: {len(self.config.zeroconf_addresses)}",
 				display_seconds=3,
 			)
 		if self.dialog:
-			self.dialog.update()
+			await self.dialog.update()
 		logger.info("Filling empty config fields from default.")
 		self.config.fill_config_from_default()
 		logger.info(
@@ -76,28 +77,28 @@ class InstallationHelper:
 			self.config.client_id,
 		)
 		if self.dialog:
-			self.dialog.update()
+			await self.dialog.update()
 
-	def copy_installation_files(self) -> Path:
+	async def copy_installation_files(self) -> Path:
 		if not self.backend:
 			raise ValueError("No backend connection.")
 		self.cleanup()
-		self.show_message(f"Copying installation files from depot to '{self.tmp_dir}'")
+		await self.show_message(f"Copying installation files from depot to '{self.tmp_dir}'")
 		self.tmp_dir.mkdir(parents=True, exist_ok=True)
 		self.backend.get_from_depot(self.config.oca_package, self.tmp_dir)
 		self.backend.get_from_depot("opsi-script", self.tmp_dir)
-		self.show_message(f"Installation files succesfully copied to '{self.tmp_dir}'", "success")
+		await self.show_message(f"Installation files succesfully copied to '{self.tmp_dir}'", "success")
 		self.config.opsi_script = self.tmp_dir / "opsi-script" / self.config.opsi_script_path
 		make_executable(self.config.opsi_script)
 		return self.tmp_dir / self.config.oca_package
 
-	def run_setup_script(self) -> None:
+	async def run_setup_script(self) -> None:
 		if not self.backend:
 			raise ValueError("No backend connection.")
 		if not self.base_dir:
 			raise ValueError("No base directory set.")
 		assert self.config.service_address and self.config.client_id and self.config.client_key and self.config.finalize  # for mypy
-		self.show_message("Running setup script")
+		await self.show_message("Running setup script")
 
 		opsi_script_log_dir = Path(r"c:\opsi.org\log") if platform.system().lower() == "windows" else Path("/var/log/opsi-script")
 		if not opsi_script_log_dir.exists():
@@ -161,9 +162,23 @@ class InstallationHelper:
 			logger.info("Command exit code: %s", proc.returncode)
 			logger.info("Command output: %s", out)
 
-	def install(self) -> bool:
+	async def install(self) -> bool:  # somehow messages are not displayed TODO
+		await self.show_message("Connecting to service...")
+		password = self.config.service_password or ""
+		if password.startswith("{crypt}"):
+			password = decode_password(password)
+		if self.config.service_address is None or self.config.service_username is None or password is None:
+			raise ValueError("Incomplete data - cannot run service_setup.")
+		self.backend = Backend(self.config.service_address, self.config.service_username, password)
 		if not self.backend:
 			raise ValueError("No backend connection.")
+		await self.show_message("Connected", "success")
+		if self.config.client_id and "." not in self.config.client_id:
+			self.config.client_id = f"{self.config.client_id}.{self.backend.get_domain()}"
+		self.base_dir = await self.copy_installation_files()
+		self.config.fill_config_from_files(self.base_dir)  # using copy destination as base dir
+		if self.dialog:
+			await self.dialog.update()
 		try:
 			assert self.config.client_id  # for mypy
 			logger.info("Starting installation")
@@ -177,27 +192,27 @@ class InstallationHelper:
 			if (self.config.install_condition == "notinstalled" and installed_oca_version) or (
 				self.config.install_condition == "outdated" and installed_oca_version == this_oca_version
 			):
-				self.show_message(f"Skipping installation as condition {self.config.install_condition} is not met.")
+				await self.show_message(f"Skipping installation as condition {self.config.install_condition} is not met.")
 				return False
 			self.cleanup_cache()
-			self.service_setup()
+			await self.service_setup()
 			self.config.check_values()
-			self.run_setup_script()
-			self.show_message("Evaluating script result")
+			await self.run_setup_script()
+			await self.show_message("Evaluating script result")
 			self.backend.evaluate_success(self.config.client_id)
 			return True
 		except Exception as err:
 			logger.error(err, exc_info=True)
 			raise
 
-	def service_setup(self) -> None:
+	async def service_setup(self) -> None:
 		if not self.backend:
 			raise ValueError("No backend connection.")
 
 		assert self.config.client_id  # for mypy
 
 		if self.dialog:
-			self.dialog.set_button_enabled("install", False)
+			await self.dialog.set_button_enabled("install", False)
 
 		client = self.backend.get_or_create_client(
 			self.config.client_id,
@@ -206,7 +221,7 @@ class InstallationHelper:
 		)
 		self.config.client_key = client["opsiHostKey"]
 		self.config.client_id = str(client["id"])
-		self.show_message("Client exists", "success")
+		await self.show_message("Client exists", "success")
 
 		if self.config.setup_after_install:
 			self.backend.set_product_property(
@@ -230,9 +245,9 @@ class InstallationHelper:
 			self.backend.put_client_into_group(self.config.client_id, self.config.group)
 
 		if self.dialog:
-			self.dialog.update()
+			await self.dialog.update()
 
-	def show_message(self, message: str, severity: str | None = None, display_seconds: float = 0) -> None:
+	async def show_message(self, message: str, severity: str | None = None, display_seconds: float = 0) -> None:
 		if self.clear_message_timer:
 			self.clear_message_timer.cancel()
 
@@ -245,60 +260,60 @@ class InstallationHelper:
 			log(message, exc_info=exc_info)
 
 		if self.dialog:
-			self.dialog.show_message(message, severity)
+			await self.dialog.show_message(message, severity)
 			if display_seconds > 0:
-				self.clear_message_timer = threading.Timer(display_seconds, self.show_message, args=[""])
-				self.clear_message_timer.start()
+				loop = asyncio.get_event_loop()
+				loop.call_later(display_seconds, self.show_message, "")  # TODO: broken?
 
-	def show_logpath(self, logpath: Path | str | None) -> None:
+	async def show_logpath(self, logpath: Path | str | None) -> None:
 		logger.info("See logs at: %s", logpath)
 		if self.dialog:
-			self.dialog.show_logpath(logpath)
+			await self.dialog.show_logpath(logpath)
 
-	def on_cancel_button(self) -> None:
-		self.show_message("Canceled")
+	async def on_cancel_button(self) -> None:
+		await self.show_message("Canceled")
 		sys.exit(1)
 
-	def on_install_button(self) -> None:
+	async def on_install_button(self) -> None:
 		if not self.dialog:
 			raise ValueError("How did we end up here?")
-		self.dialog.set_button_enabled("install", False)
+		await self.dialog.set_button_enabled("install", False)
 		try:
 			# install returns True if installation successfull, False if skipped and throws Exception on error
-			if self.install():
-				self.show_message("Installation completed (closing in 5 Seconds)", "success")
+			if await self.install():
+				await self.show_message("Installation completed (closing in 5 Seconds)", "success")
 			if self.dialog:
 				# if using a dialog, wait for 5 Seconds before closing
 				for _num in range(5):
 					time.sleep(1)
 				self.dialog.close()
 		except BackendAuthenticationError:
-			self.show_message("Authentication error, wrong username or password", "error")
-			self.show_logpath(self.config.log_file)
+			await self.show_message("Authentication error, wrong username or password", "error")
+			await self.show_logpath(self.config.log_file)
 		except InstallationUnsuccessful as err:
-			self.show_message(f"Installation Unsuccessful: {err}", "error")
-			self.show_logpath(self.opsi_script_logfile or "Undefined logfile.")
+			await self.show_message(f"Installation Unsuccessful: {err}", "error")
+			await self.show_logpath(self.opsi_script_logfile or "Undefined logfile.")
 		except Exception as err:
-			self.show_message(str(err), "error")
-			self.show_logpath(self.config.log_file)
-		self.dialog.set_button_enabled("install", True)
+			await self.show_message(str(err), "error")
+			await self.show_logpath(self.config.log_file)
+		await self.dialog.set_button_enabled("install", True)
 
-	def on_zeroconf_button(self) -> None:
+	async def on_zeroconf_button(self) -> None:  # TODO: new address is not saved?
 		if self.dialog:
-			self.dialog.update()
+			await self.dialog.update()
 		self.config.service_address = None
-		self.show_message("Searching for opsi config services", display_seconds=5)
+		await self.show_message("Searching for opsi config services", display_seconds=5)
 		self.config.fill_config_from_zeroconf()
 		for _sec in range(5):
 			if self.config.service_address:
 				break
 			time.sleep(1)
-		self.show_message(
+		await self.show_message(
 			f"opsi config services found: {len(self.config.zeroconf_addresses)}",
 			display_seconds=3,
 		)
 		if self.dialog:
-			self.dialog.update()
+			await self.dialog.update()
 
 	def cleanup(self) -> None:
 		if self.tmp_dir.is_dir():
@@ -346,68 +361,39 @@ class InstallationHelper:
 		except Exception as error:
 			logger.warning("Failed to clean up cache: %s", error)
 
+	async def prepare_installation(self) -> None:
+		await self.show_message("Loading data...")
+		await asyncio.sleep(2)
+		await self.show_message("waited")
+
+		if platform.system().lower() == "windows":
+			logger.info("Filling empty config fields from windows registry.")
+			self.config.fill_config_from_registry(parse_args)
+
+		logger.info("Filling empty config fields from config files.")
+		self.config.fill_config_from_files(base_dir=Path(sys.argv[0]).parent)  # using cwd as base dir
+		await self.configure_from_zeroconf_default()
+		if self.dialog:
+			await self.dialog.update()
+		await self.show_message("Finished loading data")
+
 	def run(self) -> None:
 		error = None
 		try:
 			self.ensure_admin()
-			if platform.system().lower() == "windows":
-				logger.info("Filling empty config fields from windows registry.")
-				self.config.fill_config_from_registry(parse_args)
+			if self.config.interactive:  # TODO: handle gui/no-gui
+				from ocainstallationhelper.console import ConsoleDialog  # only import if needed
 
-			logger.info("Filling empty config fields from config files.")
-			self.config.fill_config_from_files(base_dir=Path(sys.argv[0]).parent)  # using cwd as base dir
-			if self.config.interactive:
-				if self.config.use_gui:
-					if platform.system().lower() == "darwin":
-						logger.error("Console dialog currently not implemented on macos. Use --no-gui instead.")
-					else:
-						try:
-							from ocainstallationhelper.gui import GUIDialog  # only import if needed
-						except ImportError as err:
-							logger.error(err)
-							raise RuntimeError(
-								"Cannot import GUIDialog. Use --no-gui instead or install required libraries (like libxcb))"
-							) from err
-						self.dialog = GUIDialog(self)  # type: ignore[assignment]
-						assert self.dialog
-						self.dialog.show()
-				else:
-					if platform.system().lower() == "windows":
-						logger.error("Console dialog currently not implemented on windows. Use --gui instead")
-					else:
-						from ocainstallationhelper.console import ConsoleDialog  # only import if needed
-
-						self.dialog = ConsoleDialog(self)
-						self.dialog.show()
-			self.show_message("Loading data...")
-			self.configure_from_zeroconf_default()
-
-			self.show_message("Connecting to service...")
-			password = self.config.service_password or ""
-			if password.startswith("{crypt}"):
-				password = decode_password(password)
-			if self.config.service_address is None or self.config.service_username is None or password is None:
-				raise ValueError("Incomplete data - cannot run service_setup.")
-			self.backend = Backend(self.config.service_address, self.config.service_username, password)
-			self.show_message("Connected", "success")
-			if self.config.client_id and "." not in self.config.client_id:
-				self.config.client_id = f"{self.config.client_id}.{self.backend.get_domain()}"
-				if self.dialog:
-					self.dialog.update()
-
-			self.base_dir = self.copy_installation_files()
-			self.config.fill_config_from_files(self.base_dir)  # using copy destination as base dir
-			if self.dialog:
-				self.dialog.set_button_enabled("install", True)
-			if self.config.interactive and self.dialog:
-				self.dialog.wait()
+				self.dialog = ConsoleDialog(self)  # has to call prepare_installation after gui setup!
+				self.dialog.run()
 			else:
-				self.install()
+				asyncio.run(self.prepare_installation())
+				asyncio.run(self.install())
 
 		except Exception as err:
 			logger.error(err, exc_info=True)
 			error = err
-			self.show_message(str(err), "error")
+			asyncio.run(self.show_message(str(err), "error"))
 			if self.dialog:
 				for _num in range(3):
 					time.sleep(1)
@@ -553,6 +539,7 @@ def main() -> None:
 		if log_file.exists():
 			log_file.unlink()
 		logging_config(
+			stderr_level=log_level if args.non_interactive else 0,
 			file_level=log_level,
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
 			log_file=str(log_file),

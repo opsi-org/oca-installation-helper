@@ -13,14 +13,12 @@ from __future__ import annotations
 
 import platform
 import subprocess
-import threading
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import PySimpleGUI.PySimpleGUI  # type: ignore[import]
+import toga
 from opsicommon.logging import get_logger
-from PySimpleGUI.PySimpleGUI import Window
 
 from ocainstallationhelper import Dialog
 from ocainstallationhelper.utils import get_resource_path
@@ -28,24 +26,9 @@ from ocainstallationhelper.utils import get_resource_path
 if TYPE_CHECKING:
 	from ocainstallationhelper.__main__ import InstallationHelper
 
-SG_THEME = "Default1"  # "Reddit"
 WIDTH = 70
 
-logger = get_logger()
-
-
-def _refresh_debugger() -> None:
-	pass
-
-
-def _create_error_message() -> None:
-	pass
-
-
-PySimpleGUI.PySimpleGUI._refresh_debugger = _refresh_debugger
-PySimpleGUI.PySimpleGUI._create_error_message = _create_error_message
-
-sg = PySimpleGUI.PySimpleGUI
+logger = get_logger("oca-installation-helper")
 
 
 def get_icon() -> str | None:
@@ -55,17 +38,13 @@ def get_icon() -> str | None:
 
 
 def show_message(message: str) -> None:
-	sg.theme(SG_THEME)
 	sg.popup_scrolled(message, title="opsi client agent installer", icon=get_icon(), auto_close=True, auto_close_duration=20)
 
 
-class GUIDialog(Dialog):
+class GUIDialog(Dialog, toga.App):
 	def __init__(self, installation_helper: InstallationHelper) -> None:
-		threading.Thread.__init__(self)
-		self.daemon = True
+		toga.App.__init__(self)
 		self.inst_helper = installation_helper
-		self.window: Window | None = None
-		self._closed = False
 		self.relevant_log_file = ""
 
 	def show(self) -> None:
@@ -141,11 +120,13 @@ class GUIDialog(Dialog):
 			if attr in self.window.AllKeysDict:
 				self.window[attr].update(getattr(self.inst_helper.config, attr))
 		self.window.refresh()
+		self.refresh()
 
 	def set_button_enabled(self, button_id: str, enabled: bool) -> None:
 		assert self.window
 		self.window[button_id].update(disabled=not enabled)
 		self.window.refresh()
+		self.refresh()
 
 	def show_message(self, message: str, severity: str | None = None) -> None:
 		assert self.window
@@ -157,6 +138,7 @@ class GUIDialog(Dialog):
 
 		self.window["message"].update(message, text_color=text_color)
 		self.window.refresh()
+		self.refresh()
 
 	def show_logpath(self, logpath: Path | str | None) -> None:
 		assert self.window

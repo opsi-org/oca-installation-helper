@@ -298,7 +298,6 @@ class Config:
 			ServiceBrowser(zc=self.zeroconf, type_="_opsics._tcp.local.", handlers=[self.zeroconf_handler])
 		except Exception as err:
 			logger.error("Failed to start zeroconf: %s", err, exc_info=True)
-		# TODO: not working properly?
 
 	def zeroconf_handler(self, zeroconf: Zeroconf, service_type: str, name: str, state_change: Any) -> None:
 		info = zeroconf.get_service_info(service_type, name)
@@ -336,3 +335,4 @@ class Config:
 			self.zeroconf_idx = 0
 
 		self.service_address = self.zeroconf_addresses[self.zeroconf_idx]
+		logger.debug("Setting new service_address %r from zeroconf", self.service_address)

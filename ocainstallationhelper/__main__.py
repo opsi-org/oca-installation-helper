@@ -17,7 +17,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import threading
 import time
 from pathlib import Path
 from typing import IO
@@ -45,7 +44,6 @@ class InstallationHelper:
 	def __init__(self, cmdline_args: argparse.Namespace) -> None:
 		# macos does not use DISPLAY. gui does not work properly on macos right now.
 		self.dialog: Dialog | None = None
-		self.clear_message_timer: threading.Timer | None = None
 		self.backend: Backend | None = None
 		self.should_stop: bool = False
 		self.opsi_script_logfile: Path | None = None
@@ -61,7 +59,7 @@ class InstallationHelper:
 			for _sec in range(5):
 				if self.config.service_address:
 					break
-				time.sleep(1)
+				await asyncio.sleep(1)
 			await self.show_message(
 				f"opsi config services found: {len(self.config.zeroconf_addresses)}",
 				display_seconds=3,
@@ -130,12 +128,15 @@ class InstallationHelper:
 			self.config.finalize,
 		]
 		if platform.system().lower() == "windows":
-			try:
-				output = subprocess.check_output(["powershell", "-command", "$PSVersionTable"])
-				logger.debug("Found powershell with following version information:\n%s", output)
-			except subprocess.CalledProcessError as error:
-				logger.error("Cannot execute powershell. Maybe missing in system PATH? Error: %s", error)
-				raise error
+			proc = await asyncio.create_subprocess_exec(
+				"powershell", "-command", "$PSVersionTable", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+			)
+			stdout, _ = await proc.communicate()
+			if proc.returncode != 0:
+				logger.error("Cannot execute powershell. Maybe missing in system PATH? Returncode: %s", proc.returncode)
+				raise RuntimeError(f"Cannot execute powershell. Maybe missing in system PATH? Returncode: {proc.returncode}")
+			logger.debug("Found powershell with following version information:\n%s", stdout)
+
 			arg_string = ",".join([f"'\"{arg}\"'" for arg in arg_list])  # Enclosing by ' and " to be robust against spaces in params
 			ps_script = f'Start-Process -Verb runas -FilePath "{self.config.opsi_script}" -ArgumentList {arg_string} -Wait'
 			command = [
@@ -152,17 +153,17 @@ class InstallationHelper:
 
 		self.backend.set_poc_to_installing(self.config.oca_package, self.config.client_id)
 		logger.info("Executing: %s\n", command)
-		with subprocess.Popen(
-			command,
-			stderr=subprocess.STDOUT,
-			stdout=subprocess.PIPE,
-			stdin=subprocess.PIPE,
-		) as proc:
-			out = proc.communicate()[0]
-			logger.info("Command exit code: %s", proc.returncode)
-			logger.info("Command output: %s", out)
+		proc = await asyncio.create_subprocess_exec(
+			*command,
+			stderr=asyncio.subprocess.STDOUT,
+			stdout=asyncio.subprocess.PIPE,
+			stdin=asyncio.subprocess.PIPE,
+		)
+		out, _ = await proc.communicate()
+		logger.info("Command exit code: %s", proc.returncode)
+		logger.info("Command output: %s", out)
 
-	async def install(self) -> bool:  # somehow messages are not displayed TODO
+	async def install(self) -> bool:
 		await self.show_message("Connecting to service...")
 		password = self.config.service_password or ""
 		if password.startswith("{crypt}"):
@@ -172,7 +173,7 @@ class InstallationHelper:
 		self.backend = Backend(self.config.service_address, self.config.service_username, password)
 		if not self.backend:
 			raise ValueError("No backend connection.")
-		await self.show_message("Connected", "success")
+		await self.show_message("Connected", "success", display_seconds=3)
 		if self.config.client_id and "." not in self.config.client_id:
 			self.config.client_id = f"{self.config.client_id}.{self.backend.get_domain()}"
 		self.base_dir = await self.copy_installation_files()
@@ -214,6 +215,7 @@ class InstallationHelper:
 		if self.dialog:
 			await self.dialog.set_button_enabled("install", False)
 
+		await self.show_message("Obtaining Client object")
 		client = self.backend.get_or_create_client(
 			self.config.client_id,
 			force_create=self.config.force_recreate_client,
@@ -248,9 +250,6 @@ class InstallationHelper:
 			await self.dialog.update()
 
 	async def show_message(self, message: str, severity: str | None = None, display_seconds: float = 0) -> None:
-		if self.clear_message_timer:
-			self.clear_message_timer.cancel()
-
 		if message:
 			log = logger.info
 			exc_info = False
@@ -263,7 +262,7 @@ class InstallationHelper:
 			await self.dialog.show_message(message, severity)
 			if display_seconds > 0:
 				loop = asyncio.get_event_loop()
-				loop.call_later(display_seconds, self.show_message, "")  # TODO: broken?
+				loop.call_later(display_seconds, asyncio.create_task, self.show_message(""))
 
 	async def show_logpath(self, logpath: Path | str | None) -> None:
 		logger.info("See logs at: %s", logpath)
@@ -285,7 +284,7 @@ class InstallationHelper:
 			if self.dialog:
 				# if using a dialog, wait for 5 Seconds before closing
 				for _num in range(5):
-					time.sleep(1)
+					await asyncio.sleep(1)
 				self.dialog.close()
 		except BackendAuthenticationError:
 			await self.show_message("Authentication error, wrong username or password", "error")
@@ -298,16 +297,16 @@ class InstallationHelper:
 			await self.show_logpath(self.config.log_file)
 		await self.dialog.set_button_enabled("install", True)
 
-	async def on_zeroconf_button(self) -> None:  # TODO: new address is not saved?
+	async def on_zeroconf_button(self) -> None:
+		self.config.service_address = None
 		if self.dialog:
 			await self.dialog.update()
-		self.config.service_address = None
-		await self.show_message("Searching for opsi config services", display_seconds=5)
+		await self.show_message("Searching for opsi config services")
 		self.config.fill_config_from_zeroconf()
 		for _sec in range(5):
 			if self.config.service_address:
 				break
-			time.sleep(1)
+			await asyncio.sleep(1)
 		await self.show_message(
 			f"opsi config services found: {len(self.config.zeroconf_addresses)}",
 			display_seconds=3,
@@ -363,9 +362,6 @@ class InstallationHelper:
 
 	async def prepare_installation(self) -> None:
 		await self.show_message("Loading data...")
-		await asyncio.sleep(2)
-		await self.show_message("waited")
-
 		if platform.system().lower() == "windows":
 			logger.info("Filling empty config fields from windows registry.")
 			self.config.fill_config_from_registry(parse_args)

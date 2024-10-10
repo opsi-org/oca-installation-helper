@@ -11,6 +11,7 @@ opsi-client-agent installation_helper console output component
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -19,6 +20,7 @@ from textual.containers import Container
 from textual.widgets import Button, Input, Label
 
 from ocainstallationhelper import Dialog as BaseDialog
+from ocainstallationhelper import logger
 
 if TYPE_CHECKING:
 	from ocainstallationhelper.__main__ import InstallationHelper
@@ -51,6 +53,7 @@ class PaddedLabel(Label):
 	DEFAULT_CSS = """
 	PaddedLabel {
 		padding: 1;
+		height: 3;
 	}
 	"""
 
@@ -114,11 +117,12 @@ class ConsoleDialog(BaseDialog, App):
 			if attr in self.inputs:
 				self.inputs[attr].value = getattr(self.inst_helper.config, attr) or ""
 				self.inputs[attr].refresh()
-		self.refresh()
+		logger.devel("updating service_address to %r", self.inputs["service_address"].value)
+		await asyncio.sleep(0.05)  # forces idle event and gives time for widgets to handle it
 
 	async def set_button_enabled(self, button_id: str, enabled: bool) -> None:
 		self.buttons[button_id].disabled = not enabled
-		self.buttons[button_id].refresh()
+		await asyncio.sleep(0.05)  # forces idle event and gives time for widgets to handle it
 
 	async def show_message(self, message: str, severity: str | None = None) -> None:
 		assert self.message
@@ -127,13 +131,12 @@ class ConsoleDialog(BaseDialog, App):
 		elif severity == "success":
 			message = f"[green]{message}[/green]"
 		self.message.update(message)
-		self.message.refresh()
-		await self.message.recompose()
-		self.refresh()
+		await asyncio.sleep(0.05)  # forces idle event and gives time for widgets to handle it
 
 	async def show_logpath(self, logpath: Path | str | None) -> None:
 		assert self.logpath
 		self.logpath.update(f"See logs at: {logpath}")
+		await asyncio.sleep(0.05)  # forces idle event and gives time for widgets to handle it
 
 	async def on_button_pressed(self, event: Button.Pressed) -> None:
 		if event.button is self.buttons["cancel"]:

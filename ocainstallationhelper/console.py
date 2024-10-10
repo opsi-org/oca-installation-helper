@@ -78,9 +78,9 @@ class ConsoleDialog(BaseDialog, App):
 			"service_password": Input(id="service_password", password=True),
 		}
 		self.buttons: dict[str, CenteredButton] = {
-			"zeroconf": CenteredButton("zeroconf"),
-			"cancel": CenteredButton("cancel"),
-			"install": CenteredButton("install"),
+			"zeroconf": CenteredButton("zeroconf", id="zeroconf"),
+			"cancel": CenteredButton("cancel", id="cancel"),
+			"install": CenteredButton("install", id="install"),
 		}
 		self.message: PaddedLabel = PaddedLabel("")
 		self.logpath: PaddedLabel = PaddedLabel("")

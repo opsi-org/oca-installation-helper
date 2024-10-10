@@ -108,17 +108,17 @@ def get_this_oca_version() -> str | None:
 
 
 def show_message(message: str, message_type: str = "stdout") -> None:
-	if platform.system().lower() == "windows":
-		from .gui import show_message as _show_message
+	#if platform.system().lower() == "windows":
+	#	from .gui import show_message as _show_message
 
-		_show_message(message)
+	#	_show_message(message)
+	#else:
+	if message_type == "stdout":
+		sys.stdout.write(message)
+	elif message_type == "stderr":
+		sys.stderr.write(message)
 	else:
-		if message_type == "stdout":
-			sys.stdout.write(message)
-		elif message_type == "stderr":
-			sys.stderr.write(message)
-		else:
-			raise ValueError(f"Invalid type {message_type} for show_message")
+		raise ValueError(f"Invalid type {message_type} for show_message")
 
 
 def make_executable(path: Path) -> None:

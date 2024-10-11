@@ -104,6 +104,7 @@ class ConsoleDialog(BaseDialog, App):
 		self.run()
 
 	def close(self) -> None:
+		logger.devel("closing console dialog")
 		self._closed = True
 
 	async def on_mount(self) -> None:

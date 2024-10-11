@@ -1,8 +1,10 @@
+import asyncio
 from unittest.mock import patch
 
 import pytest
 
 import ocainstallationhelper.console
+from ocainstallationhelper import logger
 
 from .utils import get_installation_helper
 
@@ -50,4 +52,7 @@ async def test_install() -> None:
 		installation_helper.dialog = app
 		async with app.run_test() as pilot:
 			await pilot.click("#install")
+			# await pilot.pause()  # should wait until all message have been processed, but runs into timeout
+			await asyncio.sleep(5.5)
+			logger.devel("Checking for closed app")
 			assert app._closed  # install calls close at the end

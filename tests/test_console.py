@@ -1,4 +1,5 @@
 import asyncio
+import platform
 from pathlib import Path
 from unittest.mock import patch
 
@@ -104,7 +105,10 @@ async def test_show_message_logpath() -> None:
 			assert app.logpath.renderable == ""
 			await app.show_logpath(Path("/tmp/foo.log"))
 			assert isinstance(app.logpath.renderable, Text)
-			assert app.logpath.renderable._text == ["See logs at: /tmp/foo.log"]
+			checkstring = "See logs at: /tmp/foo.log"
+			if platform.system().lower() == "windows":
+				checkstring = checkstring.replace("/", "\\")
+			assert app.logpath.renderable._text == [checkstring]
 
 
 @pytest.mark.asyncio

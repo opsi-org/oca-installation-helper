@@ -279,7 +279,6 @@ class InstallationHelper:
 		await self.dialog.set_button_enabled("install", False)
 		try:
 			# install returns True if installation successfull, False if skipped and throws Exception on error
-			logger.devel("Starting installation")
 			if await self.install():
 				await self.show_message("Installation completed (closing in 5 Seconds)", "success")
 			if self.dialog:

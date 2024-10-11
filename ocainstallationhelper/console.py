@@ -20,7 +20,6 @@ from textual.containers import Container
 from textual.widgets import Button, Input, Label
 
 from ocainstallationhelper import Dialog as BaseDialog
-from ocainstallationhelper import logger
 
 if TYPE_CHECKING:
 	from ocainstallationhelper.__main__ import InstallationHelper
@@ -104,7 +103,6 @@ class ConsoleDialog(BaseDialog, App):
 		self.run()
 
 	def close(self) -> None:
-		logger.devel("closing console dialog")
 		self._closed = True
 
 	async def on_mount(self) -> None:
@@ -118,7 +116,6 @@ class ConsoleDialog(BaseDialog, App):
 			if attr in self.inputs:
 				self.inputs[attr].value = getattr(self.inst_helper.config, attr) or ""
 				self.inputs[attr].refresh()
-		logger.devel("updating service_address to %r", self.inputs["service_address"].value)
 		await asyncio.sleep(0.05)  # forces idle event and gives time for widgets to handle it
 
 	async def set_button_enabled(self, button_id: str, enabled: bool) -> None:

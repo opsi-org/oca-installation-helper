@@ -1,7 +1,9 @@
 import asyncio
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from rich.text import Text
 
 import ocainstallationhelper.console
 from ocainstallationhelper import logger
@@ -25,7 +27,7 @@ def fake_exit(code: int) -> None:
 
 
 @pytest.mark.asyncio
-async def test_cancel() -> None:
+async def test_cancel_button() -> None:
 	global has_exit_been_called
 	has_exit_been_called = False
 	with (
@@ -40,7 +42,7 @@ async def test_cancel() -> None:
 
 
 @pytest.mark.asyncio
-async def test_install() -> None:
+async def test_install_button() -> None:
 	global caller_log
 	caller_log = []
 	with (
@@ -56,3 +58,64 @@ async def test_install() -> None:
 			await asyncio.sleep(5.5)
 			logger.devel("Checking for closed app")
 			assert app._closed  # install calls close at the end
+
+
+@pytest.mark.asyncio
+async def test_update() -> None:
+	with (
+		patch("ocainstallationhelper.console.ConsoleDialog.on_mount", fake_async),
+		get_installation_helper(
+			["--client-id", "client.domain.local", "--service-address", "https://server.domain.local:4447"]
+		) as installation_helper,
+	):
+		app = ocainstallationhelper.console.ConsoleDialog(installation_helper)
+		installation_helper.dialog = app
+		async with app.run_test():
+			assert app.inputs["client_id"].value == ""
+			assert app.inputs["service_address"].value == ""
+			await app.update()
+			assert app.inputs["client_id"].value == "client.domain.local"
+			assert app.inputs["service_address"].value == "https://server.domain.local:4447"
+
+
+@pytest.mark.asyncio
+async def test_show_message_logpath() -> None:
+	with (
+		patch("ocainstallationhelper.console.ConsoleDialog.on_mount", fake_async),
+		get_installation_helper() as installation_helper,
+	):
+		app = ocainstallationhelper.console.ConsoleDialog(installation_helper)
+		async with app.run_test():
+			assert app.message.renderable == ""
+
+			await app.show_message("foo", severity="error")
+			assert isinstance(app.message.renderable, Text)
+			assert app.message.renderable._text == ["foo"]
+			assert app.message.renderable._spans[0].style == "red"
+
+			await app.show_message("bar", severity="success")
+			assert app.message.renderable._text == ["bar"]
+			assert app.message.renderable._spans[0].style == "green"
+
+			await app.show_message("baz")
+			assert app.message.renderable._text == ["baz"]
+			assert not app.message.renderable._spans
+
+			assert app.logpath.renderable == ""
+			await app.show_logpath(Path("/tmp/foo.log"))
+			assert isinstance(app.logpath.renderable, Text)
+			assert app.logpath.renderable._text == ["See logs at: /tmp/foo.log"]
+
+
+@pytest.mark.asyncio
+async def test_on_input_changed() -> None:
+	with (
+		patch("ocainstallationhelper.console.ConsoleDialog.on_mount", fake_async),
+		get_installation_helper() as installation_helper,
+	):
+		app = ocainstallationhelper.console.ConsoleDialog(installation_helper)
+		async with app.run_test() as pilot:
+			assert installation_helper.config.service_address is None
+			await pilot.click("#service_address")
+			await pilot.press(*(key for key in "https://server.domain.local:4447"))
+			assert installation_helper.config.service_address == "https://server.domain.local:4447"

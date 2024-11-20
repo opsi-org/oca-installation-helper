@@ -41,7 +41,6 @@ netifaces = "^0.11"
 msgpack = "^1.0"
 python-opsi-common = ">=4.4,<4.5"
 textual = "^0.81.0"
-#pythonnet =  {git = "https://github.com/pythonnet/pythonnet.git", branch="python3.13"}  # until there is proper python3.13 support
 
 [tool.poetry.scripts]
 oca-installation-helper = "ocainstallationhelper.__main__:main"

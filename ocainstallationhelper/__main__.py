@@ -377,10 +377,15 @@ class InstallationHelper:
 		error = None
 		try:
 			self.ensure_admin()
-			if self.config.interactive:  # TODO: handle gui/no-gui
-				from ocainstallationhelper.console import ConsoleDialog  # only import if needed
+			if self.config.interactive:
+				if self.config.use_gui:
+					from ocainstallationhelper.gui import GUIDialog
 
-				self.dialog = ConsoleDialog(self)  # has to call prepare_installation after gui setup!
+					self.dialog = GUIDialog(self)  # has to call prepare_installation after gui setup!
+				else:
+					from ocainstallationhelper.console import ConsoleDialog  # only import if needed
+
+					self.dialog = ConsoleDialog(self)  # has to call prepare_installation after gui setup!
 				self.dialog.run()
 			else:
 				asyncio.run(self.prepare_installation())

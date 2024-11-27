@@ -386,7 +386,7 @@ class InstallationHelper:
 					from ocainstallationhelper.console import ConsoleDialog  # only import if needed
 
 					self.dialog = ConsoleDialog(self)  # has to call prepare_installation after gui setup!
-				self.dialog.run()
+				self.dialog.run_gui()
 			else:
 				asyncio.run(self.prepare_installation())
 				asyncio.run(self.install())

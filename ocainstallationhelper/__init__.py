@@ -56,5 +56,5 @@ class Dialog:
 	def close(self) -> None:
 		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
 
-	def run(self) -> None:
+	def run_gui(self) -> None:
 		raise NotImplementedError("Methods of Dialog must be implemented by subclass")

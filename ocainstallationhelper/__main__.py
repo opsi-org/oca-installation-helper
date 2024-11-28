@@ -236,9 +236,9 @@ class InstallationHelper:
 		if password.startswith("{crypt}"):
 			password = decode_password(password)
 
-		if self.config.service_address is None or self.config.service_username is None or password is None:
+		if self.config.service_address is None or (not self.config.sso and (self.config.service_username is None or password is None)):
 			raise ValueError("Incomplete data - cannot run service_setup.")
-		self.backend = Backend(self.config.service_address, self.config.service_username, password)
+		self.backend = Backend(self.config.service_address, self.config.service_username, password, sso=self.config.sso)
 
 		self.show_message("Connected", "success")
 		if "." not in self.config.client_id:
@@ -251,8 +251,8 @@ class InstallationHelper:
 			force_create=self.config.force_recreate_client,
 			set_mac_address=self.config.set_mac_address,
 		)
-		self.config.client_key = client.opsiHostKey
-		self.config.client_id = str(client.id)
+		self.config.client_key = client["opsiHostKey"]
+		self.config.client_id = str(client["id"])
 		self.show_message("Client exists", "success")
 
 		if self.config.setup_after_install:
@@ -481,6 +481,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 	)
 	parser.add_argument(
 		"--log-level",
+		"-l",
 		default="warning",
 		choices=[
 			"0",
@@ -563,6 +564,11 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 		"--setup-after-install",
 		default=None,
 		help="Comma separated list of products to set to setup after installation.",
+	)
+	parser.add_argument(
+		"--sso",
+		action="store_true",
+		help="Use single-sign-on for login.",
 	)
 
 	return parser.parse_args(args)

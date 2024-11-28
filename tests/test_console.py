@@ -74,13 +74,13 @@ async def test_update() -> None:
 		async with app.run_test():
 			assert app.inputs["client_id"].value == ""
 			assert app.inputs["service_address"].value == ""
-			await app.update()
+			await app.update_values()
 			assert app.inputs["client_id"].value == "client.domain.local"
 			assert app.inputs["service_address"].value == "https://server.domain.local:4447"
 
 
 @pytest.mark.asyncio
-async def test_show_message_logpath() -> None:
+async def test_show_message_log_path() -> None:
 	with (
 		patch("ocainstallationhelper.console.ConsoleDialog.on_mount", fake_async),
 		get_installation_helper() as installation_helper,
@@ -102,13 +102,13 @@ async def test_show_message_logpath() -> None:
 			assert app.message.renderable._text == ["baz"]
 			assert not app.message.renderable._spans
 
-			assert app.logpath.renderable == ""
-			await app.show_logpath(Path("/tmp/foo.log"))
-			assert isinstance(app.logpath.renderable, Text)
+			assert app.log_path.renderable == ""
+			await app.show_log_path(Path("/tmp/foo.log"))
+			assert isinstance(app.log_path.renderable, Text)
 			checkstring = "See logs at: /tmp/foo.log"
 			if platform.system().lower() == "windows":
 				checkstring = checkstring.replace("/", "\\")
-			assert app.logpath.renderable._text == [checkstring]
+			assert app.log_path.renderable._text == [checkstring]
 
 
 @pytest.mark.asyncio

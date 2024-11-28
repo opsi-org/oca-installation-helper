@@ -82,7 +82,7 @@ class ConsoleDialog(BaseDialog, App):
 			"install": CenteredButton("install", id="install"),
 		}
 		self.message: PaddedLabel = PaddedLabel("")
-		self.logpath: PaddedLabel = PaddedLabel("")
+		self.log_path: PaddedLabel = PaddedLabel("")
 
 	def compose(self) -> ComposeResult:
 		yield InputContainer(
@@ -97,7 +97,7 @@ class ConsoleDialog(BaseDialog, App):
 		)
 		yield self.message
 		yield ButtonContainer(self.buttons["zeroconf"], self.buttons["cancel"], self.buttons["install"])
-		yield self.logpath
+		yield self.log_path
 
 	def run_gui(self) -> None:
 		self.run()
@@ -109,7 +109,7 @@ class ConsoleDialog(BaseDialog, App):
 		assert self._loop, "Event loop not running"
 		self._loop.create_task(self.inst_helper.prepare_installation())
 
-	async def update(self) -> None:
+	async def update_values(self) -> None:
 		if not self.inputs:
 			return
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
@@ -131,9 +131,9 @@ class ConsoleDialog(BaseDialog, App):
 		self.message.update(message)
 		await asyncio.sleep(0.05)  # forces idle event and gives time for widgets to handle it
 
-	async def show_logpath(self, logpath: Path | str | None) -> None:
-		assert self.logpath
-		self.logpath.update(f"See logs at: {logpath}")
+	async def show_log_path(self, log_path: Path | str | None) -> None:
+		assert self.log_path
+		self.log_path.update(f"See logs at: {log_path}")
 		await asyncio.sleep(0.05)  # forces idle event and gives time for widgets to handle it
 
 	async def on_button_pressed(self, event: Button.Pressed) -> None:

@@ -54,18 +54,15 @@ class InstallationHelper:
 	async def configure_from_zeroconf_default(self) -> None:
 		logger.info("Filling empty config fields from zeroconf information.")
 		if not self.config.service_address:
-			await self.show_message("Searching for opsi config services", display_seconds=5)
+			await self.show_message("Searching for opsi config services")
 			self.config.fill_config_from_zeroconf()
 			for _sec in range(5):
 				if self.config.service_address:
 					break
 				await asyncio.sleep(1)
-			await self.show_message(
-				f"opsi config services found: {len(self.config.zeroconf_addresses)}",
-				display_seconds=3,
-			)
+			await self.show_message(f"opsi config services found: {len(self.config.zeroconf_addresses)}")
 		if self.dialog:
-			await self.dialog.update()
+			await self.dialog.update_values()
 		logger.info("Filling empty config fields from default.")
 		self.config.fill_config_from_default()
 		logger.info(
@@ -75,7 +72,7 @@ class InstallationHelper:
 			self.config.client_id,
 		)
 		if self.dialog:
-			await self.dialog.update()
+			await self.dialog.update_values()
 
 	async def copy_installation_files(self) -> Path:
 		if not self.backend:
@@ -173,13 +170,13 @@ class InstallationHelper:
 		self.backend = Backend(self.config.service_address, self.config.service_username, password)
 		if not self.backend:
 			raise ValueError("No backend connection.")
-		await self.show_message("Connected", "success", display_seconds=3)
+		await self.show_message("Connected", "success")
 		if self.config.client_id and "." not in self.config.client_id:
 			self.config.client_id = f"{self.config.client_id}.{self.backend.get_domain()}"
 		self.base_dir = await self.copy_installation_files()
 		self.config.fill_config_from_files(self.base_dir)  # using copy destination as base dir
 		if self.dialog:
-			await self.dialog.update()
+			await self.dialog.update_values()
 		try:
 			assert self.config.client_id  # for mypy
 			logger.info("Starting installation")
@@ -247,9 +244,9 @@ class InstallationHelper:
 			self.backend.put_client_into_group(self.config.client_id, self.config.group)
 
 		if self.dialog:
-			await self.dialog.update()
+			await self.dialog.update_values()
 
-	async def show_message(self, message: str, severity: str | None = None, display_seconds: float = 0) -> None:
+	async def show_message(self, message: str, severity: str | None = None) -> None:
 		if message:
 			log = logger.info
 			exc_info = False
@@ -260,9 +257,6 @@ class InstallationHelper:
 
 		if self.dialog:
 			await self.dialog.show_message(message, severity)
-			if display_seconds > 0:
-				loop = asyncio.get_event_loop()
-				loop.call_later(display_seconds, asyncio.create_task, self.show_message(""))
 
 	async def show_logpath(self, logpath: Path | str | None) -> None:
 		logger.info("See logs at: %s", logpath)
@@ -300,19 +294,16 @@ class InstallationHelper:
 	async def on_zeroconf_button(self) -> None:
 		self.config.service_address = None
 		if self.dialog:
-			await self.dialog.update()
+			await self.dialog.update_values()
 		await self.show_message("Searching for opsi config services")
 		self.config.fill_config_from_zeroconf()
 		for _sec in range(5):
 			if self.config.service_address:
 				break
 			await asyncio.sleep(1)
-		await self.show_message(
-			f"opsi config services found: {len(self.config.zeroconf_addresses)}",
-			display_seconds=3,
-		)
+		await self.show_message(f"opsi config services found: {len(self.config.zeroconf_addresses)}")
 		if self.dialog:
-			await self.dialog.update()
+			await self.dialog.update_values()
 
 	def cleanup(self) -> None:
 		if self.tmp_dir.is_dir():
@@ -370,13 +361,13 @@ class InstallationHelper:
 		self.config.fill_config_from_files(base_dir=Path(sys.argv[0]).parent)  # using cwd as base dir
 		await self.configure_from_zeroconf_default()
 		if self.dialog:
-			await self.dialog.update()
+			await self.dialog.update_values()
 		await self.show_message("Finished loading data")
 
 	def run(self) -> None:
 		error = None
 		try:
-			self.ensure_admin()
+			# self.ensure_admin()
 			if self.config.interactive:
 				if self.config.use_gui:
 					from ocainstallationhelper.gui import GUIDialog
@@ -437,6 +428,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 	)
 	parser.add_argument(
 		"--log-level",
+		"-l",
 		default="warning",
 		choices=[
 			"0",

@@ -41,7 +41,7 @@ class Dialog:
 	def __init__(self, installation_helper: InstallationHelper) -> None:
 		pass
 
-	async def update(self) -> None:
+	async def update_values(self) -> None:
 		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
 
 	async def set_button_enabled(self, button: str, state: bool) -> None:

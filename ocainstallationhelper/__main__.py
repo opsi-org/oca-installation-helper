@@ -107,21 +107,22 @@ class InstallationHelper:
 					exc_info=True,
 				)
 		self.opsi_script_logfile = opsi_script_log_dir / "opsi-client-agent.log"
+		param_char = "/" if platform.system().lower() == "windows" else "-"
 		arg_list: list[str] = [
 			str(self.base_dir / SETUP_SCRIPT_NAME),
 			str(self.opsi_script_logfile),
-			"-servicebatch",
-			"-productid",
+			f"{param_char}servicebatch",
+			f"{param_char}productid",
 			self.config.oca_package,
-			"-opsiservice",
+			f"{param_char}opsiservice",
 			self.config.service_address,
-			"-clientid",
+			f"{param_char}clientid",
 			self.config.client_id,
-			"-username",
+			f"{param_char}username",
 			self.config.client_id,
-			"-password",
+			f"{param_char}password",
 			self.config.client_key,
-			"-parameter",
+			f"{param_char}parameter",
 			self.config.finalize,
 		]
 		if platform.system().lower() == "windows":

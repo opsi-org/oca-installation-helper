@@ -36,7 +36,8 @@ class GUIDialog(BaseDialog, Tk):
 		self.width = 800
 		self.height = 500
 		self.padding = 10
-		self.attributes("-type", "dialog")
+		if system().lower() != "windows":
+			self.attributes("-type", "dialog")
 		self.content = Frame(self, width=self.width, height=self.height, border=10, relief="groove")
 		self.string_vars: dict[str, StringVar] = {
 			"client_id": StringVar(name="client_id"),

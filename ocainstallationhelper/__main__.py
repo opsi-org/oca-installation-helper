@@ -88,9 +88,9 @@ class InstallationHelper:
 			logger.debug(
 				"Copying opsi-script skin files from %s to %s",
 				self.tmp_dir / "opsi-script" / "common" / "skin",
-				self.config.opsi_script.parent,
+				self.config.opsi_script.parent / "skin",
 			)
-			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "skin", self.config.opsi_script.parent)
+			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "skin", self.config.opsi_script.parent / "skin")
 		except Exception as error:
 			logger.warning("Failed to copy opsi-script skin files: %s", error)
 		make_executable(self.config.opsi_script)

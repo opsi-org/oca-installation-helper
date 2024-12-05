@@ -84,6 +84,10 @@ class InstallationHelper:
 		self.backend.get_from_depot("opsi-script", self.tmp_dir)
 		await self.show_message(f"Installation files succesfully copied to '{self.tmp_dir}'", "success")
 		self.config.opsi_script = self.tmp_dir / "opsi-script" / self.config.opsi_script_path
+		try:
+			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "skin", self.config.opsi_script.parent)
+		except Exception:
+			logger.warning("Failed to copy opsi-script skin files")
 		make_executable(self.config.opsi_script)
 		return self.tmp_dir / self.config.oca_package
 

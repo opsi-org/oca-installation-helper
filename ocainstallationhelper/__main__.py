@@ -134,10 +134,15 @@ class InstallationHelper:
 		]
 		if platform.system().lower() == "windows":
 			powershell_command = "powershell"
-			for powershell_command in (
-				shutil.which("powershell") or "powershell",
-				r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+			for powershell_command, shell in (
+				(shutil.which("powershell") or "powershell", False),
+				(shutil.which("powershell") or "powershell", True),
+				("powershell", False),
+				("powershell", True),
+				(r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", False),
+				(r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", True),
 			):
+				logger.essential("Trying combination: '%s' shell=%s", powershell_command, shell)
 				proc = await asyncio.create_subprocess_exec(
 					powershell_command, "-command", "$PSVersionTable", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
 				)

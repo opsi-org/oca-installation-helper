@@ -134,7 +134,11 @@ class InstallationHelper:
 		]
 		if platform.system().lower() == "windows":
 			proc = await asyncio.create_subprocess_exec(
-				"powershell", "-command", "$PSVersionTable", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+				"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+				"-command",
+				"$PSVersionTable",
+				stdout=asyncio.subprocess.PIPE,
+				stderr=asyncio.subprocess.PIPE,
 			)
 			stdout, _ = await proc.communicate()
 			if proc.returncode != 0:
@@ -145,7 +149,7 @@ class InstallationHelper:
 			arg_string = ",".join([f"'\"{arg}\"'" for arg in arg_list])  # Enclosing by ' and " to be robust against spaces in params
 			ps_script = f'Start-Process -Verb runas -FilePath "{self.config.opsi_script}" -ArgumentList {arg_string} -Wait'
 			command = [
-				"powershell",
+				"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
 				"-ExecutionPolicy",
 				"bypass",
 				"-WindowStyle",
@@ -335,7 +339,7 @@ class InstallationHelper:
 				arg_string = "-ArgumentList " + ",".join([f'"{arg}"' for arg in sys.argv[1:]]) if sys.argv[1:] else ""
 				ps_script = f'Start-Process -Verb runas -FilePath "{sys.argv[0]}" {arg_string} -Wait'
 				command = [
-					"powershell",
+					"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
 					"-ExecutionPolicy",
 					"bypass",
 					"-WindowStyle",
@@ -347,7 +351,7 @@ class InstallationHelper:
 					"Not running elevated. Rerunning oca-installation-helper as admin: %s\n",
 					command,
 				)
-				os.execvp("powershell", command)
+				os.execvp("C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", command)
 			logger.info("Running elevated. Continuing execution.")
 
 	def cleanup_cache(self) -> None:

@@ -133,23 +133,22 @@ class InstallationHelper:
 			self.config.finalize,
 		]
 		if platform.system().lower() == "windows":
+			logger.essential("Getting environment:")
+			proc = await asyncio.create_subprocess_exec("set", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+			stdout, stderr = await proc.communicate()
+			logger.essential("Stdout: %s", stdout.decode("utf-8", errors="replace"))
+			logger.essential("Stderr: %s", stderr.decode("utf-8", errors="replace"))
+			logger.essential("returncode: %s", proc.returncode)
+
 			powershell_command = "powershell"
 			for powershell_command in (
 				shutil.which("powershell") or "powershell",
 				"powershell",
 				r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
 			):
-				logger.essential("Trying combination: '%s' shell=%s", powershell_command)
+				logger.essential("Trying command: '%s'", powershell_command)
 				proc = await asyncio.create_subprocess_exec(
 					powershell_command, "/?", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-				)
-				stdout, stderr = await proc.communicate()
-				logger.essential("Stdout: %s", stdout.decode("utf-8", errors="replace"))
-				logger.essential("Stderr: %s", stderr.decode("utf-8", errors="replace"))
-				logger.essential("returncode: %s", proc.returncode)
-
-				proc = await asyncio.create_subprocess_exec(
-					powershell_command, "Get-ChildItem env:", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
 				)
 				stdout, stderr = await proc.communicate()
 				logger.essential("Stdout: %s", stdout.decode("utf-8", errors="replace"))

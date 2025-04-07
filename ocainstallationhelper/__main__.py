@@ -102,6 +102,7 @@ class InstallationHelper:
 		assert self.config.service_address and self.config.client_id and self.config.client_key and self.config.finalize  # for mypy
 		await self.show_message("Running setup script")
 
+		shell = False
 		opsi_script_log_dir = Path(r"c:\opsi.org\log") if platform.system().lower() == "windows" else Path("/var/log/opsi-script")
 		if not opsi_script_log_dir.exists():
 			try:
@@ -144,7 +145,20 @@ class InstallationHelper:
 			):
 				logger.essential("Trying combination: '%s' shell=%s", powershell_command, shell)
 				proc = await asyncio.create_subprocess_exec(
-					powershell_command, "-command", "$PSVersionTable", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+					powershell_command, "Get-ChildItem env:", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, shell=shell
+				)
+				stdout, stderr = await proc.communicate()
+				logger.essential("Stdout: %s", stdout)
+				logger.essential("Stderr: %s", stderr)
+				logger.essential("returncode: %s", proc.returncode)
+
+				proc = await asyncio.create_subprocess_exec(
+					powershell_command,
+					"-command",
+					"$PSVersionTable",
+					stdout=asyncio.subprocess.PIPE,
+					stderr=asyncio.subprocess.PIPE,
+					shell=shell,
 				)
 				stdout, _ = await proc.communicate()
 				if proc.returncode == 0:
@@ -168,6 +182,7 @@ class InstallationHelper:
 			stderr=asyncio.subprocess.STDOUT,
 			stdout=asyncio.subprocess.PIPE,
 			stdin=asyncio.subprocess.PIPE,
+			shell=shell,
 		)
 		out, _ = await proc.communicate()
 		logger.info("Command exit code: %s", proc.returncode)

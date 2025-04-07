@@ -147,16 +147,9 @@ class InstallationHelper:
 				shutil.which("powershell") or "powershell",
 				"powershell",
 				r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+				r"C:\Windows\sysnative\WindowsPowerShell\v1.0\powershell.exe",
 			):
 				logger.essential("Trying command: '%s'", powershell_command)
-				proc = await asyncio.create_subprocess_exec(
-					powershell_command, "/?", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-				)
-				stdout, stderr = await proc.communicate()
-				logger.essential("Stdout: %s", stdout.decode("utf-8", errors="replace"))
-				logger.essential("Stderr: %s", stderr.decode("utf-8", errors="replace"))
-				logger.essential("returncode: %s", proc.returncode)
-
 				proc = await asyncio.create_subprocess_exec(
 					powershell_command,
 					"-command",
@@ -164,7 +157,10 @@ class InstallationHelper:
 					stdout=asyncio.subprocess.PIPE,
 					stderr=asyncio.subprocess.PIPE,
 				)
-				stdout, _ = await proc.communicate()
+				stdout, stderr = await proc.communicate()
+				logger.essential("Stdout: %s", stdout.decode("utf-8", errors="replace"))
+				logger.essential("Stderr: %s", stderr.decode("utf-8", errors="replace"))
+				logger.essential("returncode: %s", proc.returncode)
 				if proc.returncode == 0:
 					logger.notice("Using powershell from '%s'", powershell_command)
 					break

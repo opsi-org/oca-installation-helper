@@ -102,7 +102,6 @@ class InstallationHelper:
 		assert self.config.service_address and self.config.client_id and self.config.client_key and self.config.finalize  # for mypy
 		await self.show_message("Running setup script")
 
-		shell = False
 		opsi_script_log_dir = Path(r"c:\opsi.org\log") if platform.system().lower() == "windows" else Path("/var/log/opsi-script")
 		if not opsi_script_log_dir.exists():
 			try:
@@ -135,21 +134,26 @@ class InstallationHelper:
 		]
 		if platform.system().lower() == "windows":
 			powershell_command = "powershell"
-			for powershell_command, shell in (
-				(shutil.which("powershell") or "powershell", False),
-				(shutil.which("powershell") or "powershell", True),
-				("powershell", False),
-				("powershell", True),
-				(r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", False),
-				(r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", True),
+			for powershell_command in (
+				shutil.which("powershell") or "powershell",
+				"powershell",
+				r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
 			):
-				logger.essential("Trying combination: '%s' shell=%s", powershell_command, shell)
+				logger.essential("Trying combination: '%s' shell=%s", powershell_command)
 				proc = await asyncio.create_subprocess_exec(
-					powershell_command, "Get-ChildItem env:", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, shell=shell
+					powershell_command, "/?", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
 				)
 				stdout, stderr = await proc.communicate()
-				logger.essential("Stdout: %s", stdout)
-				logger.essential("Stderr: %s", stderr)
+				logger.essential("Stdout: %s", stdout.decode("utf-8", errors="replace"))
+				logger.essential("Stderr: %s", stderr.decode("utf-8", errors="replace"))
+				logger.essential("returncode: %s", proc.returncode)
+
+				proc = await asyncio.create_subprocess_exec(
+					powershell_command, "Get-ChildItem env:", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+				)
+				stdout, stderr = await proc.communicate()
+				logger.essential("Stdout: %s", stdout.decode("utf-8", errors="replace"))
+				logger.essential("Stderr: %s", stderr.decode("utf-8", errors="replace"))
 				logger.essential("returncode: %s", proc.returncode)
 
 				proc = await asyncio.create_subprocess_exec(
@@ -158,7 +162,6 @@ class InstallationHelper:
 					"$PSVersionTable",
 					stdout=asyncio.subprocess.PIPE,
 					stderr=asyncio.subprocess.PIPE,
-					shell=shell,
 				)
 				stdout, _ = await proc.communicate()
 				if proc.returncode == 0:
@@ -182,7 +185,6 @@ class InstallationHelper:
 			stderr=asyncio.subprocess.STDOUT,
 			stdout=asyncio.subprocess.PIPE,
 			stdin=asyncio.subprocess.PIPE,
-			shell=shell,
 		)
 		out, _ = await proc.communicate()
 		logger.info("Command exit code: %s", proc.returncode)

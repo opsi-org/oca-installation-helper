@@ -134,7 +134,9 @@ class InstallationHelper:
 		]
 		if platform.system().lower() == "windows":
 			logger.essential("Getting environment:")
-			proc = await asyncio.create_subprocess_exec("set", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+			proc = await asyncio.create_subprocess_exec(
+				"cmd.exe", "/C", "set", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+			)
 			stdout, stderr = await proc.communicate()
 			logger.essential("Stdout: %s", stdout.decode("utf-8", errors="replace"))
 			logger.essential("Stderr: %s", stderr.decode("utf-8", errors="replace"))

@@ -4,37 +4,98 @@ oca-installation-helper tests
 main tests
 """
 
-import tempfile
+from __future__ import annotations
+
+import platform
 from pathlib import Path
+from typing import Any
+from unittest.mock import patch
 
 from .utils import get_installation_helper
 
 
+class PopenLog:
+	entries: list[list[str]] = []
+
+	def write(self, entry: list[str]) -> None:
+		self.entries.append(entry)
+
+
+popen_log = PopenLog()
+
+
+class FakePopen:
+	def __init__(self, command: list[str], **kwargs: dict[str, Any]) -> None:
+		self.command = command
+		self.returncode = 0
+
+	def __enter__(self) -> FakePopen:
+		return self
+
+	def __exit__(self, *args: tuple[Any]) -> None:
+		pass
+
+	async def communicate(self, input: Any = None, timeout: float | None = None) -> tuple[bytes, bytes]:
+		popen_log.write(self.command)
+		return (b"", b"")
+
+
+async def fake_create_subprocess_exec(*args: str, **kwargs: dict[str, Any]) -> FakePopen:
+	return FakePopen(list(args), kwargs=kwargs)
+
+
 def test_helper_object() -> None:
 	with get_installation_helper() as installation_helper:
-		ocdconf = installation_helper.config.opsiclientd_conf
-		assert ocdconf.name == "opsiclientd.conf"
+		assert installation_helper.config.opsiclientd_conf.name == "opsiclientd.conf"
+		assert installation_helper.config.oca_package.endswith("-client-agent")
+		assert installation_helper.config.opsi_script_path.name.startswith("opsi-script")
 
 
-def test_copy_files() -> None:
-	with get_installation_helper() as installation_helper:
-		with tempfile.TemporaryDirectory() as tempdir:
-			base_dir = Path(tempdir)
-			installconf = base_dir / "install.conf"
-			installconf.write_text(
-				"client_id = dummy.domain.local\n"
-				"service_address = https://192.168.0.1:4447/rpc\n"
-				"service_username = dummyuser\n"
-				"service_password = dummypassword\n"
-				"dns_domain = should.be.ignored\n"
-				"interactive =\n",
-				encoding="utf-8",
-			)
-
-			installation_helper.config.base_dir = base_dir
-			installation_helper.configure_from_reg_file()
-			installation_helper.configure_from_zeroconf_default()
-			installation_helper.copy_installation_files()
-			assert (installation_helper.tmp_dir / "install.conf").exists()
-			installation_helper.cleanup()
-			assert not (installation_helper.tmp_dir / "install.conf").exists()
+def test_run(tmp_path: Path) -> None:
+	with get_installation_helper(
+		[
+			"--non-interactive",
+			"--read-conf-files",
+			"install.conf",
+			"--client-id",
+			"client.domain.local",
+			"--service-address",
+			"https://server.domain.local:4447",
+			"--service-password",
+			"foo",
+			"--service-username",
+			"client.domain.local",
+		]
+	) as installation_helper:
+		with (
+			patch("ocainstallationhelper.__main__.InstallationHelper.ensure_root"),
+			patch("ocainstallationhelper.__main__.InstallationHelper.copy_installation_files", return_value=tmp_path),
+			patch(
+				"ocainstallationhelper.backend.Backend.get_or_create_client",
+				return_value={"opsiHostKey": "foo", "id": "client.domain.local"},
+			),
+			patch("ocainstallationhelper.backend.Backend.set_poc_to_installing"),
+			patch("ocainstallationhelper.__main__.asyncio.create_subprocess_exec", fake_create_subprocess_exec),
+			patch("ocainstallationhelper.backend.Backend.evaluate_success"),
+		):
+			installation_helper.run()
+		if platform.system().lower() == "windows":
+			return
+		assert popen_log.entries[0] == [
+			"None",  # opsi-script bin path is set during copy_installation_files
+			str(tmp_path / "setup.opsiscript"),
+			"/var/log/opsi-script/opsi-client-agent.log",
+			"-servicebatch",
+			"-productid",
+			installation_helper.config.oca_package,
+			"-opsiservice",
+			"https://server.domain.local:4447",
+			"-clientid",
+			"client.domain.local",
+			"-username",
+			"client.domain.local",
+			"-password",
+			"foo",
+			"-parameter",
+			"noreboot",
+		]

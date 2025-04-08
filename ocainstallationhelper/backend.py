@@ -3,10 +3,12 @@ opsi-client-agent installation_helper backend class
 """
 
 import platform
+from pathlib import Path
 
 from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlags, get_service_client
 
-from ocainstallationhelper import get_mac_address, logger
+from ocainstallationhelper import logger
+from ocainstallationhelper.utils import get_mac_address
 
 
 class InstallationUnsuccessful(Exception):
@@ -21,7 +23,6 @@ class Backend:
 			password=password,
 			verify=ServiceVerificationFlags.ACCEPT_ALL,
 			sso=sso,
-			jsonrpc_create_objects=False,
 		)
 
 		self.service_address: str | None = self.service.base_url
@@ -113,7 +114,7 @@ class Backend:
 		product_on_client = self.service.jsonrpc("productOnClient_getObjects", [[], {"productId": self.product_id, "clientId": client_id}])
 		if not product_on_client or not product_on_client[0]:
 			raise InstallationUnsuccessful(f"Product {self.product_id} not found on client {client_id}")
-		if not product_on_client[0]["installationStatus"] == "installed":
+		if not product_on_client[0].installationStatus == "installed":
 			raise InstallationUnsuccessful(f"Installation of {self.product_id} on client {client_id} unsuccessful")
 
 	def get_or_create_client(self, client_id: str, force_create: bool = False, set_mac_address: bool = True) -> dict[str, str]:
@@ -132,9 +133,13 @@ class Backend:
 			logger.info("Client created")
 
 		# If no hardwareAddress is set on client object, add it
-		if set_mac_address and not clients[0]["hardwareAddress"]:
+		if set_mac_address and not clients[0].hardwareAddress:
 			logger.info("Setting mac address to fill previously empty entry.")
-			clients[0]["hardwareAddress"] = get_mac_address()
+			clients[0].hardwareAddress = get_mac_address()
 			self.service.jsonrpc("host_updateObjects", clients)
 
 		return clients[0]
+
+	def get_from_depot(self, product: str, destination: Path) -> None:
+		logger.notice("Downloading product '%s' to '%s' from depot", product, destination)
+		self.service.download(f"/depot/{product}", destination)

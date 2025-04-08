@@ -6,167 +6,167 @@
 # License: AGPL-3.0
 
 """
-opsi-client-agent installation_helper gui component
+opsi-client-agent inst_helper gui component
 """
 
 from __future__ import annotations
 
-import platform
+import asyncio
 import subprocess
-import threading
-import time
 from pathlib import Path
+from platform import system
+from tkinter import Message, StringVar, Tk
+from tkinter.ttk import Button, Entry, Frame, Label
 from typing import TYPE_CHECKING
 
-import PySimpleGUI.PySimpleGUI  # type: ignore[import]
 from opsicommon.logging import get_logger
-from PySimpleGUI.PySimpleGUI import Window
 
-from ocainstallationhelper import Dialog, get_resource_path
+from ocainstallationhelper import Dialog as BaseDialog
 
 if TYPE_CHECKING:
 	from ocainstallationhelper.__main__ import InstallationHelper
 
-SG_THEME = "Default1"  # "Reddit"
-WIDTH = 70
-
-logger = get_logger()
+logger = get_logger("oca-installation-helper-gui")
 
 
-def _refresh_debugger() -> None:
-	pass
+class GUIDialog(BaseDialog, Tk):
+	def __init__(self, inst_helper: InstallationHelper) -> None:
+		Tk.__init__(self)
+		self.inst_helper = inst_helper
+		self.width = 800
+		self.height = 500
+		self.padding = 10
+		if system().lower() != "windows":
+			self.attributes("-type", "dialog")
+		self.content = Frame(self, width=self.width, height=self.height, border=10, relief="groove")
+		self.string_vars: dict[str, StringVar] = {
+			"client_id": StringVar(name="client_id"),
+			"service_address": StringVar(name="service_address"),
+			"service_username": StringVar(name="service_username"),
+			"service_password": StringVar(name="service_password"),
+		}
+		self.inputs: dict[str, Entry] = {
+			"client_id": Entry(self.content, textvariable=self.string_vars["client_id"]),
+			"service_address": Entry(self.content, textvariable=self.string_vars["service_address"]),
+			"service_username": Entry(self.content, textvariable=self.string_vars["service_username"]),
+			"service_password": Entry(self.content, show="*", textvariable=self.string_vars["service_password"]),
+		}
 
+		def on_input_changed(var: str, index: str, mode: str) -> None:
+			setattr(self.inst_helper.config, var, self.string_vars[var].get())
 
-def _create_error_message() -> None:
-	pass
+		for string_var in self.string_vars.values():
+			string_var.trace_add("write", on_input_changed)
+		self.buttons: dict[str, Button] = {
+			"zeroconf": self._make_button("zeroconf"),
+			"cancel": self._make_button("cancel"),
+			"install": self._make_button("install"),
+			"open_logs": self._make_button("open_logs", "open logs", disabled=True),
+		}
+		self.message: Message = Message(self.content, width=self.width - 2 * self.padding, anchor="w")
+		self.relevant_log_file: str = ""
+		self._set_geometry()
+		self._build()
+		self._loop = asyncio.get_event_loop()
 
+	def _make_button(self, button_id: str, button_text: str | None = None, disabled: bool = False) -> Button:
+		def on_button_click(button_id: str = button_id) -> None:
+			self.on_button_pressed(button_id)
 
-PySimpleGUI.PySimpleGUI._refresh_debugger = _refresh_debugger
-PySimpleGUI.PySimpleGUI._create_error_message = _create_error_message
+		button = Button(
+			self.content,
+			text=button_text or button_id,
+			style="Accent.TButton",
+			width=10,
+			command=on_button_click,
+		)
+		if disabled:
+			button.config(state="disabled")
+		return button
 
-sg = PySimpleGUI.PySimpleGUI
+	def _set_geometry(self) -> None:
+		screen_width = self.winfo_screenwidth()
+		screen_height = self.winfo_screenheight()
 
+		taskbar_height = 0 if system().lower() != "windows" else self.winfo_rooty()
+		left = int((screen_width - self.width) / 2)
+		top = int((screen_height - taskbar_height - self.height) / 2)
 
-def get_icon() -> str | None:
-	if platform.system().lower() != "windows":
-		return None
-	return get_resource_path("opsi.ico")
+		self.geometry(f"{self.width}x{self.height}+{left}+{top}")
 
+	def _build(self) -> None:
+		self.columnconfigure(0, weight=1)
+		self.rowconfigure(0, weight=1)
+		self.content.grid(column=0, row=0, sticky="nsew")
 
-def show_message(message: str) -> None:
-	sg.theme(SG_THEME)
-	sg.popup_scrolled(message, title="opsi client agent installer", icon=get_icon(), auto_close=True, auto_close_duration=20)
+		self.content.columnconfigure(list(range(4)), weight=1)
+		self.content.rowconfigure(list(range(7)), weight=1)
 
+		Label(self.content, text="Client ID").grid(column=0, row=0)
+		self.inputs["client_id"].grid(column=1, row=0, columnspan=3, sticky="we", padx=self.padding)
+		Label(self.content, text="Opsi Service url").grid(column=0, row=1)
+		self.inputs["service_address"].grid(column=1, row=1, columnspan=3, sticky="we", padx=self.padding)
+		Label(self.content, text="Username").grid(column=0, row=2)
+		self.inputs["service_username"].grid(column=1, row=2, columnspan=3, sticky="we", padx=self.padding)
+		Label(self.content, text="Password").grid(column=0, row=3)
+		self.inputs["service_password"].grid(column=1, row=3, columnspan=3, sticky="we", padx=self.padding)
 
-class GUIDialog(Dialog):
-	def __init__(self, installation_helper: InstallationHelper) -> None:
-		threading.Thread.__init__(self)
-		self.daemon = True
-		self.inst_helper = installation_helper
-		self.window: Window | None = None
-		self._closed = False
-		self.relevant_log_file = ""
+		self.message.grid(column=0, row=4, columnspan=4, sticky="we", padx=self.padding)
+		self.buttons["zeroconf"].grid(column=0, row=5)
+		self.buttons["cancel"].grid(column=1, row=5)
+		self.buttons["install"].grid(column=2, row=5)
+		self.buttons["open_logs"].grid(column=3, row=5)
 
-	def show(self) -> None:
-		self.start()
-		while not self.window:
-			time.sleep(1)
+	def on_button_pressed(self, button_name: str) -> None:
+		if button_name == "cancel":
+			self._loop.run_until_complete(self.inst_helper.on_cancel_button())
+		elif button_name == "install":
+			self._loop.run_until_complete(self.inst_helper.on_install_button())
+		elif button_name == "zeroconf":
+			self._loop.run_until_complete(self.inst_helper.on_zeroconf_button())
+		elif button_name == "open_logs":
+			self.open_logs()
+
+	def run_gui(self) -> None:
+		assert self._loop, "Event loop not running"
+		self._loop.run_until_complete(self.inst_helper.prepare_installation())
+		# asyncio.run(self.inst_helper.prepare_installation())
+		self.mainloop()
 
 	def close(self) -> None:
-		self._closed = True
+		logger.notice("Stopping oca installation helper gui")
+		self.after(200, self.quit)
 
-	def wait(self) -> None:
-		self.join()
-
-	def run(self) -> None:
-		sg.theme(SG_THEME)
-		sg.SetOptions(element_padding=((1, 1), 0))
-		layout = [
-			[sg.Text("Client-ID")],
-			[sg.Input(key="client_id", size=(WIDTH, 1), default_text=self.inst_helper.config.client_id)],
-			[sg.Text("", font="Any 3")],
-			[sg.Text("Opsi Service url")],
-			[
-				sg.Input(key="service_address", size=(WIDTH - 15, 1), default_text=self.inst_helper.config.service_address),
-				sg.Button("Zeroconf", key="zeroconf", size=(15, 1)),
-			],
-			[sg.Text("", font="Any 3")],
-			[sg.Text("Username")],
-			[sg.Input(key="service_username", size=(WIDTH, 1), default_text=self.inst_helper.config.service_username)],
-			[sg.Text("", font="Any 3")],
-			[sg.Text("Password")],
-			[sg.Input(key="service_password", size=(WIDTH, 1), default_text=self.inst_helper.config.service_password, password_char="*")],
-			[sg.Text("", font="Any 3")],
-			[sg.Text(size=(WIDTH, 3), key="message")],
-			[sg.Text("", font="Any 3")],
-			[
-				sg.Text("", size=(35, 1)),
-				sg.Button("Cancel", key="cancel", size=(10, 1)),
-				sg.Button("Install", key="install", size=(10, 1), bind_return_key=True),
-			],
-			[sg.Button("Open logs", key="logs", size=(10, 1), disabled=False)],
-		]
-
-		height = 370
-		if platform.system().lower() == "windows":
-			height = 320
-		icon = get_icon()
-		logger.debug("rendering window with icon %s and layout %s", icon, layout)
-		self.window = Window(title="opsi client agent installation", icon=icon, size=(500, height), layout=layout, finalize=True)
-		assert self.window
-
-		while not self._closed:
-			event, values = self.window.read(timeout=1000)
-			if event == "__TIMEOUT__":
-				continue
-
-			if values:
-				for key, val in values.items():
-					setattr(self.inst_helper.config, key, val)
-
-			if event in (sg.WINDOW_CLOSED, "cancel"):
-				self.inst_helper.on_cancel_button()
-			elif event == "zeroconf":
-				self.inst_helper.on_zeroconf_button()
-			elif event == "install":
-				self.inst_helper.on_install_button()
-			elif event == "logs":
-				self.open_logs()
-
-	def update(self) -> None:
-		if not self.window:
-			return
+	async def update_values(self) -> None:
 		for attr in ("client_id", "service_address", "service_username", "service_password"):
-			if attr in self.window.AllKeysDict:
-				self.window[attr].update(getattr(self.inst_helper.config, attr))
-		self.window.refresh()
+			if attr in self.inputs:
+				self.string_vars[attr].set(getattr(self.inst_helper.config, attr) or "")
 
-	def set_button_enabled(self, button_id: str, enabled: bool) -> None:
-		assert self.window
-		self.window[button_id].update(disabled=not enabled)
-		self.window.refresh()
+	async def set_button_enabled(self, button: str, enabled: bool) -> None:
+		if button not in self.buttons:
+			raise ValueError(f"Button {button} not found")
+		self.buttons[button].config(state="normal" if enabled else "disabled")
 
-	def show_message(self, message: str, severity: str | None = None) -> None:
-		assert self.window
-		text_color = "black"
-		if severity == "success":
-			text_color = "green"
-		if severity == "error":
-			text_color = "red"
+	async def show_message(self, message: str, severity: str | None) -> None:
+		try:
+			color = "black"
+			if severity == "error":
+				color = "red"
+			elif severity == "success":
+				color = "green"
+			self.message.config(text=message, foreground=color)
+			self.message.update()
+		except Exception as err:
+			logger.error("Error showing message: %s", err)
 
-		self.window["message"].update(message, text_color=text_color)
-		self.window.refresh()
-
-	def show_logpath(self, logpath: Path | str | None) -> None:
-		assert self.window
+	async def show_logpath(self, logpath: Path | str | None) -> None:
 		self.relevant_log_file = str(logpath) if logpath else ""
-		self.window["logs"].update(disabled=False)
-		self.window.refresh()
+		await self.set_button_enabled("open_logs", bool(logpath))
 
 	def open_logs(self) -> None:
-		if platform.system().lower() == "darwin":
-			subprocess.Popen(("cat", self.relevant_log_file))
-		elif platform.system().lower() == "windows":
+		if system().lower() == "darwin":
+			subprocess.Popen(("open", self.relevant_log_file))
+		elif system().lower() == "windows":
 			subprocess.Popen(("notepad.exe", self.relevant_log_file))
 		else:
-			subprocess.Popen(("cat", self.relevant_log_file))
+			subprocess.Popen(("xdg-open", self.relevant_log_file))

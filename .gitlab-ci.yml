@@ -11,7 +11,7 @@ test:pytest-darwin:
   tags:
     - catalina-py313-x64
   script:
-    - poetry env use 3.13
+    - poetry env use python3.13
     - poetry lock
     - poetry install
     - poetry run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
@@ -99,7 +99,7 @@ build:pyinstaller-darwin-x64:
   tags:
     - catalina-py313-x64
   script:
-    - poetry env use 3.13
+    - poetry env use python3.13
     - poetry lock
     - poetry install
     - poetry run opsi-dev-cli -l info pyinstaller build

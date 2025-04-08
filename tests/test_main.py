@@ -68,7 +68,7 @@ def test_run(tmp_path: Path) -> None:
 		]
 	) as installation_helper:
 		with (
-			patch("ocainstallationhelper.__main__.InstallationHelper.ensure_admin"),
+			patch("ocainstallationhelper.__main__.InstallationHelper.ensure_root"),
 			patch("ocainstallationhelper.__main__.InstallationHelper.copy_installation_files", return_value=tmp_path),
 			patch(
 				"ocainstallationhelper.backend.Backend.get_or_create_client",

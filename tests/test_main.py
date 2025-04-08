@@ -35,9 +35,9 @@ class FakePopen:
 	def __exit__(self, *args: tuple[Any]) -> None:
 		pass
 
-	async def communicate(self, input: Any = None, timeout: float | None = None) -> tuple[str, str]:
+	async def communicate(self, input: Any = None, timeout: float | None = None) -> tuple[bytes, bytes]:
 		popen_log.write(self.command)
-		return ("", "")
+		return (b"", b"")
 
 
 async def fake_create_subprocess_exec(*args: str, **kwargs: dict[str, Any]) -> FakePopen:
@@ -68,7 +68,7 @@ def test_run(tmp_path: Path) -> None:
 		]
 	) as installation_helper:
 		with (
-			patch("ocainstallationhelper.__main__.InstallationHelper.ensure_admin"),
+			patch("ocainstallationhelper.__main__.InstallationHelper.ensure_root"),
 			patch("ocainstallationhelper.__main__.InstallationHelper.copy_installation_files", return_value=tmp_path),
 			patch(
 				"ocainstallationhelper.backend.Backend.get_or_create_client",

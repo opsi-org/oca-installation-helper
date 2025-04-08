@@ -10,7 +10,6 @@ opsi-client-agent installation_helper
 
 import argparse
 import asyncio
-import ctypes
 import os
 import platform
 import shutil
@@ -133,30 +132,36 @@ class InstallationHelper:
 			self.config.finalize,
 		]
 		if platform.system().lower() == "windows":
-			proc = await asyncio.create_subprocess_exec(
-				"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
-				"-command",
-				"$PSVersionTable",
-				stdout=asyncio.subprocess.PIPE,
-				stderr=asyncio.subprocess.PIPE,
-			)
-			stdout, _ = await proc.communicate()
-			if proc.returncode != 0:
+			powershell_command = "powershell"
+			for powershell_command in (
+				"powershell",
+				shutil.which("powershell") or "powershell",
+				r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+				r"C:\Windows\sysnative\WindowsPowerShell\v1.0\powershell.exe",
+			):
+				logger.debug("Trying command: '%s'", powershell_command)
+				proc = await asyncio.create_subprocess_exec(
+					powershell_command,
+					"-command",
+					"$PSVersionTable",
+					stdout=asyncio.subprocess.PIPE,
+					stderr=asyncio.subprocess.PIPE,
+				)
+				stdout, stderr = await proc.communicate()
+				logger.debug("Stdout: %s", stdout.decode("utf-8", errors="replace"))
+				logger.debug("Stderr: %s", stderr.decode("utf-8", errors="replace"))
+				logger.debug("returncode: %s", proc.returncode)
+				if proc.returncode == 0:
+					logger.notice("Using powershell from '%s'", powershell_command)
+					break
+			else:
 				logger.error("Cannot execute powershell. Maybe missing in system PATH? Returncode: %s", proc.returncode)
 				raise RuntimeError(f"Cannot execute powershell. Maybe missing in system PATH? Returncode: {proc.returncode}")
 			logger.debug("Found powershell with following version information:\n%s", stdout)
 
 			arg_string = ",".join([f"'\"{arg}\"'" for arg in arg_list])  # Enclosing by ' and " to be robust against spaces in params
 			ps_script = f'Start-Process -Verb runas -FilePath "{self.config.opsi_script}" -ArgumentList {arg_string} -Wait'
-			command = [
-				"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
-				"-ExecutionPolicy",
-				"bypass",
-				"-WindowStyle",
-				"hidden",
-				"-command",
-				ps_script,
-			]
+			command = [powershell_command, "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
 		else:
 			command = [str(self.config.opsi_script)] + arg_list
 
@@ -322,37 +327,16 @@ class InstallationHelper:
 			logger.debug("Delete temp dir '%s'", self.tmp_dir)
 			shutil.rmtree(str(self.tmp_dir))
 
-	def ensure_admin(self) -> None:
-		if platform.system().lower() != "windows":
-			if os.geteuid() != 0:
-				# not root
-				if self.config.use_gui and platform.system().lower() == "linux":
-					try:
-						subprocess.call(["xhost", "+si:localuser:root"])
-					except subprocess.SubprocessError as err:
-						logger.error(err)
-				print(f"{Path(sys.argv[0]).name} has to be run as root")
-				os.execvp("sudo", ["sudo"] + sys.argv)
-		else:
-			if ctypes.windll.shell32.IsUserAnAdmin() == 0:  # type: ignore
-				# not elevated
-				arg_string = "-ArgumentList " + ",".join([f'"{arg}"' for arg in sys.argv[1:]]) if sys.argv[1:] else ""
-				ps_script = f'Start-Process -Verb runas -FilePath "{sys.argv[0]}" {arg_string} -Wait'
-				command = [
-					"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
-					"-ExecutionPolicy",
-					"bypass",
-					"-WindowStyle",
-					"hidden",
-					"-command",
-					ps_script,
-				]
-				logger.info(
-					"Not running elevated. Rerunning oca-installation-helper as admin: %s\n",
-					command,
-				)
-				os.execvp("C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", command)
-			logger.info("Running elevated. Continuing execution.")
+	def ensure_root(self) -> None:
+		if os.geteuid() != 0:
+			# not root
+			if self.config.use_gui and platform.system().lower() == "linux":
+				try:
+					subprocess.call(["xhost", "+si:localuser:root"])
+				except subprocess.SubprocessError as err:
+					logger.error(err)
+			print(f"{Path(sys.argv[0]).name} has to be run as root")
+			os.execvp("sudo", ["sudo"] + sys.argv)
 
 	def cleanup_cache(self) -> None:
 		cache_dir = CONFIG_CACHE_DIRS.get(platform.system().lower())
@@ -379,7 +363,8 @@ class InstallationHelper:
 	def run(self) -> None:
 		error = None
 		try:
-			# self.ensure_admin()
+			if platform.system().lower() != "windows":
+				self.ensure_root()
 			if self.config.interactive:
 				if self.config.use_gui:
 					from ocainstallationhelper.gui import GUIDialog
@@ -423,7 +408,7 @@ class InstallationHelper:
 
 
 class ArgumentParser(argparse.ArgumentParser):
-	def _print_message(self, message: str, file: IO[str] | None = None) -> None:
+	def _print_message(self, message: str, file: IO[str] | None = None) -> None:  # type: ignore[override]
 		show_message(message, message_type="stderr")
 
 

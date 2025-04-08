@@ -410,7 +410,7 @@ class InstallationHelper:
 
 
 class ArgumentParser(argparse.ArgumentParser):
-	def _print_message(self, message: str, file: SupportsWrite[str] | None = None) -> None:
+	def _print_message(self, message: str, file: "SupportsWrite[str]" | None = None) -> None:
 		show_message(message, message_type="stderr")
 
 

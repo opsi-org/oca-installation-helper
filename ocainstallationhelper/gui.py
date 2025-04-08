@@ -124,7 +124,7 @@ class GUIDialog(BaseDialog, Tk):
 			self._loop.run_until_complete(self.inst_helper.on_install_button())
 		elif button_name == "zeroconf":
 			self._loop.run_until_complete(self.inst_helper.on_zeroconf_button())
-		elif button_name == "show_logs":
+		elif button_name == "open_logs":
 			self.open_logs()
 
 	def run_gui(self) -> None:

@@ -18,8 +18,10 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from _typeshed import SupportsWrite
+if TYPE_CHECKING:
+	from _typeshed import SupportsWrite
 from opsicommon.exceptions import BackendAuthenticationError
 from opsicommon.logging import LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL, logging_config
 from opsicommon.system.subprocess import patch_popen

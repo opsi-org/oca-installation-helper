@@ -18,8 +18,8 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import IO
 
+from _typeshed import SupportsWrite
 from opsicommon.exceptions import BackendAuthenticationError
 from opsicommon.logging import LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL, logging_config
 from opsicommon.system.subprocess import patch_popen
@@ -408,7 +408,7 @@ class InstallationHelper:
 
 
 class ArgumentParser(argparse.ArgumentParser):
-	def _print_message(self, message: str, file: IO[str] | None = None) -> None:
+	def _print_message(self, message: str, file: SupportsWrite[str] | None = None) -> None:
 		show_message(message, message_type="stderr")
 
 

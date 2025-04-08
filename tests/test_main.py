@@ -35,9 +35,9 @@ class FakePopen:
 	def __exit__(self, *args: tuple[Any]) -> None:
 		pass
 
-	async def communicate(self, input: Any = None, timeout: float | None = None) -> tuple[str, str]:
+	async def communicate(self, input: Any = None, timeout: float | None = None) -> tuple[bytes, bytes]:
 		popen_log.write(self.command)
-		return ("", "")
+		return (b"", b"")
 
 
 async def fake_create_subprocess_exec(*args: str, **kwargs: dict[str, Any]) -> FakePopen:

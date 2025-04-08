@@ -21,4 +21,4 @@ def get_installation_helper(args: list[str] | None = None) -> Generator[Installa
 		tempdir_path = Path(tempdir)
 		(tempdir_path / "setup.opsiscript").touch()
 		# oca_installation_helper searches for a (parent) directory of full_path with setup.opsiscript
-		yield InstallationHelper(parse_args(args), full_path=tempdir_path)
+		yield InstallationHelper(parse_args(args))

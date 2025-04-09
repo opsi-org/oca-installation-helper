@@ -184,11 +184,20 @@ class InstallationHelper:
 			password = decode_password(password)
 		if self.config.service_address is None or self.config.service_username is None or password is None:
 			raise ValueError("Incomplete data - cannot run service_setup.")
-		self.backend = Backend(self.config.service_address, self.config.service_username, password)
-		if not self.backend:
-			raise ValueError("No backend connection.")
+
+		await self.show_message("Connecting to service...")
+		password = self.config.service_password or ""
+		if password.startswith("{crypt}"):
+			password = decode_password(password)
+		if (
+			self.config.service_address is None
+			or not self.config.client_id
+			or (not self.config.sso and (self.config.service_username is None or password is None))
+		):
+			raise ValueError("Incomplete data - cannot run service_setup.")
+		self.backend = Backend(self.config.service_address, self.config.service_username, password, sso=self.config.sso)
 		await self.show_message("Connected", "success")
-		if self.config.client_id and "." not in self.config.client_id:
+		if "." not in self.config.client_id:
 			self.config.client_id = f"{self.config.client_id}.{self.backend.get_domain()}"
 		self.base_dir = await self.copy_installation_files()
 		self.config.fill_config_from_files(self.base_dir)  # using copy destination as base dir
@@ -229,30 +238,14 @@ class InstallationHelper:
 		if self.dialog:
 			await self.dialog.set_button_enabled("install", False)
 
-		self.show_message("Connecting to service...")
-
-		password = self.config.service_password or ""
-		if password.startswith("{crypt}"):
-			password = decode_password(password)
-
-		if self.config.service_address is None or (not self.config.sso and (self.config.service_username is None or password is None)):
-			raise ValueError("Incomplete data - cannot run service_setup.")
-		self.backend = Backend(self.config.service_address, self.config.service_username, password, sso=self.config.sso)
-
-		self.show_message("Connected", "success")
-		if "." not in self.config.client_id:
-			self.config.client_id = f"{self.config.client_id}.{self.backend.get_domain()}"
-			if self.dialog:
-				self.dialog.update()
-
 		await self.show_message("Obtaining Client object")
 		client = self.backend.get_or_create_client(
 			self.config.client_id,
 			force_create=self.config.force_recreate_client,
 			set_mac_address=self.config.set_mac_address,
 		)
-		self.config.client_key = client["opsiHostKey"]
-		self.config.client_id = str(client["id"])
+		self.config.client_key = client.opsiHostKey
+		self.config.client_id = str(client.id)
 		await self.show_message("Client exists", "success")
 
 		if self.config.setup_after_install:

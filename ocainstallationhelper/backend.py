@@ -6,6 +6,7 @@ import platform
 from pathlib import Path
 
 from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlags, get_service_client
+from opsicommon.objects import OpsiClient
 
 from ocainstallationhelper import logger
 from ocainstallationhelper.utils import get_mac_address
@@ -17,6 +18,7 @@ class InstallationUnsuccessful(Exception):
 
 class Backend:
 	def __init__(self, address: str, username: str | None, password: str | None, sso: bool = False) -> None:
+		logger.debug("Creating service connection to %s (sso=%s)", address, sso)
 		self.service: ServiceClient = get_service_client(
 			address=address,
 			username=username,
@@ -117,7 +119,7 @@ class Backend:
 		if not product_on_client[0].installationStatus == "installed":
 			raise InstallationUnsuccessful(f"Installation of {self.product_id} on client {client_id} unsuccessful")
 
-	def get_or_create_client(self, client_id: str, force_create: bool = False, set_mac_address: bool = True) -> dict[str, str]:
+	def get_or_create_client(self, client_id: str, force_create: bool = False, set_mac_address: bool = True) -> OpsiClient:
 		clients = self.service.jsonrpc("host_getObjects", [[], {"id": client_id}])
 		logger.debug("Got client objects: %r", clients)
 		if not clients or force_create:

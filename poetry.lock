@@ -1224,15 +1224,15 @@ reference = "uibpypi"
 
 [[package]]
 name = "pydantic"
-version = "2.11.2"
+version = "2.11.3"
 description = "Data validation using Python type hints"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "sys_platform == \"darwin\" or sys_platform == \"linux\" or sys_platform != \"darwin\" and sys_platform != \"linux\""
 files = [
-    {file = "pydantic-2.11.2-py3-none-any.whl", hash = "sha256:7f17d25846bcdf89b670a86cdfe7b29a9f1c9ca23dee154221c9aa81845cfca7"},
-    {file = "pydantic-2.11.2.tar.gz", hash = "sha256:2138628e050bd7a1e70b91d4bf4a91167f4ad76fdb83209b107c8d84b854917e"},
+    {file = "pydantic-2.11.3-py3-none-any.whl", hash = "sha256:a082753436a07f9ba1289c6ffa01cd93db3548776088aa917cc43b63f68fa60f"},
+    {file = "pydantic-2.11.3.tar.gz", hash = "sha256:7471657138c16adad9322fe3070c0116dd6c3ad8d649300e3cbdfe91f4db4ec3"},
 ]
 
 [package.dependencies]
@@ -1531,15 +1531,15 @@ reference = "uibpypi"
 
 [[package]]
 name = "python-opsi-common"
-version = "4.3.28.0"
+version = "4.3.28.3"
 description = "The opsi python common library"
 optional = false
 python-versions = ">=3.11,<3.14"
 groups = ["main"]
 markers = "sys_platform == \"darwin\" or sys_platform == \"linux\" or sys_platform != \"darwin\" and sys_platform != \"linux\""
 files = [
-    {file = "python_opsi_common-4.3.28.0-py3-none-any.whl", hash = "sha256:a8ca3045f0f157d39137311907f95d2f0141a3eea2831b9246a3c500ba805253"},
-    {file = "python_opsi_common-4.3.28.0.tar.gz", hash = "sha256:ce3eb0f84457309b450e4026ec7bb73f15d1db37b055907ad20d38f75cf276d7"},
+    {file = "python_opsi_common-4.3.28.3-py3-none-any.whl", hash = "sha256:981d7bdb21eab3c5000f0c0a28668707b8f9571682608dec34fd758ea71a9c69"},
+    {file = "python_opsi_common-4.3.28.3.tar.gz", hash = "sha256:ac41ea0d35b901a8dde08cd3c0092a4893d7867796f28f40b5c60a9fd095919a"},
 ]
 
 [package.dependencies]

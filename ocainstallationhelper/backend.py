@@ -5,7 +5,8 @@ opsi-client-agent installation_helper backend class
 import platform
 from pathlib import Path
 
-from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlags
+from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlags, get_service_client
+from opsicommon.objects import OpsiClient
 
 from ocainstallationhelper import logger
 from ocainstallationhelper.utils import get_mac_address
@@ -16,10 +17,16 @@ class InstallationUnsuccessful(Exception):
 
 
 class Backend:
-	def __init__(self, address: str, username: str, password: str) -> None:
-		self.service: ServiceClient = ServiceClient(
-			address=address, username=username, password=password, verify=ServiceVerificationFlags.ACCEPT_ALL
+	def __init__(self, address: str, username: str | None, password: str | None, sso: bool = False) -> None:
+		logger.debug("Creating service connection to %s (sso=%s)", address, sso)
+		self.service: ServiceClient = get_service_client(
+			address=address,
+			username=username,
+			password=password,
+			verify=ServiceVerificationFlags.ACCEPT_ALL,
+			sso=sso,
 		)
+
 		self.service_address: str | None = self.service.base_url
 		if platform.system().lower() == "windows":
 			self.product_id = "opsi-client-agent"
@@ -109,10 +116,10 @@ class Backend:
 		product_on_client = self.service.jsonrpc("productOnClient_getObjects", [[], {"productId": self.product_id, "clientId": client_id}])
 		if not product_on_client or not product_on_client[0]:
 			raise InstallationUnsuccessful(f"Product {self.product_id} not found on client {client_id}")
-		if not product_on_client[0]["installationStatus"] == "installed":
+		if not product_on_client[0].installationStatus == "installed":
 			raise InstallationUnsuccessful(f"Installation of {self.product_id} on client {client_id} unsuccessful")
 
-	def get_or_create_client(self, client_id: str, force_create: bool = False, set_mac_address: bool = True) -> dict[str, str]:
+	def get_or_create_client(self, client_id: str, force_create: bool = False, set_mac_address: bool = True) -> OpsiClient:
 		clients = self.service.jsonrpc("host_getObjects", [[], {"id": client_id}])
 		logger.debug("Got client objects: %r", clients)
 		if not clients or force_create:
@@ -128,9 +135,9 @@ class Backend:
 			logger.info("Client created")
 
 		# If no hardwareAddress is set on client object, add it
-		if set_mac_address and not clients[0]["hardwareAddress"]:
+		if set_mac_address and not clients[0].hardwareAddress:
 			logger.info("Setting mac address to fill previously empty entry.")
-			clients[0]["hardwareAddress"] = get_mac_address()
+			clients[0].hardwareAddress = get_mac_address()
 			self.service.jsonrpc("host_updateObjects", clients)
 
 		return clients[0]

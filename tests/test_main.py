@@ -11,6 +11,9 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
+from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlags
+from opsicommon.objects import OpsiClient
+
 from .utils import get_installation_helper
 
 
@@ -44,6 +47,12 @@ async def fake_create_subprocess_exec(*args: str, **kwargs: dict[str, Any]) -> F
 	return FakePopen(list(args), kwargs=kwargs)
 
 
+def fake_get_service_client(
+	address: str, username: str | None, password: str | None, verify: ServiceVerificationFlags, sso: bool = False
+) -> ServiceClient:
+	return ServiceClient(address=address, username=username, password=password, verify=verify)
+
+
 def test_helper_object() -> None:
 	with get_installation_helper() as installation_helper:
 		assert installation_helper.config.opsiclientd_conf.name == "opsiclientd.conf"
@@ -52,6 +61,7 @@ def test_helper_object() -> None:
 
 
 def test_run(tmp_path: Path) -> None:
+	host_key = "00000000000000000000000000000000"
 	with get_installation_helper(
 		[
 			"--non-interactive",
@@ -62,7 +72,7 @@ def test_run(tmp_path: Path) -> None:
 			"--service-address",
 			"https://server.domain.local:4447",
 			"--service-password",
-			"foo",
+			host_key,
 			"--service-username",
 			"client.domain.local",
 		]
@@ -72,7 +82,11 @@ def test_run(tmp_path: Path) -> None:
 			patch("ocainstallationhelper.__main__.InstallationHelper.copy_installation_files", return_value=tmp_path),
 			patch(
 				"ocainstallationhelper.backend.Backend.get_or_create_client",
-				return_value={"opsiHostKey": "foo", "id": "client.domain.local"},
+				return_value=OpsiClient(opsiHostKey=host_key, id="client.domain.local"),
+			),
+			patch(
+				"ocainstallationhelper.backend.get_service_client",
+				fake_get_service_client,
 			),
 			patch("ocainstallationhelper.backend.Backend.set_poc_to_installing"),
 			patch("ocainstallationhelper.__main__.asyncio.create_subprocess_exec", fake_create_subprocess_exec),
@@ -95,7 +109,7 @@ def test_run(tmp_path: Path) -> None:
 			"-username",
 			"client.domain.local",
 			"-password",
-			"foo",
+			host_key,
 			"-parameter",
 			"noreboot",
 		]

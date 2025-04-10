@@ -40,6 +40,8 @@ class Config:
 		self.dns_domain: str | None = cmdline_args.dns_domain
 		self.depot: str | None = cmdline_args.depot
 		self.group: str | None = cmdline_args.group
+		self.sso: bool = cmdline_args.sso or False
+		self.bootimage: bool = cmdline_args.bootimage or False
 		self.setup_after_install: list[str] = []
 		if cmdline_args.setup_after_install:
 			self.setup_after_install = [val.strip() for val in cmdline_args.setup_after_install.split(",")]
@@ -72,7 +74,7 @@ class Config:
 			"service_username=%s, service_password=%s, depot=%s, group=%s, "
 			"force_recreate_client=%s, finalize=%s, dns_domain=%s, "
 			"read_conf_files=%s, install_condition=%s, set_mac_address=%s, "
-			"end_command=%s, end_marker=%s",
+			"end_command=%s, end_marker=%s, sso=%s",
 			self.interactive,
 			self.client_id,
 			self.service_address,
@@ -88,6 +90,7 @@ class Config:
 			self.set_mac_address,
 			self.end_command,
 			self.end_marker,
+			self.sso,
 		)
 
 	def get_config_file_paths(self, base_dir: Path) -> list[Path]:
@@ -171,6 +174,9 @@ class Config:
 							("install", "client_domain"),  # config.ini
 						]
 					)
+					sso = config.get("install", "sso", fallback=None)  # install.conf
+					if sso:
+						self.sso = sso.lower().strip() in ("yes", "true", "on", "1")
 					val = config.get("install", "interactive", fallback=None)  # install.conf
 					if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
 						self.interactive = val.lower().strip() in ("yes", "true", "on", "1")
@@ -265,6 +271,8 @@ class Config:
 		self.dns_domain = self.dns_domain or args.dns_domain
 		if args.non_interactive is not None:
 			self.interactive = not args.non_interactive
+		if args.sso is not None:
+			self.sso = args.sso
 
 	def check_values(self, with_host_key: bool = True) -> None:
 		if not self.service_address:

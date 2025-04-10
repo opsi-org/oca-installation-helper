@@ -40,7 +40,8 @@ class Config:
 		self.dns_domain: str | None = cmdline_args.dns_domain
 		self.depot: str | None = cmdline_args.depot
 		self.group: str | None = cmdline_args.group
-		self.sso: bool = cmdline_args.sso
+		self.sso: bool = cmdline_args.sso or False
+		self.bootimage: bool = cmdline_args.bootimage or False
 		self.setup_after_install: list[str] = []
 		if cmdline_args.setup_after_install:
 			self.setup_after_install = [val.strip() for val in cmdline_args.setup_after_install.split(",")]

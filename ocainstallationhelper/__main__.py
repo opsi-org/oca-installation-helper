@@ -131,6 +131,8 @@ class InstallationHelper:
 			f"{param_char}parameter",
 			self.config.finalize,
 		]
+		if self.config.bootimage:
+			arg_list += [f"{param_char}parameter", "bootimage"]
 		if platform.system().lower() == "windows":
 			powershell_command = "powershell"
 			for powershell_command in (
@@ -522,6 +524,11 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 		"--sso",
 		action="store_true",
 		help="Use single-sign-on for login.",
+	)
+	parser.add_argument(
+		"--bootimage",
+		action="store_true",
+		help="Set this flag for Installation in bootimage context.",
 	)
 
 	return parser.parse_args(args)

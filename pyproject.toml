@@ -3,6 +3,7 @@ name = "oca-installation-helper"
 version = "4.3.2.1"
 readme = "README.md"
 requires-python = ">=3.13"
+description = "installer for opsi-client-agent packages"
 dependencies = [
 	"zeroconf~=0.135",
 	"psutil~=5.8",
@@ -22,13 +23,26 @@ dependencies = [
 	"pytest-asyncio",
 ]
 license = {text = "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)"}
-
 classifiers = [
   "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.13"
 ]
+
+[project.urls]
+Homepage = "https://www.opsi.org"
+
+[project.scripts]
+oca-installation-helper = "ocainstallationhelper.__main__:main"
+
+[[project.authors]]
+name = "uib GmbH"
+email = "info@uib.de"
+
+[[project.maintainers]]
+name = "uib GmbH"
+email = "info@uib.de"
 
 [tool.ruff]
 line-length = 140

@@ -41,6 +41,9 @@ netifaces = "^0.11"
 msgpack = "^1.0"
 python-opsi-common = ">=4.3,<4.4"
 textual = "^0.81.0"
+pydantic = ">=2.9,<2.11"
+pydantic-core = ">=2.20,<2.29"
+cryptography = ">=42.0.0,<43.0.0"
 
 [tool.poetry.scripts]
 oca-installation-helper = "ocainstallationhelper.__main__:main"

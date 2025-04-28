@@ -10,12 +10,13 @@ dependencies = [
 	"netifaces~=0.11",
 	"python-opsi-common>=4.3,<4.4",
 	"textual~=0.81.0",
-	"pydantic>=2.9,<2.11",
-	"pydantic-core>=2.20,<2.29",
-	"cryptography>=42.0.0,<43.0.0",
+	"pydantic>=2.9,<2.11",  # win7 compatibility
+	"pydantic-core>=2.20,<2.29",  # win7 compatibility
+	"cryptography>=42.0.0,<43.0.0",  # win7 compatibility
+	"pyzsync>=1.2.6,<1.3",  # win7 compatibility
 	"ruff",
 	"pytest",
-	"pyinstaller==6.10.0",
+	"pyinstaller",
 	"pytest-cov",
 	"mypy",
 	"types-psutil",

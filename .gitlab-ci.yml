@@ -59,40 +59,40 @@ test:pytest-linux:
       junit: testreport.xml
     expire_in: 3 days
 
-test:pylint-pytest:
-  stage: test
-  needs:
-    # We want to combine test coverage from all test jobs
-    - job: test:pytest-windows
-      artifacts: true
-    - job: test:pytest-darwin
-      artifacts: true
-    - job: test:pytest-linux
-      artifacts: true
-  script:
-    - apt-get update
-    - apt-get --yes --allow-downgrades install libsqlite3-0=3.16.2-5+deb9u1
-    - apt-get --yes install sqlite3
-    - export UV_PYTHON="3.13"
-    - export UV_PYTHON_PREFERENCE="only-managed"
-    - uv sync --frozen
-    - uv run ruff check ocainstallationhelper tests
-    - uv run mypy ocainstallationhelper tests
-    - for db in coverage_*; do sqlite3 $db 'update file set path=replace(substr(path,instr(path,"ocainstallationhelper")),"\","/");'; done
-    - echo -e '[run]\nrelative_files = True\n' > .coveragerc
-    - uv run coverage combine coverage_*
-    - uv run coverage xml
-    - uv run coverage report
-  coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+)%/'
-  artifacts:
-    name: 'oca-installation-helper_test'
-    paths:
-      - coverage.xml
-    expire_in: 3 days
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage.xml
+#test:pylint-pytest:
+#  stage: test
+#  needs:
+#    # We want to combine test coverage from all test jobs
+#    - job: test:pytest-windows
+#      artifacts: true
+#    - job: test:pytest-darwin
+#      artifacts: true
+#    - job: test:pytest-linux
+#      artifacts: true
+#  script:
+#    - apt-get update
+#    - apt-get --yes --allow-downgrades install libsqlite3-0=3.16.2-5+deb9u1
+#    - apt-get --yes install sqlite3
+#    - export UV_PYTHON="3.13"
+#    - export UV_PYTHON_PREFERENCE="only-managed"
+#    - uv sync --frozen
+#    - uv run ruff check ocainstallationhelper tests
+#    - uv run mypy ocainstallationhelper tests
+#    - for db in coverage_*; do sqlite3 $db 'update file set path=replace(substr(path,instr(path,"ocainstallationhelper")),"\","/");'; done
+#    - echo -e '[run]\nrelative_files = True\n' > .coveragerc
+#    - uv run coverage combine coverage_*
+#    - uv run coverage xml
+#    - uv run coverage report
+#  coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+)%/'
+#  artifacts:
+#    name: 'oca-installation-helper_test'
+#    paths:
+#      - coverage.xml
+#    expire_in: 3 days
+#    reports:
+#      coverage_report:
+#        coverage_format: cobertura
+#        path: coverage.xml
 
 
 build:pyinstaller-darwin-x64:

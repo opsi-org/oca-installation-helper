@@ -10,7 +10,7 @@ opsi-client-agent installation_helper
 
 from opsicommon.logging import LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL, logging_config
 
-logger = logging_config(log_file="C:\\opsi.org\\log\\test.log", file_level=8)
+logging_config(log_file="C:\\opsi.org\\log\\test.log", file_level=8)
 
 import argparse
 import asyncio

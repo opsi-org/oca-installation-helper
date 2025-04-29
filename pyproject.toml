@@ -8,7 +8,7 @@ dependencies = [
 	"zeroconf==0.136.2",  # win7 compatibility
 	"psutil==7.0.0",  # win7 compatibility
 	"netifaces~=0.11",
-	"python-opsi-common>=4.3,<4.4",
+	"python-opsi-common==4.3.28.2",  # win7 compatibility
 	"textual~=0.81.0",
 	"pydantic>=2.9,<2.11",  # win7 compatibility
 	"pydantic-core>=2.20,<2.29",  # win7 compatibility
@@ -25,11 +25,11 @@ dependencies = [
 	"ruff==0.8.6",  # win7 compatibility
 	"pytest",
 	"pyinstaller",
-	"pytest-cov",
+	"pytest-cov==6.0.0",  # win7 compatibility
 	"coverage==7.6.12",  # win7 compatibility
 	"mypy",
 	"mypy-extensions==1.0.0",  # win7 compatibility
-	"typing-extensions==4.13.2",  # win7 compatibility
+	"typing-extensions==4.12.2",  # win7 compatibility
 	"types-psutil==6.1.0.20241221",  # win7 compatibility
 	"pytest-asyncio",
 	"websocket-client@git+https://github.com/j-a-n/websocket-client.git@7022449697ac165a36269754930882188cb3ba93"

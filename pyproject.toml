@@ -22,7 +22,7 @@ dependencies = [
 	"iniconfig==2.0.0",  # win7 compatibility
 	"lz4==4.4.3",  # win7 compatibility
 	"urllib3==2.3.0",  # win7 compatibility
-	"ruff",
+	"ruff==0.8.6",  # win7 compatibility
 	"pytest",
 	"pyinstaller",
 	"pytest-cov",
@@ -30,8 +30,9 @@ dependencies = [
 	"mypy",
 	"mypy-extensions==1.0.0",  # win7 compatibility
 	"typing-extensions==4.13.2",  # win7 compatibility
-	"types-psutil",
+	"types-psutil==6.1.0.20241221",  # win7 compatibility
 	"pytest-asyncio",
+	"websocket-client@git+https://github.com/j-a-n/websocket-client.git@7022449697ac165a36269754930882188cb3ba93"
 ]
 license = {text = "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)"}
 classifiers = [

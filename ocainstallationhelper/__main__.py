@@ -8,10 +8,6 @@
 opsi-client-agent installation_helper
 """
 
-from opsicommon.logging import LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL, logging_config
-
-logging_config(log_file="C:\\opsi.org\\log\\test.log", file_level=8)
-
 import argparse
 import asyncio
 import os
@@ -25,7 +21,7 @@ from pathlib import Path
 from typing import IO
 
 from opsicommon.exceptions import BackendAuthenticationError
-from opsicommon.logging import logging_config
+from opsicommon.logging import LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL, logging_config
 from opsicommon.system.subprocess import patch_popen
 
 from ocainstallationhelper import CONFIG_CACHE_DIRS, Dialog, __version__, logger

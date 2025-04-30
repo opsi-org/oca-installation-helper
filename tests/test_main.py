@@ -12,7 +12,7 @@ from typing import Any
 from unittest.mock import patch
 
 from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlags
-from opsicommon.objects import OpsiClient
+from opsicommon.objects import OpsiClient, ProductOnClient
 
 from .utils import get_installation_helper
 
@@ -31,6 +31,9 @@ class FakePopen:
 	def __init__(self, command: list[str], **kwargs: dict[str, Any]) -> None:
 		self.command = command
 		self.returncode = 0
+		self.stdout = None
+		self.stderr = None
+		popen_log.write(self.command)
 
 	def __enter__(self) -> FakePopen:
 		return self
@@ -39,7 +42,6 @@ class FakePopen:
 		pass
 
 	async def communicate(self, input: Any = None, timeout: float | None = None) -> tuple[bytes, bytes]:
-		popen_log.write(self.command)
 		return (b"", b"")
 
 
@@ -51,6 +53,10 @@ def fake_get_service_client(
 	address: str, username: str | None, password: str | None, verify: ServiceVerificationFlags, sso: bool = False
 ) -> ServiceClient:
 	return ServiceClient(address=address, username=username, password=password, verify=verify)
+
+
+def fake_get_pocs(self, package: str, client: str) -> list[ProductOnClient]:
+	return [ProductOnClient(package, "LocalbootProduct", client, actionProgress="", installationStatus="installed")]
 
 
 def test_helper_object() -> None:
@@ -89,8 +95,8 @@ def test_run(tmp_path: Path) -> None:
 				fake_get_service_client,
 			),
 			patch("ocainstallationhelper.backend.Backend.set_poc_to_installing"),
+			patch("ocainstallationhelper.backend.Backend.get_pocs", fake_get_pocs),
 			patch("ocainstallationhelper.__main__.asyncio.create_subprocess_exec", fake_create_subprocess_exec),
-			patch("ocainstallationhelper.backend.Backend.evaluate_success"),
 		):
 			installation_helper.run()
 		if platform.system().lower() == "windows":

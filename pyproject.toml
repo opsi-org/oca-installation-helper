@@ -2,7 +2,7 @@
 name = "oca-installation-helper"
 version = "4.3.2.1"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11,<3.14"
 description = "installer for opsi-client-agent packages"
 dependencies = [
 	"zeroconf==0.136.2",  # win7 compatibility

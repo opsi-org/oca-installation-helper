@@ -1,4 +1,4 @@
-image: docker.uib.gmbh/opsi/dev/pybuilder:deb9-py3.13
+image: docker.uib.gmbh/opsi/dev/pybuilder:deb9-py3.11
 
 stages:
   - test
@@ -9,9 +9,9 @@ stages:
 test:pytest-darwin:
   stage: test
   tags:
-    - catalina-py313-x64
+    - catalina-py311-x64
   script:
-    - export UV_PYTHON="3.13"
+    - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-managed"
     - uv sync --frozen
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
@@ -26,11 +26,11 @@ test:pytest-darwin:
 test:pytest-windows:
   stage: test
   tags:
-    - win10-py313-x86
+    - win10-py311-x86
   script:
     - $Env:UV_PYTHON_INSTALL_DIR = "c:\\uv\\python"
     - $Env:UV_CACHE_DIR = "c:\\uv\\cache"
-    - $Env:UV_PYTHON = ((uv python list --managed-python --all-arches | findstr 3.13 | findstr "\-x86\-" | findstr /v freethreaded) -split ' ')[0]
+    - $Env:UV_PYTHON = ((uv python list --managed-python --all-arches | findstr 3.11 | findstr "\-x86\-" | findstr /v freethreaded) -split ' ')[0]
     - $Env:UV_PYTHON_PREFERENCE = "only-managed"
     - uv sync --frozen
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
@@ -45,7 +45,7 @@ test:pytest-windows:
 test:pytest-linux:
   stage: test
   script:
-    - export UV_PYTHON="3.13"
+    - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-managed"
     - uv sync --frozen
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
@@ -73,7 +73,7 @@ test:pytest-linux:
 #    - apt-get update
 #    - apt-get --yes --allow-downgrades install libsqlite3-0=3.16.2-5+deb9u1
 #    - apt-get --yes install sqlite3
-#    - export UV_PYTHON="3.13"
+#    - export UV_PYTHON="3.11"
 #    - export UV_PYTHON_PREFERENCE="only-managed"
 #    - uv sync --frozen
 #    - uv run ruff check ocainstallationhelper tests
@@ -98,9 +98,9 @@ test:pytest-linux:
 build:pyinstaller-darwin-x64:
   stage: build
   tags:
-    - catalina-py313-x64
+    - catalina-py311-x64
   script:
-    - export UV_PYTHON="3.13"
+    - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-managed"
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
@@ -111,7 +111,7 @@ build:pyinstaller-darwin-x64:
 build:pyinstaller-linux-x64:
   stage: build
   script:
-    - export UV_PYTHON="3.13"
+    - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-managed"
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
@@ -124,7 +124,7 @@ build:pyinstaller-linux-arm64:
   tags:
     - linux-arm64
   script:
-    - export UV_PYTHON="3.13"
+    - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-managed"
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
@@ -135,15 +135,15 @@ build:pyinstaller-linux-arm64:
 build:pyinstaller-windows-x86:
   stage: build
   tags:
-    - win10-py313-x86
+    - win10-py311-x86
   script:
     - Invoke-WebRequest -UseBasicParsing -Uri "$OPSIDEVTOOLS_URL_WINDOWS_X86" -OutFile opsi-dev-tools.zip
     - Expand-Archive opsi-dev-tools.zip -DestinationPath .
     - Copy-Item opsi-dev-tool.exe opsi-dev-cli.exe
-    - $pythonPath = py -3.13 -c "import sys; print(sys.executable)"
+    - $pythonPath = py -3.11 -c "import sys; print(sys.executable)"
     - $Env:UV_PYTHON_INSTALL_DIR = "c:\\uv\\python"
     - $Env:UV_CACHE_DIR = "c:\\uv\\cache"
-    - $Env:UV_PYTHON = ((uv python list --managed-python --all-arches | findstr 3.13 | findstr "\-x86\-" | findstr /v freethreaded) -split ' ')[0]
+    - $Env:UV_PYTHON = ((uv python list --managed-python --all-arches | findstr 3.11 | findstr "\-x86\-" | findstr /v freethreaded) -split ' ')[0]
     - $Env:UV_PYTHON_PREFERENCE = "only-managed"
     - uv sync --frozen
     - uv run .\opsi-dev-cli -l info pyinstaller build

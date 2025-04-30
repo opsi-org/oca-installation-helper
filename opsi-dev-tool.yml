@@ -1,4 +1,4 @@
-pyinstaller-poetry:
+pyinstaller:
   one_file: yes
   scripts:
     - script: oca-installation-helper

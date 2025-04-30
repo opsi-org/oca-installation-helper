@@ -38,13 +38,14 @@ from ocainstallationhelper.utils import (
 
 patch_popen()
 
+OCA_INSTALL_TIMEOUT = 60 * 20  # 20 minutes
+
 
 class InstallationHelper:
 	def __init__(self, cmdline_args: argparse.Namespace) -> None:
 		# macos does not use DISPLAY. gui does not work properly on macos right now.
 		self.dialog: Dialog | None = None
 		self.backend: Backend | None = None
-		self.should_stop: bool = False
 		self.opsi_script_logfile: Path | None = None
 		self.tmp_dir: Path = Path(tempfile.gettempdir()) / "oca-installation-helper-tmp"
 		self.config = Config(cmdline_args)
@@ -175,9 +176,23 @@ class InstallationHelper:
 			stdout=asyncio.subprocess.PIPE,
 			stdin=asyncio.subprocess.PIPE,
 		)
-		out, _ = await proc.communicate()
-		logger.info("Command exit code: %s", proc.returncode)
-		logger.info("Command output: %s", out)
+		# out, _ = await proc.communicate()
+		# For some reason this hangs on win7 after successful oca installation and exit of opsi-script.
+		# Therefor we do not wait for process termination, but instead wait for oca poc to be not installing anymore.
+		now = time.time()
+		while time.time() - now < OCA_INSTALL_TIMEOUT:
+			await asyncio.sleep(5)
+			pocs = self.backend.get_pocs(self.config.oca_package, self.config.client_id)
+			if pocs and pocs[0].actionProgress != "installing":
+				break
+			logger.debug("still waiting for result")
+		if proc.returncode is None:
+			logger.warning("Killing process")
+			proc.kill()
+		else:
+			logger.info("Command exit code: %s", proc.returncode)
+			logger.debug("Command stdout: %s", (await proc.stdout.read()).decode("utf-8", errors="replace") if proc.stdout else "")
+			logger.debug("Command stderr: %s", (await proc.stderr.read()).decode("utf-8", errors="replace") if proc.stderr else "")
 
 	async def install(self) -> bool:
 		await self.show_message("Connecting to service...")

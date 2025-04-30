@@ -6,7 +6,7 @@ import platform
 from pathlib import Path
 
 from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlags, get_service_client
-from opsicommon.objects import OpsiClient
+from opsicommon.objects import OpsiClient, ProductOnClient
 
 from ocainstallationhelper import logger
 from ocainstallationhelper.utils import get_mac_address
@@ -96,6 +96,9 @@ class Backend:
 			],
 		)
 
+	def get_pocs(self, product_id: str, client_id: str) -> list[ProductOnClient]:
+		return self.service.jsonrpc("productOnClient_getObjects", [[], {"clientId": client_id, "productId": product_id}])
+
 	def set_product_property(self, client_id: str, property_id: str, value: list[str] | str | bool) -> None:
 		self.service.jsonrpc(
 			"productPropertyState_createObjects",
@@ -113,7 +116,7 @@ class Backend:
 		)
 
 	def evaluate_success(self, client_id: str) -> None:
-		product_on_client = self.service.jsonrpc("productOnClient_getObjects", [[], {"productId": self.product_id, "clientId": client_id}])
+		product_on_client = self.get_pocs(self.product_id, client_id)
 		if not product_on_client or not product_on_client[0]:
 			raise InstallationUnsuccessful(f"Product {self.product_id} not found on client {client_id}")
 		if not product_on_client[0].installationStatus == "installed":

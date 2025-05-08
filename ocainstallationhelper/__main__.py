@@ -143,13 +143,17 @@ class InstallationHelper:
 				r"C:\Windows\sysnative\WindowsPowerShell\v1.0\powershell.exe",
 			):
 				logger.debug("Trying command: '%s'", powershell_command)
-				proc = await asyncio.create_subprocess_exec(
-					powershell_command,
-					"-command",
-					"$PSVersionTable",
-					stdout=asyncio.subprocess.PIPE,
-					stderr=asyncio.subprocess.PIPE,
-				)
+				try:
+					proc = await asyncio.create_subprocess_exec(
+						powershell_command,
+						"-command",
+						"$PSVersionTable",
+						stdout=asyncio.subprocess.PIPE,
+						stderr=asyncio.subprocess.PIPE,
+					)
+				except FileNotFoundError:
+					logger.debug("Command not found: '%s'", powershell_command)
+					continue
 				stdout, stderr = await proc.communicate()
 				logger.debug("Stdout: %s", stdout.decode("utf-8", errors="replace"))
 				logger.debug("Stderr: %s", stderr.decode("utf-8", errors="replace"))
@@ -387,6 +391,7 @@ class InstallationHelper:
 		await self.show_message("Finished loading data")
 
 	def run(self) -> None:
+		logger.info("Starting installation helper %s", __version__)
 		error = None
 		try:
 			if platform.system().lower() != "windows":

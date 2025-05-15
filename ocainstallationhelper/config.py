@@ -32,9 +32,13 @@ logger = get_logger()
 class Config:
 	def __init__(self, cmdline_args: argparse.Namespace) -> None:
 		self.client_id: str | None = cmdline_args.client_id
+		if self.client_id and self.client_id.endswith("."):
+			self.client_id = self.client_id[:-1]
 		self.client_key: str | None = None
 		self.service_address: str | None = cmdline_args.service_address
 		self.service_username: str | None = cmdline_args.service_username
+		if self.service_username and self.service_username == self.client_id and self.service_username.endswith("."):
+			self.service_username = self.service_username[:-1]
 		self.service_password: str | None = cmdline_args.service_password
 		self.finalize: str | None = cmdline_args.finalize
 		self.dns_domain: str | None = cmdline_args.dns_domain

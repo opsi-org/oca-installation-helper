@@ -84,13 +84,14 @@ class InstallationHelper:
 		self.backend.get_from_depot("opsi-script", self.tmp_dir)
 		await self.show_message(f"Installation files succesfully copied to '{self.tmp_dir}'", "success")
 		self.config.opsi_script = self.tmp_dir / "opsi-script" / self.config.opsi_script_path
-		logger.debug(
-			"Copying opsi-script additional files from %s to %s",
-			self.tmp_dir / "opsi-script" / "common",
-			self.config.opsi_script.parent,
-		)
-		shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "skin", self.config.opsi_script.parent / "skin")
-		shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "lib", self.config.opsi_script.parent / "lib")
+		if self.config.oca_package != "opsi-mac-client-agent":
+			logger.debug(
+				"Copying opsi-script additional files from %s to %s",
+				self.tmp_dir / "opsi-script" / "common",
+				self.config.opsi_script.parent,
+			)
+			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "skin", self.config.opsi_script.parent / "skin")
+			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "lib", self.config.opsi_script.parent / "lib")
 		make_executable(self.config.opsi_script)
 		return self.tmp_dir / self.config.oca_package
 

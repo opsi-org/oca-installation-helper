@@ -104,6 +104,7 @@ build:pyinstaller-darwin-x64:
     - export UV_PYTHON_PREFERENCE="only-managed"
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
+    - opsi-dev-cli -l6 apple sign-and-notarize --macho-fix --print-log dist/oca-installation-helper
     - ./dist/oca-installation-helper --version
     - '[ "$CI_COMMIT_TAG" = "" ] && opsi-dev-cli -l info binary push dist/oca-installation-helper --prerelease="$CI_JOB_ID"'
     - '[ "$CI_COMMIT_TAG" = "" ] || opsi-dev-cli -l info binary push dist/oca-installation-helper'

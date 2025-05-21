@@ -59,7 +59,7 @@ def get_resource_path(relative_path: str) -> str:
 def get_mac_address() -> str | None:
 	gateways = netifaces.gateways()
 	logger.debug("Gateways: %s", gateways)
-	if "default" not in gateways:
+	if "default" not in gateways or not gateways["default"].values():
 		return None
 	default_if = list(gateways["default"].values())[0][1]
 	logger.info("Default interface: %s", default_if)
@@ -108,11 +108,11 @@ def get_this_oca_version() -> str | None:
 
 
 def show_message(message: str, message_type: str = "stdout") -> None:
-	#if platform.system().lower() == "windows":
-	#	from .gui import show_message as _show_message
+	# if platform.system().lower() == "windows":
+	# from .gui import show_message as _show_message
 
-	#	_show_message(message)
-	#else:
+	# _show_message(message)
+	# else:
 	if message_type == "stdout":
 		sys.stdout.write(message)
 	elif message_type == "stderr":

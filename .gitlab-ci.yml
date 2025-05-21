@@ -101,7 +101,7 @@ build:pyinstaller-darwin-x64:
     - catalina-py311-x64
   script:
     - export UV_PYTHON="3.11"
-    - export UV_PYTHON_PREFERENCE="only-managed"
+    - export UV_PYTHON_PREFERENCE="only-system"
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     #- opsi-dev-cli -l6 apple sign-and-notarize --macho-fix --print-log dist/oca-installation-helper

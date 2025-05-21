@@ -46,7 +46,7 @@ test:pytest-linux:
   stage: test
   script:
     - export UV_PYTHON="3.11"
-    - export UV_PYTHON_PREFERENCE="only-managed"
+    - export UV_PYTHON_PREFERENCE="only-system"
     - uv sync --frozen
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - mv .coverage coverage_linux
@@ -113,7 +113,7 @@ build:pyinstaller-linux-x64:
   stage: build
   script:
     - export UV_PYTHON="3.11"
-    - export UV_PYTHON_PREFERENCE="only-managed"
+    - export UV_PYTHON_PREFERENCE="only-system"
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     - ./dist/oca-installation-helper --version
@@ -126,7 +126,7 @@ build:pyinstaller-linux-arm64:
     - linux-arm64
   script:
     - export UV_PYTHON="3.11"
-    - export UV_PYTHON_PREFERENCE="only-managed"
+    - export UV_PYTHON_PREFERENCE="only-system"
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     - ./dist/oca-installation-helper --version

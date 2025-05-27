@@ -148,3 +148,18 @@ class Backend:
 	def get_from_depot(self, product: str, destination: Path) -> None:
 		logger.notice("Downloading product '%s' to '%s' from depot", product, destination)
 		self.service.download(f"/depot/{product}", destination)
+
+	def get_available_oca_version(self) -> str:
+		"""
+		Get the available OCA version from the service.
+		"""
+		try:
+			configserver = self.service.jsonrpc("host_getObjects", [[], {"type": "OpsiConfigserver"}])[0].id
+			version = self.service.jsonrpc("productOnDepot_getObjects", [[], {"productId": self.product_id, "depotId": configserver}])[
+				0
+			].productVersion
+			logger.info("Available OCA version: %s", version)
+			return version
+		except Exception as e:
+			logger.error("No %s package available on depot: %s", self.product_id, e)
+			raise InstallationUnsuccessful(f"No {self.product_id} package available on depot: {e}") from e

@@ -31,7 +31,6 @@ from ocainstallationhelper.utils import (
 	decode_password,
 	encode_password,
 	get_installed_oca_version,
-	get_this_oca_version,
 	make_executable,
 	show_message,
 )
@@ -181,23 +180,28 @@ class InstallationHelper:
 			stdout=asyncio.subprocess.PIPE,
 			stdin=asyncio.subprocess.PIPE,
 		)
-		# out, _ = await proc.communicate()
-		# For some reason this hangs on win7 after successful oca installation and exit of opsi-script.
-		# Therefor we do not wait for process termination, but instead wait for oca poc to be not installing anymore.
-		now = time.time()
-		while time.time() - now < OCA_INSTALL_TIMEOUT:
-			await asyncio.sleep(5)
-			pocs = self.backend.get_pocs(self.config.oca_package, self.config.client_id)
-			if pocs and pocs[0].actionProgress != "installing":
-				break
-			logger.debug("still waiting for result")
-		if proc.returncode is None:
-			logger.warning("Killing process")
-			proc.kill()
+		if platform.system().lower() == "windows" and platform.version().startswith("6.1"):  # Windows 7
+			# For some reason proc.communicate hangs on win7 after successful oca installation and exit of opsi-script.
+			# Therefor we do not wait for process termination, but instead wait for oca poc to be not installing anymore.
+			now = time.time()
+			while time.time() - now < OCA_INSTALL_TIMEOUT:
+				await asyncio.sleep(10)
+				pocs = self.backend.get_pocs(self.config.oca_package, self.config.client_id)
+				if pocs and pocs[0].actionProgress != "installing":
+					break
+				logger.debug("still waiting for result")
+			if time.time() - now > OCA_INSTALL_TIMEOUT:
+				logger.warning("Killing process")
+				proc.kill()
+			if proc.returncode is not None:
+				logger.info("Command exit code: %s", proc.returncode)
+				logger.debug("Command stdout: %s", (await proc.stdout.read()).decode("utf-8", errors="replace") if proc.stdout else "")
+				logger.debug("Command stderr: %s", (await proc.stderr.read()).decode("utf-8", errors="replace") if proc.stderr else "")
 		else:
+			out, err = await proc.communicate()
 			logger.info("Command exit code: %s", proc.returncode)
-			logger.debug("Command stdout: %s", (await proc.stdout.read()).decode("utf-8", errors="replace") if proc.stdout else "")
-			logger.debug("Command stderr: %s", (await proc.stderr.read()).decode("utf-8", errors="replace") if proc.stderr else "")
+			logger.debug("Command stdout: %s", (out.decode("utf-8", errors="replace") if out else ""))
+			logger.debug("Command stderr: %s", (err.decode("utf-8", errors="replace") if err else ""))
 
 	async def install(self) -> bool:
 		await self.show_message("Connecting to service...")
@@ -229,7 +233,7 @@ class InstallationHelper:
 			assert self.config.client_id  # for mypy
 			logger.info("Starting installation")
 			installed_oca_version = get_installed_oca_version()
-			this_oca_version = get_this_oca_version()
+			this_oca_version = self.backend.get_available_oca_version()
 			logger.debug(
 				"opsi-client-agent versions: installed=%s, this=%s",
 				installed_oca_version,

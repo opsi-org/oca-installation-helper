@@ -24,7 +24,7 @@ from typing import Generator
 import netifaces  # type: ignore[import]
 import psutil
 
-from . import KEY, POSIX_OCA_VERSION_FILE, THIS_OCA_VERSION_FILE, VERSION_PATTERN, WINDOWS_OCA_VERSION_FILE, logger
+from . import KEY, POSIX_OCA_VERSION_FILE, VERSION_PATTERN, WINDOWS_OCA_VERSION_FILE, logger
 
 
 def encode_password(cleartext: str) -> str:
@@ -101,10 +101,6 @@ def get_installed_oca_version() -> str | None:
 	else:
 		raise ValueError(f"Invalid system {platform.system()}")
 	return get_versionfile_content(version_file)
-
-
-def get_this_oca_version() -> str | None:
-	return get_versionfile_content(THIS_OCA_VERSION_FILE)
 
 
 def show_message(message: str, message_type: str = "stdout") -> None:

@@ -21,7 +21,7 @@ from opsicommon.logging import get_logger
 if TYPE_CHECKING:
 	from ocainstallationhelper.__main__ import InstallationHelper
 
-__version__ = "4.3.2.4"
+__version__ = "4.3.2.5"
 
 
 KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"

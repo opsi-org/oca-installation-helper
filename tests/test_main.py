@@ -97,6 +97,7 @@ def test_run(tmp_path: Path) -> None:
 			patch("ocainstallationhelper.backend.Backend.set_poc_to_installing"),
 			patch("ocainstallationhelper.backend.Backend.get_pocs", fake_get_pocs),
 			patch("ocainstallationhelper.__main__.asyncio.create_subprocess_exec", fake_create_subprocess_exec),
+			patch("ocainstallationhelper.backend.Backend.get_available_oca_version"),
 		):
 			installation_helper.run()
 		if platform.system().lower() == "windows":

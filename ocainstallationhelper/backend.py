@@ -88,8 +88,8 @@ class Backend:
 						"productType": "LocalbootProduct",
 						"clientId": client_id,
 						"productId": product_id,
-						"installationStatus": "unknown",
-						"actionRequest": "none",
+						"installationStatus": "not_installed",
+						"actionRequest": "setup",
 						"actionProgress": "installing",
 					}
 				]

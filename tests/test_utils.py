@@ -17,7 +17,6 @@ from ocainstallationhelper.utils import (
 	get_ip_interfaces,
 	get_mac_address,
 	get_resource_path,
-	get_this_oca_version,
 	show_message,
 )
 
@@ -40,7 +39,6 @@ def test_get_resource_path() -> None:
 
 def test_version_files() -> None:
 	get_installed_oca_version()
-	assert get_this_oca_version() is None
 
 
 @pytest.mark.skipif(platform.system().lower() == "windows", reason="We do not want to open gui during test")

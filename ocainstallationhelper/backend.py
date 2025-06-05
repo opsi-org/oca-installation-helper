@@ -149,12 +149,15 @@ class Backend:
 		logger.notice("Downloading product '%s' to '%s' from depot", product, destination)
 		self.service.download(f"/depot/{product}", destination)
 
+	def get_configserver_id(self) -> str:
+		return self.service.jsonrpc("host_getObjects", [[], {"type": "OpsiConfigserver"}])[0].id
+
 	def get_available_oca_version(self) -> str:
 		"""
 		Get the available OCA version from the service.
 		"""
 		try:
-			configserver = self.service.jsonrpc("host_getObjects", [[], {"type": "OpsiConfigserver"}])[0].id
+			configserver = self.get_configserver_id()
 			version = self.service.jsonrpc("productOnDepot_getObjects", [[], {"productId": self.product_id, "depotId": configserver}])[
 				0
 			].productVersion
@@ -163,3 +166,15 @@ class Backend:
 		except Exception as e:
 			logger.error("No %s package available on depot: %s", self.product_id, e)
 			raise InstallationUnsuccessful(f"No {self.product_id} package available on depot: {e}") from e
+
+	def get_depot_id(self, client_id: str) -> str:
+		"""
+		Get the depot ID for a given client.
+		"""
+		try:
+			depot_id = self.service.jsonrpc("configState_getClientToDepotserver", [[], [client_id]])[0]["depotId"]
+			logger.debug("Depot ID for client %s: %s", client_id, depot_id)
+			return depot_id
+		except Exception as e:
+			logger.error("Failed to get depot ID for client %s: %s", client_id, e)
+			raise InstallationUnsuccessful(f"Failed to get depot ID for client {client_id}: {e}") from e

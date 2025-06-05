@@ -76,11 +76,27 @@ class InstallationHelper:
 	async def copy_installation_files(self) -> Path:
 		if not self.backend:
 			raise ValueError("No backend connection.")
+		if not self.config.client_id:
+			raise ValueError("Insufficient data - no client_id set.")
 		self.cleanup()
-		await self.show_message(f"Copying installation files from depot to '{self.tmp_dir}'")
 		self.tmp_dir.mkdir(parents=True, exist_ok=True)
-		self.backend.get_from_depot(self.config.oca_package, self.tmp_dir)
-		self.backend.get_from_depot("opsi-script", self.tmp_dir)
+		depot_id = self.backend.get_depot_id(self.config.client_id)
+		await self.show_message(f"Copying installation files from depot '{depot_id}' to '{self.tmp_dir}'")
+		if depot_id != self.backend.get_configserver_id():
+			depot_backend = Backend(f"https://{depot_id}:4447", self.config.client_id, self.config.client_key)
+			try:
+				depot_backend.get_from_depot(self.config.oca_package, self.tmp_dir)
+			except Exception:
+				logger.error("Failed to get package '%s' from depot '%s'. Trying configserver.", self.config.oca_package, depot_id)
+				self.backend.get_from_depot(self.config.oca_package, self.tmp_dir)
+			try:
+				depot_backend.get_from_depot("opsi-script", self.tmp_dir)
+			except Exception:
+				logger.error("Failed to get package 'opsi-script' from depot '%s'. Trying configserver.", depot_id)
+				self.backend.get_from_depot("opsi-script", self.tmp_dir)
+		else:
+			self.backend.get_from_depot(self.config.oca_package, self.tmp_dir)
+			self.backend.get_from_depot("opsi-script", self.tmp_dir)
 		await self.show_message(f"Installation files succesfully copied to '{self.tmp_dir}'", "success")
 		self.config.opsi_script = self.tmp_dir / "opsi-script" / self.config.opsi_script_path
 		if self.config.oca_package != "opsi-mac-client-agent":
@@ -225,10 +241,6 @@ class InstallationHelper:
 		await self.show_message("Connected", "success")
 		if "." not in self.config.client_id:
 			self.config.client_id = f"{self.config.client_id}.{self.backend.get_domain()}"
-		self.base_dir = await self.copy_installation_files()
-		self.config.fill_config_from_files(self.base_dir)  # using copy destination as base dir
-		if self.dialog:
-			await self.dialog.update_values()
 		try:
 			assert self.config.client_id  # for mypy
 			logger.info("Starting installation")
@@ -247,6 +259,7 @@ class InstallationHelper:
 			self.cleanup_cache()
 			await self.service_setup()
 			self.config.check_values()
+			self.base_dir = await self.copy_installation_files()
 			await self.run_setup_script()
 			await self.show_message("Evaluating script result")
 			self.backend.evaluate_success(self.config.client_id)

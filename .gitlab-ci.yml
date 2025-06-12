@@ -104,6 +104,7 @@ build:pyinstaller-darwin-x64:
   script:
     - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-system"
+    - opsi-dev-cli self upgrade
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     #- opsi-dev-cli -l6 apple sign-and-notarize --macho-fix --print-log dist/oca-installation-helper
@@ -118,6 +119,7 @@ build:pyinstaller-linux-x64:
   script:
     - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-system"
+    - opsi-dev-cli self upgrade
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     - ./dist/oca-installation-helper --version
@@ -131,6 +133,7 @@ build:pyinstaller-linux-arm64:
   script:
     - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-system"
+    - opsi-dev-cli self upgrade
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     - ./dist/oca-installation-helper --version
@@ -142,17 +145,15 @@ build:pyinstaller-windows-x86:
   tags:
     - win10-py311-x86
   script:
-    - Invoke-WebRequest -UseBasicParsing -Uri "$OPSIDEVTOOLS_URL_WINDOWS_X86" -OutFile opsi-dev-tools.zip
-    - Expand-Archive opsi-dev-tools.zip -DestinationPath .
-    - Copy-Item opsi-dev-tool.exe opsi-dev-cli.exe
     - $pythonPath = py -3.11 -c "import sys; print(sys.executable)"
     - $Env:UV_PYTHON_INSTALL_DIR = "c:\\uv\\python"
     - $Env:UV_CACHE_DIR = "c:\\uv\\cache"
     - $Env:UV_PYTHON = ((uv python list --managed-python --all-arches | findstr 3.11 | findstr "\-x86\-" | findstr /v freethreaded) -split ' ')[0]
     - $Env:UV_PYTHON_PREFERENCE = "only-managed"
+    - irm "${OPSIDEVTOOLS_INSTALLER_URL_WINDOWS_X86}" | iex
     - uv sync --frozen
-    - uv run .\opsi-dev-cli -l info pyinstaller build
-    - .\opsi-dev-tool -l info --signserver-sign dist\oca-installation-helper.exe
+    - uv run opsi-dev-cli -l info pyinstaller build
+    - opsi-dev-cli -l info signserver sign dist\oca-installation-helper.exe
     # Check if binary is working
     - dist\oca-installation-helper.exe --version
     # Push to binaryindex

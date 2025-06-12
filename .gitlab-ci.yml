@@ -5,7 +5,6 @@ stages:
   - build
   - viruscheck
 
-
 test:pytest-darwin:
   stage: test
   tags:
@@ -17,7 +16,7 @@ test:pytest-darwin:
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - mv .coverage coverage_darwin
   artifacts:
-    name: 'oca-installation-helper_test_darwin'
+    name: "oca-installation-helper_test_darwin"
     paths:
       - testreport.xml
       - coverage_darwin
@@ -36,7 +35,7 @@ test:pytest-windows:
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - Rename-Item -Path .coverage -NewName coverage_windows
   artifacts:
-    name: 'oca-installation-helper_test_windows'
+    name: "oca-installation-helper_test_windows"
     paths:
       - testreport.xml
       - coverage_windows
@@ -44,6 +43,8 @@ test:pytest-windows:
 
 test:pytest-linux:
   stage: test
+  tags:
+    - docker-x64
   script:
     - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-system"
@@ -51,7 +52,7 @@ test:pytest-linux:
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - mv .coverage coverage_linux
   artifacts:
-    name: 'oca-installation-helper_test_linux'
+    name: "oca-installation-helper_test_linux"
     paths:
       - testreport.xml
       - coverage_linux
@@ -59,8 +60,10 @@ test:pytest-linux:
       junit: testreport.xml
     expire_in: 3 days
 
-test:pylint-pytest:
+test:lint-and-test:
   stage: test
+  tags:
+    - docker-x64
   needs:
     # We want to combine test coverage from all test jobs
     - job: test:pytest-windows
@@ -85,7 +88,7 @@ test:pylint-pytest:
     - uv run coverage report
   coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+)%/'
   artifacts:
-    name: 'oca-installation-helper_test'
+    name: "oca-installation-helper_test"
     paths:
       - coverage.xml
     expire_in: 3 days
@@ -93,7 +96,6 @@ test:pylint-pytest:
       coverage_report:
         coverage_format: cobertura
         path: coverage.xml
-
 
 build:pyinstaller-darwin-x64:
   stage: build
@@ -111,6 +113,8 @@ build:pyinstaller-darwin-x64:
 
 build:pyinstaller-linux-x64:
   stage: build
+  tags:
+    - docker-x64
   script:
     - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-system"
@@ -123,7 +127,7 @@ build:pyinstaller-linux-x64:
 build:pyinstaller-linux-arm64:
   stage: build
   tags:
-    - linux-arm64
+    - docker-arm64
   script:
     - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-system"
@@ -155,13 +159,14 @@ build:pyinstaller-windows-x86:
     - if (! $CI_COMMIT_TAG) {.\opsi-dev-cli -l info binary push dist\oca-installation-helper.exe --prerelease="$CI_JOB_ID"}
     - if ($CI_COMMIT_TAG) {.\opsi-dev-cli -l info binary push dist\oca-installation-helper.exe}
   artifacts:
-    name: 'windows_binary'
+    name: "windows_binary"
     paths:
       - dist\oca-installation-helper.exe
 
-
 viruscheck:virustotal:
   stage: viruscheck
+  tags:
+    - docker-x64
   script:
     - opsi-dev-cli -l info --output-format simple virustotal check dist/oca-installation-helper.exe --allow-detections=8
   only:

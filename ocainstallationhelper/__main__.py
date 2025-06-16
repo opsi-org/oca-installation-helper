@@ -231,6 +231,7 @@ class InstallationHelper:
 			assert self.config.client_id
 			logger.info("Starting installation")
 			configserver_id = self.backend.get_configserver_id()
+			await self.service_setup()
 			depot_id = self.backend.get_depot_id(self.config.client_id)
 			installed_oca_version = get_installed_oca_version()
 			depot_id, avail_oca_version = self.backend.get_available_oca_version(configserver_id, depot_id)
@@ -245,7 +246,6 @@ class InstallationHelper:
 				await self.show_message(f"Skipping installation as condition {self.config.install_condition} is not met.")
 				return False
 			self.cleanup_cache()
-			await self.service_setup()
 			self.config.check_values()
 			self.base_dir = await self.copy_installation_files(depot_id)
 			await self.run_setup_script()

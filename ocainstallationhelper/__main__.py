@@ -27,13 +27,7 @@ from opsicommon.system.subprocess import patch_popen
 from ocainstallationhelper import CONFIG_CACHE_DIRS, Dialog, __version__, logger
 from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
 from ocainstallationhelper.config import SETUP_SCRIPT_NAME, Config
-from ocainstallationhelper.utils import (
-	decode_password,
-	encode_password,
-	get_installed_oca_version,
-	make_executable,
-	show_message,
-)
+from ocainstallationhelper.utils import decode_password, encode_password, get_installed_oca_version, make_executable, show_message
 
 patch_popen()
 
@@ -73,31 +67,23 @@ class InstallationHelper:
 		if self.dialog:
 			await self.dialog.update_values()
 
-	async def copy_installation_files(self) -> Path:
+	async def copy_installation_files(self, depot_id: str) -> Path:
 		if not self.backend:
 			raise ValueError("No backend connection.")
 		if not self.config.client_id:
 			raise ValueError("Insufficient data - no client_id set.")
 		self.cleanup()
 		self.tmp_dir.mkdir(parents=True, exist_ok=True)
-		depot_id = self.backend.get_depot_id(self.config.client_id)
 		await self.show_message(f"Copying installation files from depot '{depot_id}' to '{self.tmp_dir}'")
-		if depot_id != self.backend.get_configserver_id():
-			depot_backend = Backend(f"https://{depot_id}:4447", self.config.client_id, self.config.client_key)
-			try:
-				depot_backend.get_from_depot(self.config.oca_package, self.tmp_dir)
-			except Exception:
-				logger.error("Failed to get package '%s' from depot '%s'. Trying configserver.", self.config.oca_package, depot_id)
-				self.backend.get_from_depot(self.config.oca_package, self.tmp_dir)
-			try:
-				depot_backend.get_from_depot("opsi-script", self.tmp_dir)
-			except Exception:
-				logger.error("Failed to get package 'opsi-script' from depot '%s'. Trying configserver.", depot_id)
-				self.backend.get_from_depot("opsi-script", self.tmp_dir)
-		else:
-			self.backend.get_from_depot(self.config.oca_package, self.tmp_dir)
-			self.backend.get_from_depot("opsi-script", self.tmp_dir)
-		await self.show_message(f"Installation files succesfully copied to '{self.tmp_dir}'", "success")
+		depot_backend = (
+			self.backend
+			if depot_id == self.backend.get_configserver_id()
+			else Backend(f"https://{depot_id}:4447", self.config.client_id, self.config.client_key)
+		)
+		depot_backend.get_from_depot(self.config.oca_package, self.tmp_dir)
+		depot_backend.get_from_depot("opsi-script", self.tmp_dir)
+
+		await self.show_message(f"Installation files succesfully copied from '{depot_id}' to '{self.tmp_dir}'", "success")
 		self.config.opsi_script = self.tmp_dir / "opsi-script" / self.config.opsi_script_path
 		if self.config.oca_package != "opsi-mac-client-agent":
 			logger.debug(
@@ -242,24 +228,26 @@ class InstallationHelper:
 		if "." not in self.config.client_id:
 			self.config.client_id = f"{self.config.client_id}.{self.backend.get_domain()}"
 		try:
-			assert self.config.client_id  # for mypy
+			assert self.config.client_id
 			logger.info("Starting installation")
+			configserver_id = self.backend.get_configserver_id()
+			depot_id = self.backend.get_depot_id(self.config.client_id)
 			installed_oca_version = get_installed_oca_version()
-			this_oca_version = self.backend.get_available_oca_version()
+			depot_id, avail_oca_version = self.backend.get_available_oca_version(configserver_id, depot_id)
 			logger.debug(
-				"opsi-client-agent versions: installed=%s, this=%s",
+				"opsi-client-agent versions: installed=%s, available=%s",
 				installed_oca_version,
-				this_oca_version,
+				avail_oca_version,
 			)
 			if (self.config.install_condition == "notinstalled" and installed_oca_version) or (
-				self.config.install_condition == "outdated" and installed_oca_version == this_oca_version
+				self.config.install_condition == "outdated" and installed_oca_version == avail_oca_version
 			):
 				await self.show_message(f"Skipping installation as condition {self.config.install_condition} is not met.")
 				return False
 			self.cleanup_cache()
 			await self.service_setup()
 			self.config.check_values()
-			self.base_dir = await self.copy_installation_files()
+			self.base_dir = await self.copy_installation_files(depot_id)
 			await self.run_setup_script()
 			await self.show_message("Evaluating script result")
 			self.backend.evaluate_success(self.config.client_id)

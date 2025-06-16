@@ -3,6 +3,7 @@ opsi-client-agent installation_helper backend class
 """
 
 import platform
+from functools import lru_cache
 from pathlib import Path
 
 from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlags, get_service_client
@@ -149,24 +150,11 @@ class Backend:
 		logger.notice("Downloading product '%s' to '%s' from depot", product, destination)
 		self.service.download(f"/depot/{product}", destination)
 
+	@lru_cache
 	def get_configserver_id(self) -> str:
-		return self.service.jsonrpc("host_getObjects", [[], {"type": "OpsiConfigserver"}])[0].id
+		return self.service.jsonrpc("host_getIdents", ["str", {"type": "OpsiConfigserver"}])[0]
 
-	def get_available_oca_version(self) -> str:
-		"""
-		Get the available OCA version from the service.
-		"""
-		try:
-			configserver = self.get_configserver_id()
-			version = self.service.jsonrpc("productOnDepot_getObjects", [[], {"productId": self.product_id, "depotId": configserver}])[
-				0
-			].productVersion
-			logger.info("Available OCA version: %s", version)
-			return version
-		except Exception as e:
-			logger.error("No %s package available on depot: %s", self.product_id, e)
-			raise InstallationUnsuccessful(f"No {self.product_id} package available on depot: {e}") from e
-
+	@lru_cache
 	def get_depot_id(self, client_id: str) -> str:
 		"""
 		Get the depot ID for a given client.
@@ -178,3 +166,21 @@ class Backend:
 		except Exception as e:
 			logger.error("Failed to get depot ID for client %s: %s", client_id, e)
 			raise InstallationUnsuccessful(f"Failed to get depot ID for client {client_id}: {e}") from e
+
+	def get_available_oca_version(self, configserver_id: str, depot_id: str) -> tuple[str, str]:
+		"""
+		Get the available OCA version from the service.
+		"""
+		dep_ids = {depot_id, configserver_id}
+		for dep_id in dep_ids:
+			logger.debug("Checking version of %r on depot %s", self.product_id, dep_id)
+			pods = self.service.jsonrpc("productOnDepot_getObjects", [[], {"productId": self.product_id, "depotId": depot_id}])
+			if pods:
+				logger.info("Available OCA version of depot %r: %r", dep_id, pods[0].productVersion)
+				return (dep_id, pods[0].productVersion)
+			if dep_id != configserver_id:
+				logger.warning(
+					f"Package {self.product_id!r} not available on depot {dep_id!r}, trying configserver depot {configserver_id!r} instead."
+				)
+
+		raise InstallationUnsuccessful(msg=f"Package {self.product_id!r} not available on {dep_ids!r}")

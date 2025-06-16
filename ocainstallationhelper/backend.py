@@ -183,4 +183,4 @@ class Backend:
 					f"Package {self.product_id!r} not available on depot {dep_id!r}, trying configserver depot {configserver_id!r} instead."
 				)
 
-		raise InstallationUnsuccessful(msg=f"Package {self.product_id!r} not available on {dep_ids!r}")
+		raise InstallationUnsuccessful(f"Package {self.product_id!r} not available on {dep_ids!r}")

@@ -18,4 +18,7 @@ pyinstaller:
     linux: opsi.ico
     darwin: opsi.icns
   extra_args:
-    - "--noconsole"
+    windows:
+      - --manifest
+      - oca-installation-helper.manifest
+      - --noconsole

@@ -20,6 +20,7 @@ from tkinter.ttk import Button, Entry, Frame, Label
 from typing import TYPE_CHECKING
 
 from opsicommon.logging import get_logger
+from PIL import Image, ImageTk
 
 from ocainstallationhelper import Dialog as BaseDialog
 
@@ -32,10 +33,11 @@ logger = get_logger("oca-installation-helper-gui")
 class GUIDialog(BaseDialog, Tk):
 	def __init__(self, inst_helper: InstallationHelper) -> None:
 		Tk.__init__(self)
+		icon = (Path(__file__).parent / "opsi.ico").resolve()
 		try:
-			self.iconbitmap("opsi.ico")
+			self.wm_iconphoto(True, ImageTk.PhotoImage(Image.open(str(icon))))  # type: ignore[arg-type]
 		except Exception as err:
-			logger.warning("Could not set icon: %s", err)
+			logger.warning("Could not set icon '%s': %s", icon, err)
 		self.title("opsi-client-agent Installer")
 		self.inst_helper = inst_helper
 		self.width = 600

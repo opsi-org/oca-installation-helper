@@ -19,6 +19,5 @@ pyinstaller:
     darwin: opsi.icns
   extra_args:
     windows:
-      - --manifest
-      - oca-installation-helper.manifest
+      - --uac-admin
       - --noconsole

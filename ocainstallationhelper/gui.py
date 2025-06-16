@@ -33,7 +33,7 @@ logger = get_logger("oca-installation-helper-gui")
 class GUIDialog(BaseDialog, Tk):
 	def __init__(self, inst_helper: InstallationHelper) -> None:
 		Tk.__init__(self)
-		icon = (Path(__file__).parent / "opsi.ico").resolve()
+		icon = (Path(__file__).parent.parent / "opsi.ico").resolve()
 		try:
 			self.wm_iconphoto(True, ImageTk.PhotoImage(Image.open(str(icon))))  # type: ignore[arg-type]
 		except Exception as err:

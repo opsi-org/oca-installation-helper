@@ -32,9 +32,14 @@ logger = get_logger("oca-installation-helper-gui")
 class GUIDialog(BaseDialog, Tk):
 	def __init__(self, inst_helper: InstallationHelper) -> None:
 		Tk.__init__(self)
+		try:
+			self.iconbitmap("opsi.ico")
+		except Exception as err:
+			logger.warning("Could not set icon: %s", err)
+		self.title("opsi-client-agent Installer")
 		self.inst_helper = inst_helper
-		self.width = 800
-		self.height = 500
+		self.width = 600
+		self.height = 300
 		self.padding = 10
 		if system().lower() != "windows":
 			self.attributes("-type", "dialog")

@@ -7,9 +7,9 @@ pyinstaller:
   dirname: ocainstallationhelper
   hidden_imports:
     all:
-    - zeroconf._utils.ipaddress
-    - zeroconf._handlers.answers
-    - tkinter
+      - zeroconf._utils.ipaddress
+      - zeroconf._handlers.answers
+      - tkinter
   data_files:
     - src: opsi.ico
       dst: .

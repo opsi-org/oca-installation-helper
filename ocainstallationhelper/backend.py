@@ -154,7 +154,6 @@ class Backend:
 	def get_configserver_id(self) -> str:
 		return self.service.jsonrpc("host_getIdents", ["str", {"type": "OpsiConfigserver"}])[0]
 
-	@lru_cache
 	def get_depot_id(self, client_id: str) -> str:
 		"""
 		Get the depot ID for a given client.

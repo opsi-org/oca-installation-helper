@@ -515,7 +515,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/a6/91/86a6eac449ddfae23
 
 [[package]]
 name = "oca-installation-helper"
-version = "4.3.2.5"
+version = "4.3.3.1"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },
@@ -558,7 +558,7 @@ requires-dist = [
     { name = "textual", specifier = "~=0.81.0" },
     { name = "types-psutil" },
     { name = "typing-extensions" },
-    { name = "websocket-client", git = "https://github.com/j-a-n/websocket-client.git?rev=7022449697ac165a36269754930882188cb3ba93" },
+    { name = "websocket-client" },
     { name = "zeroconf", specifier = ">=0.136.2" },
 ]
 
@@ -1069,7 +1069,11 @@ wheels = [
 [[package]]
 name = "websocket-client"
 version = "1.6.1"
-source = { git = "https://github.com/j-a-n/websocket-client.git?rev=7022449697ac165a36269754930882188cb3ba93#7022449697ac165a36269754930882188cb3ba93" }
+source = { registry = "https://pypi.uib.gmbh/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b1/34/3a5cae1e07d9566ad073fa6d169bf22c03a3ba7b31b3c3422ec88d039108/websocket-client-1.6.1.tar.gz", hash = "sha256:c951af98631d24f8df89ab1019fc365f2227c0892f12fd150e935607c79dd0dd", size = 51324, upload-time = "2023-06-23T11:12:00.007Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d3/a3/63e9329c8cc9be6153e919e17d0ef5b60d537fed78564872951b95bcc17c/websocket_client-1.6.1-py3-none-any.whl", hash = "sha256:f1f9f2ad5291f0225a49efad77abf9e700b6fef553900623060dad6e26503b9d", size = 56922, upload-time = "2023-06-23T11:11:56.965Z" },
+]
 
 [[package]]
 name = "wmi"

@@ -94,10 +94,12 @@ def test_run(tmp_path: Path) -> None:
 				"ocainstallationhelper.backend.get_service_client",
 				fake_get_service_client,
 			),
+			patch("ocainstallationhelper.backend.Backend.get_configserver_id", return_value="server.domain.local"),
+			patch("ocainstallationhelper.backend.Backend.get_depot_id", return_value="server.domain.local"),
 			patch("ocainstallationhelper.backend.Backend.set_poc_to_installing"),
 			patch("ocainstallationhelper.backend.Backend.get_pocs", fake_get_pocs),
 			patch("ocainstallationhelper.__main__.asyncio.create_subprocess_exec", fake_create_subprocess_exec),
-			patch("ocainstallationhelper.backend.Backend.get_available_oca_version"),
+			patch("ocainstallationhelper.backend.Backend.get_available_oca_version", return_value=("server.domain.local", "4.3.0.0")),
 		):
 			installation_helper.run()
 		if platform.system().lower() == "windows":

@@ -104,11 +104,12 @@ def get_installed_oca_version() -> str | None:
 
 
 def show_message(message: str, message_type: str = "stdout") -> None:
-	# if platform.system().lower() == "windows":
-	# from .gui import show_message as _show_message
+	if platform.system().lower() == "windows":
+		from .gui import show_message as show_message_gui
 
-	# _show_message(message)
-	# else:
+		show_message_gui(message, severity="normal")
+		return
+
 	if message_type == "stdout":
 		sys.stdout.write(message)
 	elif message_type == "stderr":

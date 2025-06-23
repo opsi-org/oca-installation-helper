@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from textual.app import App, ComposeResult
 from textual.containers import Container
@@ -122,7 +122,7 @@ class ConsoleDialog(BaseDialog, App):
 		self.buttons[button_id].disabled = not enabled
 		await asyncio.sleep(0.05)  # forces idle event and gives time for widgets to handle it
 
-	async def show_message(self, message: str, severity: str | None = None) -> None:
+	async def show_message(self, message: str, severity: Literal["normal", "error", "success"] = "normal") -> None:
 		assert self.message
 		if severity == "error":
 			message = f"[red]{message}[/red]"

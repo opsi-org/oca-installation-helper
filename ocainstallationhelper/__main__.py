@@ -18,7 +18,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import IO
+from typing import IO, Literal
 
 from opsicommon.exceptions import BackendAuthenticationError
 from opsicommon.logging import LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL, logging_config
@@ -299,7 +299,7 @@ class InstallationHelper:
 		if self.dialog:
 			await self.dialog.update_values()
 
-	async def show_message(self, message: str, severity: str | None = None) -> None:
+	async def show_message(self, message: str, severity: Literal["normal", "error", "success"] = "normal") -> None:
 		if message:
 			log = logger.info
 			exc_info = False

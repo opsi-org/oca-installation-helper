@@ -17,7 +17,7 @@ from pathlib import Path
 from platform import system
 from tkinter import Message, StringVar, Tk
 from tkinter.ttk import Button, Entry, Frame, Label
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from opsicommon.logging import get_logger
 from PIL import Image, ImageTk
@@ -154,7 +154,7 @@ class GUIDialog(BaseDialog, Tk):
 			raise ValueError(f"Button {button} not found")
 		self.buttons[button].config(state="normal" if enabled else "disabled")
 
-	async def show_message(self, message: str, severity: str | None) -> None:
+	async def show_message(self, message: str, severity: Literal["normal", "error", "success"] = "normal") -> None:
 		try:
 			color = "black"
 			if severity == "error":
@@ -177,3 +177,22 @@ class GUIDialog(BaseDialog, Tk):
 			subprocess.Popen(("notepad.exe", self.relevant_log_file))
 		else:
 			subprocess.Popen(("xdg-open", self.relevant_log_file))
+
+
+def show_message(message: str, severity: Literal["normal", "error", "success"] = "normal") -> None:
+	"""
+	Show a message in a GUI dialog.
+	:param message: The message to show.
+	:param severity: The severity of the message, can be "normal", "error", or "success".
+	"""
+	window = Tk()
+	msg = Message(window, text=message, width=400)
+	if severity == "error":
+		msg.config(fg="red")
+	elif severity == "success":
+		msg.config(fg="green")
+	msg.pack(padx=20, pady=20)
+	window.title("Message")
+	window.geometry("400x200")
+	window.mainloop()  # Start the GUI event loop
+	logger.info("Message dialog closed")

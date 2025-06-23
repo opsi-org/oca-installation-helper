@@ -15,7 +15,7 @@ import asyncio
 import subprocess
 from pathlib import Path
 from platform import system
-from tkinter import Message, StringVar, Tk
+from tkinter import Message, StringVar, Text, Tk
 from tkinter.ttk import Button, Entry, Frame, Label
 from typing import TYPE_CHECKING, Literal
 
@@ -186,7 +186,8 @@ def show_message(message: str, severity: Literal["normal", "error", "success"] =
 	:param severity: The severity of the message, can be "normal", "error", or "success".
 	"""
 	window = Tk()
-	msg = Message(window, text=message, width=400)
+	msg = Text(window, wrap="word", height=10, width=50)
+	msg.insert("1.0", message)
 	if severity == "error":
 		msg.config(fg="red")
 	elif severity == "success":

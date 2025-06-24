@@ -14,14 +14,14 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from opsicommon.logging import get_logger
 
 if TYPE_CHECKING:
 	from ocainstallationhelper.__main__ import InstallationHelper
 
-__version__ = "4.3.2.7"
+__version__ = "4.3.3.1"
 
 
 KEY = "ahmaiweepheeVee5Eibieshai4tei7nohhochudae7show0phahmujai9ahk6eif"
@@ -47,7 +47,7 @@ class Dialog:
 	async def set_button_enabled(self, button: str, state: bool) -> None:
 		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
 
-	async def show_message(self, message: str, severity: str | None) -> None:
+	async def show_message(self, message: str, severity: Literal["normal", "error", "success"]) -> None:
 		raise NotImplementedError("Methods of Dialog must be implemented by subclass")
 
 	async def show_logpath(self, logpath: Path | str | None) -> None:

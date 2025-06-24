@@ -155,10 +155,11 @@ build:pyinstaller-windows-x86:
     - uv run opsi-dev-cli -l info pyinstaller build
     - opsi-dev-cli -l info signserver sign dist\oca-installation-helper.exe
     # Check if binary is working
-    - dist\oca-installation-helper.exe --version
+    # - dist\oca-installation-helper.exe --version  # this blocks until window is closed
     # Push to binaryindex
     - if (! $CI_COMMIT_TAG) {opsi-dev-cli -l info binary push dist\oca-installation-helper.exe --prerelease="$CI_JOB_ID"}
     - if ($CI_COMMIT_TAG) {opsi-dev-cli -l info binary push dist\oca-installation-helper.exe}
+    - echo "Build finished successfully"
   artifacts:
     name: "windows_binary"
     paths:

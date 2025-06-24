@@ -163,7 +163,7 @@ build:pyinstaller-windows-x86:
   artifacts:
     name: "windows_binary"
     paths:
-      - dist\oca-installation-helper.exe
+      - dist\\oca-installation-helper.exe
 
 viruscheck:virustotal:
   stage: viruscheck

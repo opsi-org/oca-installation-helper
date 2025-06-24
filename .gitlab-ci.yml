@@ -161,9 +161,9 @@ build:pyinstaller-windows-x86:
     - if ($CI_COMMIT_TAG) {opsi-dev-cli -l info binary push dist\oca-installation-helper.exe}
     - echo "Build finished successfully"
   artifacts:
-    name: "windows_binary"
+    name: 'windows_binary'
     paths:
-      - dist\\oca-installation-helper.exe
+      - dist\oca-installation-helper.exe
 
 viruscheck:virustotal:
   stage: viruscheck

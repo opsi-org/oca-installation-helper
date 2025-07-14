@@ -104,7 +104,7 @@ build:pyinstaller-darwin-x64:
   script:
     - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-system"
-    - opsi-dev-cli self upgrade
+    - curl -sS "${OPSIDEVTOOLS_INSTALLER_URL_MACOS_X64}" | sh
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     #- opsi-dev-cli -l6 apple sign-and-notarize --macho-fix --print-log dist/oca-installation-helper
@@ -119,7 +119,7 @@ build:pyinstaller-linux-x64:
   script:
     - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-system"
-    - opsi-dev-cli self upgrade
+    - curl -sS "${OPSIDEVTOOLS_INSTALLER_URL_LINUX_X64}" | sh
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     - ./dist/oca-installation-helper --version
@@ -133,7 +133,7 @@ build:pyinstaller-linux-arm64:
   script:
     - export UV_PYTHON="3.11"
     - export UV_PYTHON_PREFERENCE="only-system"
-    - opsi-dev-cli self upgrade
+    - curl -sS "${OPSIDEVTOOLS_INSTALLER_URL_LINUX_ARM64}" | sh
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     - ./dist/oca-installation-helper --version

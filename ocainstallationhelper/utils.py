@@ -64,6 +64,10 @@ def get_mac_address() -> str | None:
 	default_if = list(gateways["default"].values())[0][1]
 	logger.info("Default interface: %s", default_if)
 	addrs = netifaces.ifaddresses(default_if)
+	logger.debug("Addresses for '%s': %s", default_if, addrs)
+	if netifaces.AF_LINK not in addrs or not addrs[netifaces.AF_LINK]:
+		logger.warning("No link address (%s) found for '%s'", netifaces.AF_LINK, default_if)
+		return None
 	mac = addrs[netifaces.AF_LINK][0]["addr"]
 	logger.info("Default mac address: %s", mac)
 	return mac

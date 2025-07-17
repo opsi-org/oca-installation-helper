@@ -511,7 +511,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 	parser.add_argument("--gui", action="store_true", help="Use gui.")
 	parser.add_argument("--encode-password", action="store", metavar="PASSWORD", help="Encode PASSWORD.")
 	parser.add_argument("--depot", help="Assign client to specified depot.", metavar="DEPOT")
-	parser.add_argument("--depot-by-network", help="Assign client to depot with matching network.")
+	parser.add_argument("--depot-by-network", help="Assign client to depot with matching network.", action="store_true")
 	parser.add_argument("--group", help="Insert client into specified host group.", metavar="HOSTGROUP")
 	parser.add_argument(
 		"--force-recreate-client",

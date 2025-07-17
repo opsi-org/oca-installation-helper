@@ -43,6 +43,10 @@ class Config:
 		self.finalize: str | None = cmdline_args.finalize
 		self.dns_domain: str | None = cmdline_args.dns_domain
 		self.depot: str | None = cmdline_args.depot
+		self.depot_by_network: str | None = cmdline_args.depot_by_network
+		if self.depot and self.depot_by_network:
+			logger.error("Both depot and depot_by_network are set.")
+			raise ValueError("Both depot and depot_by_network are set.")
 		self.group: str | None = cmdline_args.group
 		self.sso: bool = cmdline_args.sso or False
 		self.bootimage: bool = cmdline_args.bootimage or False

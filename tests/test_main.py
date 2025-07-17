@@ -12,7 +12,10 @@ from typing import Any
 from unittest.mock import patch
 
 from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlags
-from opsicommon.objects import OpsiClient, ProductOnClient
+from opsicommon.logging import use_logging_config
+from opsicommon.objects import OpsiClient, OpsiDepotserver, ProductOnClient
+
+from ocainstallationhelper.backend import Backend
 
 from .utils import get_installation_helper
 
@@ -122,3 +125,20 @@ def test_run(tmp_path: Path) -> None:
 			"-parameter",
 			"noreboot",
 		]
+
+
+def test_get_depot_id_by_network() -> None:
+	depots = [
+		OpsiDepotserver(id="depot1.domain.local", networkAddress="192.168.0.255/32"),
+		OpsiDepotserver(id="depot2.domain.local", networkAddress="0.0.0.0/0"),
+	]
+	with (
+		patch(
+			"ocainstallationhelper.backend.get_service_client",
+			fake_get_service_client,
+		),
+		use_logging_config(stderr_level=7),
+	):
+		backend = Backend("foo", "bar", "baz")
+		with patch.object(backend.service, "jsonrpc", return_value=depots):
+			assert backend.get_depot_id_by_network() == "depot2.domain.local"

@@ -177,6 +177,7 @@ class Backend:
 
 		ifaces = list(get_ip_interfaces())
 		logger.info("Local ip interfaces: %s", [iface.compressed for iface in ifaces])
+		matches: list[tuple[str, ipaddress.IPv4Network | ipaddress.IPv6Network]] = []
 		for depot_id, service_address_str in depot_addresses.items():
 			logger.debug("Service address for depot %s: %s", depot_id, service_address_str)
 			try:
@@ -186,10 +187,18 @@ class Backend:
 			for iface in ifaces:
 				if iface.ip in service_network:
 					logger.info("Ip '%s' in network '%s'", iface.ip, service_network)
-					logger.notice("Selecting depot %s for client based on network %s", depot_id, service_network)
-					return depot_id
-				logger.debug("Ip '%s' not in network '%s'", iface.ip, service_network)
-		raise ValueError("Failed to find depot ID based on network. No depot matches the client's network.")
+					matches.append((depot_id, service_network))
+				else:
+					logger.debug("Ip '%s' not in network '%s'", iface.ip, service_network)
+		# If multiple matches, prefer the smallest network
+		if matches:
+			matches.sort(key=lambda x: x[1].prefixlen, reverse=True)
+			logger.notice("Selecting depot %s for client based on network %s", matches[0][0], matches[0][1])
+			depot_id = matches[0][0]
+		else:
+			logger.warning("Failed to find depot ID based on network. No depot matches the client's network. Fallback to Configserver.")
+			depot_id = self.get_configserver_id()
+		return depot_id
 
 	def get_available_oca_version(self, configserver_id: str, depot_id: str) -> tuple[str, str]:
 		"""

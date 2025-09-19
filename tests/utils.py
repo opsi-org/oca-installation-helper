@@ -27,6 +27,6 @@ def get_installation_helper(args: list[str] | None = None) -> Generator[Installa
 
 
 def fake_get_service_client(
-	address: str, username: str | None, password: str | None, verify: ServiceVerificationFlags, sso: bool = False
+	address: str, username: str | None, password: str | None, verify: ServiceVerificationFlags, sso: bool = False, connect_timeout: int = 10
 ) -> ServiceClient:
-	return ServiceClient(address=address, username=username, password=password, verify=verify)
+	return ServiceClient(address=address, username=username, password=password, verify=verify, connect_timeout=connect_timeout)

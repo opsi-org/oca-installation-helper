@@ -27,6 +27,7 @@ class Backend:
 			password=password,
 			verify=ServiceVerificationFlags.ACCEPT_ALL,
 			sso=sso,
+			connect_timeout=60,  # in case of slow network
 		)
 
 		self.service_address: str | None = self.service.base_url

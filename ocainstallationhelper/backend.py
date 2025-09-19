@@ -2,6 +2,7 @@
 opsi-client-agent installation_helper backend class
 """
 
+import ipaddress
 import platform
 from functools import lru_cache
 from pathlib import Path
@@ -10,7 +11,7 @@ from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlag
 from opsicommon.objects import OpsiClient, ProductOnClient
 
 from ocainstallationhelper import logger
-from ocainstallationhelper.utils import get_mac_address
+from ocainstallationhelper.utils import get_ip_interfaces, get_mac_address
 
 
 class InstallationUnsuccessful(Exception):
@@ -165,6 +166,39 @@ class Backend:
 		except Exception as e:
 			logger.error("Failed to get depot ID for client %s: %s", client_id, e)
 			raise InstallationUnsuccessful(f"Failed to get depot ID for client {client_id}: {e}") from e
+
+	def get_depot_id_by_network(self) -> str:
+		"""
+		Get the depot ID for a given client based on its network.
+		"""
+		depots = self.service.jsonrpc("host_getObjects", [[], {"type": "OpsiDepotserver"}])
+		depot_addresses = {depot.id: depot.networkAddress for depot in depots if depot.networkAddress}
+		logger.debug("Depot addresses: %s", depot_addresses)
+
+		ifaces = list(get_ip_interfaces())
+		logger.info("Local ip interfaces: %s", [iface.compressed for iface in ifaces])
+		matches: list[tuple[str, ipaddress.IPv4Network | ipaddress.IPv6Network]] = []
+		for depot_id, service_address_str in depot_addresses.items():
+			logger.debug("Service address for depot %s: %s", depot_id, service_address_str)
+			try:
+				service_network = ipaddress.ip_network(service_address_str)
+			except ValueError as err:
+				logger.warning("Failed to parse service address '%s': %s", service_address_str, err)
+			for iface in ifaces:
+				if iface.ip in service_network:
+					logger.info("Ip '%s' in network '%s'", iface.ip, service_network)
+					matches.append((depot_id, service_network))
+				else:
+					logger.debug("Ip '%s' not in network '%s'", iface.ip, service_network)
+		# If multiple matches, prefer the smallest network
+		if matches:
+			matches.sort(key=lambda x: x[1].prefixlen, reverse=True)
+			logger.notice("Selecting depot %s for client based on network %s", matches[0][0], matches[0][1])
+			depot_id = matches[0][0]
+		else:
+			logger.warning("Failed to find depot ID based on network. No depot matches the client's network. Fallback to Configserver.")
+			depot_id = self.get_configserver_id()
+		return depot_id
 
 	def get_available_oca_version(self, configserver_id: str, depot_id: str) -> tuple[str, str]:
 		"""

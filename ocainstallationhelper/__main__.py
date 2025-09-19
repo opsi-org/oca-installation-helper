@@ -280,13 +280,20 @@ class InstallationHelper:
 				client_id=self.config.client_id, property_id="setup_after_install", value=self.config.setup_after_install
 			)
 
-		if self.config.depot:
+		if self.config.depot or self.config.depot_by_network:
 			if self.config.client_id == self.config.service_username:
 				raise PermissionError(
 					"Authorization error: Need opsi admin privileges to assign to depot",
 					"error",
 				)
-			self.backend.assign_client_to_depot(self.config.client_id, self.config.depot)
+			if self.config.depot:
+				depot = self.config.depot
+			else:
+				depot = self.backend.get_depot_id_by_network()
+				if not depot:
+					raise InstallationUnsuccessful(f"Failed to get depot ID for client {self.config.client_id}")
+				logger.info("Using depot %s for client %s", depot, self.config.client_id)
+			self.backend.assign_client_to_depot(self.config.client_id, depot)
 
 		if self.config.group:
 			if self.config.client_id == self.config.service_username:
@@ -504,6 +511,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 	parser.add_argument("--gui", action="store_true", help="Use gui.")
 	parser.add_argument("--encode-password", action="store", metavar="PASSWORD", help="Encode PASSWORD.")
 	parser.add_argument("--depot", help="Assign client to specified depot.", metavar="DEPOT")
+	parser.add_argument("--depot-by-network", help="Assign client to depot with matching network.", action="store_true")
 	parser.add_argument("--group", help="Insert client into specified host group.", metavar="HOSTGROUP")
 	parser.add_argument(
 		"--force-recreate-client",

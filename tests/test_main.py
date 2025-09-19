@@ -11,10 +11,9 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlags
 from opsicommon.objects import OpsiClient, ProductOnClient
 
-from .utils import get_installation_helper
+from .utils import fake_get_service_client, get_installation_helper
 
 
 class PopenLog:
@@ -47,12 +46,6 @@ class FakePopen:
 
 async def fake_create_subprocess_exec(*args: str, **kwargs: dict[str, Any]) -> FakePopen:
 	return FakePopen(list(args), kwargs=kwargs)
-
-
-def fake_get_service_client(
-	address: str, username: str | None, password: str | None, verify: ServiceVerificationFlags, sso: bool = False
-) -> ServiceClient:
-	return ServiceClient(address=address, username=username, password=password, verify=verify)
 
 
 def fake_get_pocs(self, package: str, client: str) -> list[ProductOnClient]:

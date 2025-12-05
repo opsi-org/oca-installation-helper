@@ -1,12 +1,15 @@
-# -*- coding: utf-8 -*-
+# This file is part of the desktop management solution opsi http://www.opsi.org
+# Copyright (c) 2023-2025 uib GmbH <info@uib.de>
+# This code is owned by the uib GmbH, Mainz, Germany (uib.de). All rights reserved.
+# License: AGPL-3.0-only
 
-# opsiclientd is part of the desktop management solution opsi http://www.opsi.org
-# Copyright (c) 2010-2021 uib GmbH <info@uib.de>
-# All rights reserved.
-# License: AGPL-3.0
 """
 opsi-client-agent installation_helper
 """
+
+
+import sys
+import traceback
 
 import argparse
 import asyncio
@@ -464,13 +467,14 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 	parser = ArgumentParser()
 	parser.add_argument("--version", action="version", version=__version__)
 	parser.add_argument(
+	parser.add_argument(
 		"--log-file",
-		default=str(Path(tempfile.gettempdir()) / "oca-installation-helper.log"),
+		default=str((Path(r"C:\opsi.org\log") if platform.system().lower() == "windows" else Path("/var/log")) / "oca-installation-helper.log")
 	)
 	parser.add_argument(
 		"--log-level",
 		"-l",
-		default="warning",
+		default="info",
 		choices=[
 			"0",
 			"none",
@@ -581,6 +585,7 @@ def main() -> None:
 
 	if log_level != 0:
 		log_file = Path(args.log_file)
+		log_file.parent.mkdir(parents=True, exist_ok=True)
 		if log_file.exists():
 			log_file.unlink()
 		logging_config(
@@ -591,3 +596,18 @@ def main() -> None:
 		)
 
 	InstallationHelper(args).run()
+
+
+if __name__ == "__main__":
+	try:
+		main()
+	except SystemExit:
+		pass
+	except KeyboardInterrupt:
+		print("Interrupted", file=sys.stderr)
+		sys.exit(1)
+	except Exception:
+		# Do not let pyinstaller handle exceptions and print:
+		# "Failed to execute script"
+		traceback.print_exc()
+		sys.exit(1)

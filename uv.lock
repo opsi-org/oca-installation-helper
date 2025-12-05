@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11, <3.14"
 resolution-markers = [
     "sys_platform == 'darwin'",
@@ -515,7 +515,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/a6/91/86a6eac449ddfae23
 
 [[package]]
 name = "oca-installation-helper"
-version = "4.3.3.4"
+version = "4.3.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },

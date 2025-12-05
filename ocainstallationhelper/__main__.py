@@ -7,7 +7,6 @@
 opsi-client-agent installation_helper
 """
 
-
 import sys
 import traceback
 
@@ -17,7 +16,6 @@ import os
 import platform
 import shutil
 import subprocess
-import sys
 import tempfile
 import time
 from pathlib import Path
@@ -468,7 +466,9 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 	parser.add_argument("--version", action="version", version=__version__)
 	parser.add_argument(
 		"--log-file",
-		default=str((Path(r"C:\opsi.org\log") if platform.system().lower() == "windows" else Path("/var/log")) / "oca-installation-helper.log")
+		default=str(
+			(Path(r"C:\opsi.org\log") if platform.system().lower() == "windows" else Path("/var/log")) / "oca-installation-helper.log"
+		),
 	)
 	parser.add_argument(
 		"--log-level",

@@ -467,7 +467,6 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 	parser = ArgumentParser()
 	parser.add_argument("--version", action="version", version=__version__)
 	parser.add_argument(
-	parser.add_argument(
 		"--log-file",
 		default=str((Path(r"C:\opsi.org\log") if platform.system().lower() == "windows" else Path("/var/log")) / "oca-installation-helper.log")
 	)

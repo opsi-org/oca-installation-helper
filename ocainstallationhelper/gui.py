@@ -147,10 +147,10 @@ class GUIDialog(BaseDialog, Tk):
 			if attr in self.inputs:
 				self.string_vars[attr].set(getattr(self.inst_helper.config, attr) or "")
 
-	async def set_button_enabled(self, button: str, enabled: bool) -> None:
+	async def set_button_enabled(self, button: str, state: bool) -> None:
 		if button not in self.buttons:
 			raise ValueError(f"Button {button} not found")
-		self.buttons[button].config(state="normal" if enabled else "disabled")
+		self.buttons[button].config(state="normal" if state else "disabled")
 
 	async def show_message(self, message: str, severity: Literal["normal", "error", "success"] = "normal") -> None:
 		try:

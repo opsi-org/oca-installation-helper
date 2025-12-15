@@ -84,6 +84,7 @@ class InstallationHelper:
 
 		await self.show_message(f"Installation files succesfully copied from '{depot_id}' to '{self.tmp_dir}'", "success")
 		self.config.opsi_script = self.tmp_dir / "opsi-script" / self.config.opsi_script_path
+		assert isinstance(self.config.opsi_script, Path)
 		if self.config.oca_package != "opsi-mac-client-agent":
 			logger.debug(
 				"Copying opsi-script additional files from %s to %s",
@@ -261,12 +262,11 @@ class InstallationHelper:
 		if not self.backend:
 			raise ValueError("No backend connection.")
 
-		assert self.config.client_id  # for mypy
-
 		if self.dialog:
 			await self.dialog.set_button_enabled("install", False)
 
 		await self.show_message("Obtaining Client object")
+		assert self.config.client_id
 		client = self.backend.get_or_create_client(
 			self.config.client_id,
 			force_create=self.config.force_recreate_client,
@@ -274,6 +274,8 @@ class InstallationHelper:
 		)
 		self.config.client_key = client.opsiHostKey
 		self.config.client_id = str(client.id)
+		assert self.config.client_id
+
 		await self.show_message("Client exists", "success")
 
 		if self.config.setup_after_install:

@@ -116,8 +116,8 @@ class ConsoleDialog(BaseDialog, App):
 				self.inputs[attr].refresh()
 		await asyncio.sleep(0.05)  # forces idle event and gives time for widgets to handle it
 
-	async def set_button_enabled(self, button_id: str, enabled: bool) -> None:
-		self.buttons[button_id].disabled = not enabled
+	async def set_button_enabled(self, button: str, state: bool) -> None:
+		self.buttons[button].disabled = not state
 		await asyncio.sleep(0.05)  # forces idle event and gives time for widgets to handle it
 
 	async def show_message(self, message: str, severity: Literal["normal", "error", "success"] = "normal") -> None:

@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Generator
 
 from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlags
+from opsicommon.exceptions import OpsiServiceConnectionError
 
 from ocainstallationhelper.__main__ import InstallationHelper, parse_args
 
@@ -32,6 +33,23 @@ def get_installation_helper(args: list[str] | None = None) -> Generator[Installa
 
 
 def fake_get_service_client(
-	address: str, username: str | None, password: str | None, verify: ServiceVerificationFlags, sso: bool = False, connect_timeout: int = 10
+	address: str,
+	username: str | None,
+	password: str | None,
+	verify: ServiceVerificationFlags,
+	sso: bool = False,
+	connect_timeout: int = 10,
+	auto_connect: bool = True,
 ) -> ServiceClient:
-	return ServiceClient(address=address, username=username, password=password, verify=verify, connect_timeout=connect_timeout)
+	service_client = ServiceClient(address=address, username=username, password=password, verify=verify, connect_timeout=connect_timeout)
+	attempt = 0
+
+	def connect() -> None:
+		nonlocal attempt
+		attempt += 1
+		if attempt == 1:
+			raise OpsiServiceConnectionError("Simulated connection error")
+		return None
+
+	service_client.connect = connect  # type: ignore[invalid-assignment]
+	return service_client

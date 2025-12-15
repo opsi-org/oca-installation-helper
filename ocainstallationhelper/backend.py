@@ -143,10 +143,11 @@ class Backend:
 	def get_or_create_client(self, client_id: str, force_create: bool = False, set_mac_address: bool = True) -> OpsiClient:
 		clients = self.service.jsonrpc("host_getObjects", [[], {"id": client_id}])
 		logger.debug("Got client objects: %r", clients)
+		mac_address = get_mac_address()
 		if not clients or force_create:
 			# id, opsiHostKey, description, notes, hardwareAddress, ipAddress,
 			# inventoryNumber, oneTimePassword, created, lastSeen
-			client_args = [client_id, None, None, None, get_mac_address()]
+			client_args = [client_id, None, None, None, mac_address]
 			logger.info("Creating client: %s", client_args)
 			self.service.jsonrpc("host_createOpsiClient", client_args)
 			clients = self.service.jsonrpc("host_getObjects", [[], {"id": client_id}])
@@ -156,9 +157,9 @@ class Backend:
 			logger.info("Client created")
 
 		# If no hardwareAddress is set on client object, add it
-		if set_mac_address and not clients[0].hardwareAddress:
+		if set_mac_address and not clients[0].hardwareAddress and mac_address:
 			logger.info("Setting mac address to fill previously empty entry.")
-			clients[0].hardwareAddress = get_mac_address()
+			clients[0].hardwareAddress = mac_address
 			self.service.jsonrpc("host_updateObjects", clients)
 
 		return clients[0]

@@ -7,17 +7,16 @@
 opsi-client-agent installation_helper
 """
 
-import sys
-import traceback
-
 import argparse
 import asyncio
 import os
 import platform
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
+import traceback
 from pathlib import Path
 from typing import IO, Literal
 
@@ -76,11 +75,10 @@ class InstallationHelper:
 		self.cleanup()
 		self.tmp_dir.mkdir(parents=True, exist_ok=True)
 		await self.show_message(f"Copying installation files from depot '{depot_id}' to '{self.tmp_dir}'")
-		depot_backend = (
-			self.backend
-			if depot_id == self.backend.get_configserver_id()
-			else Backend(f"https://{depot_id}:4447", self.config.client_id, self.config.client_key)
-		)
+		depot_backend = self.backend
+		if depot_id != self.backend.get_configserver_id():
+			depot_backend = Backend(f"https://{depot_id}:4447", self.config.client_id, self.config.client_key)
+			depot_backend.connect()
 		depot_backend.get_from_depot(self.config.oca_package, self.tmp_dir)
 		depot_backend.get_from_depot("opsi-script", self.tmp_dir)
 
@@ -225,6 +223,8 @@ class InstallationHelper:
 		):
 			raise ValueError("Incomplete data - cannot run service_setup.")
 		self.backend = Backend(self.config.service_address, self.config.service_username, password, sso=self.config.sso)
+		self.backend.connect()
+
 		await self.show_message("Connected", "success")
 		if "." not in self.config.client_id:
 			self.config.client_id = f"{self.config.client_id}.{self.backend.get_domain()}"
@@ -582,7 +582,7 @@ def main() -> None:
 	except ValueError:
 		log_level = LEVEL_TO_OPSI_LEVEL[NAME_TO_LEVEL[args.log_level.upper()]]
 
-	if log_level != 0:
+	if log_level > 0:
 		log_file = Path(args.log_file)
 		log_file.parent.mkdir(parents=True, exist_ok=True)
 		if log_file.exists():

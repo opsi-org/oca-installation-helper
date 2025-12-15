@@ -1,14 +1,10 @@
-# This file is part of the desktop management solution opsi http://www.opsi.org
-# Copyright (c) 2023-2025 uib GmbH <info@uib.de>
-# This code is owned by the uib GmbH, Mainz, Germany (uib.de). All rights reserved.
-# License: AGPL-3.0-only
-
 """
 opsi-client-agent installation_helper backend class
 """
 
 import ipaddress
 import platform
+import time
 from functools import lru_cache
 from pathlib import Path
 
@@ -32,6 +28,7 @@ class Backend:
 			password=password,
 			verify=ServiceVerificationFlags.ACCEPT_ALL,
 			sso=sso,
+			auto_connect=False,
 			connect_timeout=60,  # in case of slow network
 		)
 
@@ -44,6 +41,19 @@ class Backend:
 			self.product_id = "opsi-mac-client-agent"
 		else:
 			raise ValueError(f"Platform {platform.system().lower()} unknown. Aborting.")
+
+	def connect(self, attempts: int = 3) -> None:
+		for attempt in range(1, attempts + 1):
+			try:
+				logger.info("Connecting to OPSI service at %s (attempt %d/%d)", self.service_address, attempt, attempts)
+				self.service.connect()
+				logger.info("Connected to OPSI service at %s", self.service_address)
+				return
+			except Exception as err:
+				logger.warning("Connection attempt %d/%d failed: %s", attempt, attempts, err)
+				if attempt < attempts:
+					time.sleep(10)
+		raise ConnectionError(f"Failed to connect to OPSI service at {self.service_address} after {attempts} attempts")
 
 	def get_domain(self) -> str:
 		return self.service.jsonrpc("getDomain")

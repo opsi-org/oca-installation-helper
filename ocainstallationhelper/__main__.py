@@ -185,14 +185,14 @@ class InstallationHelper:
 		if platform.system().lower() == "windows" and platform.version().startswith("6.1"):  # Windows 7
 			# For some reason proc.communicate hangs on win7 after successful oca installation and exit of opsi-script.
 			# Therefor we do not wait for process termination, but instead wait for oca poc to be not installing anymore.
-			now = time.time()
-			while time.time() - now < OCA_INSTALL_TIMEOUT:
+			now = time.monotonic()
+			while time.monotonic() - now < OCA_INSTALL_TIMEOUT:
 				await asyncio.sleep(10)
 				pocs = self.backend.get_pocs(self.config.oca_package, self.config.client_id)
 				if pocs and pocs[0].actionProgress != "installing":
 					break
 				logger.debug("still waiting for result")
-			if time.time() - now > OCA_INSTALL_TIMEOUT:
+			if time.monotonic() - now > OCA_INSTALL_TIMEOUT:
 				logger.warning("Killing process")
 				proc.kill()
 			if proc.returncode is not None:

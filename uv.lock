@@ -504,7 +504,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/a6/91/86a6eac449ddfae23
 
 [[package]]
 name = "oca-installation-helper"
-version = "4.3.5.0"
+version = "4.3.5.1"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },
@@ -891,7 +891,7 @@ wheels = [
 
 [[package]]
 name = "python-opsi-common"
-version = "4.3.47.0"
+version = "4.3.49.1"
 source = { registry = "https://pypi.uib.gmbh/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -917,14 +917,13 @@ dependencies = [
     { name = "requests" },
     { name = "rich" },
     { name = "tomlkit" },
-    { name = "types-netifaces" },
     { name = "websocket-client" },
     { name = "wmi", marker = "sys_platform == 'win32'" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://pypi.uib.gmbh/packages/python_opsi_common-4.3.47.0.tar.gz", hash = "sha256:bb45f6c4bdfba092738175a4b534a0f024890621b3d8055b9f1d3332e1f6ace1" }
+sdist = { url = "https://pypi.uib.gmbh/packages/python_opsi_common-4.3.49.1.tar.gz", hash = "sha256:bd5942339dca959f41de6a4a19ae9bd5738471c08b72782ed76bb590b473ec90" }
 wheels = [
-    { url = "https://pypi.uib.gmbh/packages/python_opsi_common-4.3.47.0-py3-none-any.whl", hash = "sha256:8d1e8de74a28f9df3a0710b117f33e742e7b2ec6a73115a8c9fcee1fc261bbec" },
+    { url = "https://pypi.uib.gmbh/packages/python_opsi_common-4.3.49.1-py3-none-any.whl", hash = "sha256:cad7990499ae6b73344e8055e2d487dc5e94f66d0232da96258aab0b9837c8e3" },
 ]
 
 [[package]]
@@ -1121,15 +1120,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/80/b0/6435f1795f76c57598933624af58bf67385c96b8fa3252f5f9087173e21a/ty-0.0.1a34-py3-none-win32.whl", hash = "sha256:bdabc3f1a048bc2891d4184b818a7ee855c681dd011d00ee672a05bfe6451156", size = 9151401, upload-time = "2025-12-12T18:28:53.028Z" },
     { url = "https://files.pythonhosted.org/packages/73/2e/adce0d7c07f6de30c7f3c125744ec818c7f04b14622a739fe17d4d0bdb93/ty-0.0.1a34-py3-none-win_amd64.whl", hash = "sha256:a4caa2e58685d6801719becbd0504fe61e3ab94f2509e84759f755a0ca480ada", size = 10031079, upload-time = "2025-12-12T18:29:14.556Z" },
     { url = "https://files.pythonhosted.org/packages/23/0d/1f123c69ce121dcabf5449a456a9a37c3bbad396e9e7484514f1fe568f96/ty-0.0.1a34-py3-none-win_arm64.whl", hash = "sha256:dd02c22b538657b042d154fe2d5e250dfb20c862b32e6036a6ffce2fd1ebca9d", size = 9534879, upload-time = "2025-12-12T18:29:18.187Z" },
-]
-
-[[package]]
-name = "types-netifaces"
-version = "0.11.0.20241025"
-source = { registry = "https://pypi.uib.gmbh/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5e/72/6b9d2bc6a0709c071687bd29afdf9069db64c751df647475c761cfca6841/types-netifaces-0.11.0.20241025.tar.gz", hash = "sha256:0877b98a80e53e08dcb0e2d562772f6d0c4eee8bd0e1101a1ee78d17a88c3c8d", size = 2688, upload-time = "2024-10-25T02:45:03.523Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b0/ea/503f8bc06ab9903e0302d9b94f10d3fb8f599353874cb7e8b6d2fd453079/types_netifaces-0.11.0.20241025-py3-none-any.whl", hash = "sha256:b760315d043acbb1f96232094ab05751f1cec9863df09cd95f533bd1aaee6da8", size = 3023, upload-time = "2024-10-25T02:45:02.462Z" },
 ]
 
 [[package]]

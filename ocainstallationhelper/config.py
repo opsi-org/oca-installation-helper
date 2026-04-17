@@ -1,5 +1,5 @@
 # This file is part of the desktop management solution opsi http://www.opsi.org
-# Copyright (c) 2023-2025 uib GmbH <info@uib.de>
+# Copyright (c) 2023-2026 uib GmbH <info@uib.de>
 # This code is owned by the uib GmbH, Mainz, Germany (uib.de). All rights reserved.
 # License: AGPL-3.0-only
 
@@ -8,7 +8,6 @@ opsi-client-agent installation_helper config class
 """
 
 import argparse
-import codecs
 import ipaddress
 import os
 import platform
@@ -145,7 +144,7 @@ class Config:
 			try:
 				logger.info("Reading config file '%s'", config_file)
 				config = ConfigParser()
-				with codecs.open(str(config_file), "r", "utf-8") as file:
+				with open(config_file, "r", encoding="utf-8") as file:
 					data = file.read().replace("\r\n", "\n")
 					if config_file.name == "install.conf" and "[install]" not in data:
 						data = "[install]\n" + data
@@ -252,17 +251,17 @@ class Config:
 			logger.debug("Requesting key %s and value %s", sub_key, value_name)
 			hkey = None
 			try:
-				hkey = winreg.OpenKey(key, sub_key)  # type: ignore[attr-defined]
-				(value, _type) = winreg.QueryValueEx(hkey, value_name)  # type: ignore[attr-defined]
+				hkey = winreg.OpenKey(key, sub_key)  # ty: ignore[unresolved-attribute]
+				(value, _type) = winreg.QueryValueEx(hkey, value_name)  # ty: ignore[unresolved-attribute]
 			finally:
 				if hkey:
-					winreg.CloseKey(hkey)  # type: ignore[attr-defined]
+					winreg.CloseKey(hkey)  # ty: ignore[unresolved-attribute]
 			return value
 
 		# or HKEY_LOCAL_MACHINE\SOFTWARE\opsi.org\general ?
 		try:
 			install_params_string = get_registry_value(
-				winreg.HKEY_LOCAL_MACHINE,  # type: ignore[attr-defined]
+				winreg.HKEY_LOCAL_MACHINE,  # ty: ignore[unresolved-attribute]
 				"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\opsi-client-agent",
 				"INSTALL_PARAMS",
 			)
@@ -300,6 +299,7 @@ class Config:
 		if not self.finalize:
 			raise ValueError("'finalize' parameter undefined.")
 
+		self.service_address = self.service_address.rstrip("/")
 		if "://" not in self.service_address:
 			self.service_address = f"https://{self.service_address}"
 		url = urlparse(self.service_address)
@@ -328,7 +328,7 @@ class Config:
 			"opsi config service detected: server=%s, port=%s, version=%s",
 			info.server,
 			info.port,
-			info.properties.get(b"version", b"").decode(),  # type: ignore[union-attr]
+			(info.properties.get(b"version") or b"").decode(),
 		)
 		logger.debug(info)
 

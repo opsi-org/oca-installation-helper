@@ -1,16 +1,16 @@
-image: docker.uib.gmbh/opsi/dev/pybuilder:deb9-py3.11
+image: docker.uib.gmbh/opsi/dev/pybuilder:deb9
 
 stages:
   - test
   - build
   - viruscheck
 
-test:pytest-darwin:
+test:pytest-macos-x64:
   stage: test
   tags:
-    - catalina-py311-x64
+    - catalina-x64
   script:
-    - export UV_PYTHON="3.11"
+    - export UV_PYTHON="3.13-x86_64"
     - export UV_PYTHON_PREFERENCE="only-managed"
     - uv sync --frozen
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
@@ -22,15 +22,16 @@ test:pytest-darwin:
       - coverage_darwin
     expire_in: 3 days
 
-test:pytest-windows:
+test:pytest-windows-x86:
   stage: test
   tags:
-    - win10-py311-x86
+    - win10-x64
   script:
     - $Env:UV_PYTHON_INSTALL_DIR = "c:\\uv\\python"
     - $Env:UV_CACHE_DIR = "c:\\uv\\cache"
-    - $Env:UV_PYTHON = ((uv python list --managed-python --all-arches | findstr 3.11 | findstr "\-x86\-" | findstr /v freethreaded) -split ' ')[0]
+    - $Env:UV_PYTHON = "3.13-x86"
     - $Env:UV_PYTHON_PREFERENCE = "only-managed"
+    - $Env:RUSTUP_TOOLCHAIN = "stable-i686-pc-windows-msvc"
     - uv sync --frozen
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - Rename-Item -Path .coverage -NewName coverage_windows
@@ -41,13 +42,14 @@ test:pytest-windows:
       - coverage_windows
     expire_in: 3 days
 
-test:pytest-linux:
+test:pytest-linux-x64:
   stage: test
   tags:
     - docker-x64
   script:
-    - export UV_PYTHON="3.11"
-    - export UV_PYTHON_PREFERENCE="only-system"
+    - export UV_PYTHON="3.13-x86_64"
+    - export UV_PYTHON_PREFERENCE="only-managed"
+    - uv self update
     - uv sync --frozen
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - mv .coverage coverage_linux
@@ -66,26 +68,23 @@ test:lint-and-test:
     - docker-x64
   needs:
     # We want to combine test coverage from all test jobs
-    - job: test:pytest-windows
+    - job: test:pytest-windows-x86
       artifacts: true
-    - job: test:pytest-darwin
+    - job: test:pytest-macos-x64
       artifacts: true
-    - job: test:pytest-linux
+    - job: test:pytest-linux-x64
       artifacts: true
   script:
-    - apt-get update
-    - apt-get --yes --allow-downgrades install libsqlite3-0=3.16.2-5+deb9u1
-    - apt-get --yes install sqlite3
-    - export UV_PYTHON="3.11"
+    - export UV_PYTHON="3.13-x86_64"
     - export UV_PYTHON_PREFERENCE="only-managed"
+    - uv self update
     - uv sync --frozen
     - uv run ruff check ocainstallationhelper tests
     - uv run ty check ocainstallationhelper tests
-    - for db in coverage_*; do sqlite3 $db 'update file set path=replace(substr(path,instr(path,"ocainstallationhelper")),"\","/");'; done
-    - echo -e '[run]\nrelative_files = True\n' > .coveragerc
-    - uv run coverage combine coverage_*
-    - uv run coverage xml
-    - uv run coverage report
+    #- echo -e '[run]\nrelative_files = True\n' > .coveragerc
+    - opsi-dev-cli self upgrade
+    - opsi-dev-cli -l info testing merge-coverage-files coverage_* .coverage
+    - opsi-dev-cli -l info testing coverage-report
   coverage: '/TOTAL\s+\d+\s+\d+\s+(\d+)%/'
   artifacts:
     name: "oca-installation-helper_test"
@@ -97,13 +96,13 @@ test:lint-and-test:
         coverage_format: cobertura
         path: coverage.xml
 
-build:pyinstaller-darwin-x64:
+build:pyinstaller-macos-x64:
   stage: build
   tags:
-    - catalina-py311-x64
+    - catalina-x64
   script:
-    - export UV_PYTHON="3.11"
-    - export UV_PYTHON_PREFERENCE="only-system"
+    - export UV_PYTHON="3.13-x86_64"
+    - export UV_PYTHON_PREFERENCE="only-managed"
     - curl -sS "${OPSIDEVTOOLS_INSTALLER_URL_MACOS_X64}" | sh
     - uv self update
     - uv sync --frozen
@@ -118,8 +117,8 @@ build:pyinstaller-linux-x64:
   tags:
     - docker-x64
   script:
-    - export UV_PYTHON="3.11"
-    - export UV_PYTHON_PREFERENCE="only-system"
+    - export UV_PYTHON="3.13-x86_64"
+    - export UV_PYTHON_PREFERENCE="only-managed"
     - curl -sS "${OPSIDEVTOOLS_INSTALLER_URL_LINUX_X64}" | sh
     - uv self update
     - uv sync --frozen
@@ -133,8 +132,8 @@ build:pyinstaller-linux-arm64:
   tags:
     - docker-arm64
   script:
-    - export UV_PYTHON="3.11"
-    - export UV_PYTHON_PREFERENCE="only-system"
+    - export UV_PYTHON="3.13-aarch64"
+    - export UV_PYTHON_PREFERENCE="only-managed"
     - curl -sS "${OPSIDEVTOOLS_INSTALLER_URL_LINUX_ARM64}" | sh
     - uv self update
     - uv sync --frozen
@@ -146,13 +145,13 @@ build:pyinstaller-linux-arm64:
 build:pyinstaller-windows-x86:
   stage: build
   tags:
-    - win10-py311-x86
+    - win10-x64
   script:
-    - $pythonPath = py -3.11 -c "import sys; print(sys.executable)"
     - $Env:UV_PYTHON_INSTALL_DIR = "c:\\uv\\python"
     - $Env:UV_CACHE_DIR = "c:\\uv\\cache"
-    - $Env:UV_PYTHON = ((uv python list --managed-python --all-arches | findstr 3.11 | findstr "\-x86\-" | findstr /v freethreaded) -split ' ')[0]
+    - $Env:UV_PYTHON = "3.13-x86"
     - $Env:UV_PYTHON_PREFERENCE = "only-managed"
+    - $Env:RUSTUP_TOOLCHAIN = "stable-i686-pc-windows-msvc"
     - irm "${OPSIDEVTOOLS_INSTALLER_URL_WINDOWS_X86}" | iex
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build

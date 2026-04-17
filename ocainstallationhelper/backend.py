@@ -1,3 +1,8 @@
+# This file is part of the desktop management solution opsi http://www.opsi.org
+# Copyright (c) 2023-2026 uib GmbH <info@uib.de>
+# This code is owned by the uib GmbH, Mainz, Germany (uib.de). All rights reserved.
+# License: AGPL-3.0-only
+
 """
 opsi-client-agent installation_helper backend class
 """
@@ -127,7 +132,7 @@ class Backend:
 						"productId": self.product_id,
 						"propertyId": property_id,
 						"objectId": client_id,
-						"values": value if isinstance(value, list) else [value],  # type: ignore
+						"values": value if isinstance(value, list) else [value],
 					}
 				]
 			],

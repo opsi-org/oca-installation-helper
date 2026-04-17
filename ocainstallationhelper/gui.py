@@ -1,5 +1,5 @@
 # This file is part of the desktop management solution opsi http://www.opsi.org
-# Copyright (c) 2023-2025 uib GmbH <info@uib.de>
+# Copyright (c) 2023-2026 uib GmbH <info@uib.de>
 # This code is owned by the uib GmbH, Mainz, Germany (uib.de). All rights reserved.
 # License: AGPL-3.0-only
 
@@ -33,7 +33,7 @@ class GUIDialog(BaseDialog, Tk):
 		Tk.__init__(self)
 		icon = (Path(__file__).parent.parent / "opsi.ico").resolve()
 		try:
-			self.wm_iconphoto(True, ImageTk.PhotoImage(Image.open(str(icon))))  # type: ignore[arg-type]
+			self.wm_iconphoto(True, ImageTk.PhotoImage(Image.open(str(icon))))  # ty: ignore[invalid-argument-type]
 		except Exception as err:
 			logger.warning("Could not set icon '%s': %s", icon, err)
 		self.title("opsi-client-agent Installer")

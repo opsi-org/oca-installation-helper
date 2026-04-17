@@ -81,7 +81,6 @@ test:lint-and-test:
     - uv sync --frozen
     - uv run ruff check ocainstallationhelper tests
     - uv run ty check ocainstallationhelper tests
-    #- echo -e '[run]\nrelative_files = True\n' > .coveragerc
     - opsi-dev-cli self upgrade
     - opsi-dev-cli -l info testing merge-coverage-files coverage_* .coverage
     - opsi-dev-cli -l info testing coverage-report

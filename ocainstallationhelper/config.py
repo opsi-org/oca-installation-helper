@@ -57,6 +57,14 @@ class Config:
 		self.setup_after_install: list[str] = []
 		if cmdline_args.setup_after_install:
 			self.setup_after_install = [val.strip() for val in cmdline_args.setup_after_install.split(",")]
+		self.set_product_actions: dict[str, str] = {}
+		if cmdline_args.set_product_actions:
+			for item in cmdline_args.set_product_actions.split(","):
+				if ":" in item:
+					product, action = item.split(":", 1)
+				else:
+					product, action = item, "setup"
+				self.set_product_actions[product.strip()] = action.strip()
 
 		self.use_gui: bool = platform.system().lower() == "windows" or os.environ.get("DISPLAY") not in (None, "")
 		if cmdline_args.gui:

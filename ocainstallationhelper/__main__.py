@@ -283,6 +283,9 @@ class InstallationHelper:
 				client_id=self.config.client_id, property_id="setup_after_install", value=self.config.setup_after_install
 			)
 
+		if self.config.set_product_actions:
+			self.backend.set_product_action_requests(self.config.client_id, self.config.set_product_actions)
+
 		if self.config.depot or self.config.depot_by_network:
 			if self.config.client_id == self.config.service_username:
 				raise PermissionError(
@@ -558,6 +561,14 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 		"--setup-after-install",
 		default=None,
 		help="Comma separated list of products to set to setup after installation.",
+	)
+	parser.add_argument(
+		"--set-product-actions",
+		default=None,
+		help=(
+			"Comma separated list of products action requests in the form <product>[:<action>] to set.\n"
+			"If action is not given, it defaults to 'setup'.\n"
+		),
 	)
 	parser.add_argument(
 		"--sso",

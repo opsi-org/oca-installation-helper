@@ -138,6 +138,20 @@ class Backend:
 			],
 		)
 
+	def set_product_action_requests(self, client_id: str, product_actions: dict[str, str]) -> None:
+		self.service.productOnClient_updateObjects(  # ty: ignore[unresolved-attribute]
+			[
+				ProductOnClient(
+					productId=product_id,
+					productType="LocalbootProduct",
+					clientId=client_id,
+					installationStatus="not_installed",
+					actionRequest=action_request,
+				)
+				for product_id, action_request in product_actions.items()
+			]
+		)
+
 	def evaluate_success(self, client_id: str) -> None:
 		product_on_client = self.get_pocs(self.product_id, client_id)
 		if not product_on_client or not product_on_client[0]:

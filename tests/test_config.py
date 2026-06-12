@@ -16,11 +16,24 @@ from .utils import get_installation_helper
 
 def test_fill_config_from_params() -> None:
 	with get_installation_helper(
-		["--client-id", "client.domain.local", "--service-address", "https://server.domain.local:4447", "--no-gui", "--no-set-mac-address"]
+		[
+			"--client-id",
+			"client.domain.local",
+			"--service-address",
+			"https://server.domain.local:4447",
+			"--no-gui",
+			"--no-set-mac-address",
+			"--setup-after-install",
+			"product1,product2",
+			"--set-product-actions",
+			"product1:setup,product2,product3:uninstall",
+		]
 	) as installation_helper:
 		assert installation_helper.config.client_id == "client.domain.local"
 		assert installation_helper.config.service_address == "https://server.domain.local:4447"
 		assert not installation_helper.config.set_mac_address
+		assert installation_helper.config.setup_after_install == ["product1", "product2"]
+		assert installation_helper.config.set_product_actions == {"product1": "setup", "product2": "setup", "product3": "uninstall"}
 		installation_helper.config.check_values(with_host_key=False)
 
 

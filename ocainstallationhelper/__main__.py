@@ -600,9 +600,9 @@ def main() -> None:
 		log_file.parent.mkdir(parents=True, exist_ok=True)
 		if log_file.exists():
 			log_file.unlink()
-		stderr_level = 0
-		if not args.non_interactive and not args.no_gui:  # either gui mode or non-interactive
-			stderr_level = log_level
+		stderr_level = log_level
+		if not args.non_interactive and args.no_gui:  # no-gui mode and interactive
+			stderr_level = 0
 		logging_config(
 			stderr_level=stderr_level,
 			file_level=log_level,

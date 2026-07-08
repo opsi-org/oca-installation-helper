@@ -428,7 +428,6 @@ class InstallationHelper:
 			else:
 				asyncio.run(self.prepare_installation())
 				asyncio.run(self.install())
-
 		except Exception as err:
 			logger.error(err, exc_info=True)
 			error = err
@@ -478,7 +477,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 	parser.add_argument(
 		"--log-level",
 		"-l",
-		default="info",
+		default="notice",
 		choices=[
 			"0",
 			"none",
@@ -616,8 +615,6 @@ def main() -> None:
 if __name__ == "__main__":
 	try:
 		main()
-	except SystemExit:
-		pass
 	except KeyboardInterrupt:
 		print("Interrupted", file=sys.stderr)
 		sys.exit(1)

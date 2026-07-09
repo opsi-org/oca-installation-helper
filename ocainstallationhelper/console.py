@@ -30,7 +30,7 @@ class InputContainer(Container):
 		layout: grid;
 		grid-size: 2 4;
 		grid-gutter: 1 2;
-		grid-columns: 18 1fr;
+		grid-columns: 29 1fr;
 	}
 	"""
 
@@ -88,7 +88,7 @@ class ConsoleDialog(BaseDialog, App):
 			self.inputs["client_id"],
 			PaddedLabel("Opsi Service url"),
 			self.inputs["service_address"],
-			PaddedLabel("Username"),
+			PaddedLabel("Username (on Config Server)"),
 			self.inputs["service_username"],
 			PaddedLabel("Password"),
 			self.inputs["service_password"],

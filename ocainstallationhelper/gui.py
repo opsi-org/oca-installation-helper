@@ -111,7 +111,7 @@ class GUIDialog(BaseDialog, Tk):
 		self.inputs["client_id"].grid(column=1, row=0, columnspan=3, sticky="we", padx=self.padding)
 		Label(self.content, text="Opsi Service url").grid(column=0, row=1)
 		self.inputs["service_address"].grid(column=1, row=1, columnspan=3, sticky="we", padx=self.padding)
-		Label(self.content, text="Username").grid(column=0, row=2)
+		Label(self.content, text="Username (on Config Server)").grid(column=0, row=2)
 		self.inputs["service_username"].grid(column=1, row=2, columnspan=3, sticky="we", padx=self.padding)
 		Label(self.content, text="Password").grid(column=0, row=3)
 		self.inputs["service_password"].grid(column=1, row=3, columnspan=3, sticky="we", padx=self.padding)

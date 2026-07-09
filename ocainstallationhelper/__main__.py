@@ -506,7 +506,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 	parser.add_argument(
 		"--service-username",
 		default=None,
-		help="Username to use for service connection.",
+		help="Username (on Config Server) to use for service connection.",
 	)
 	parser.add_argument(
 		"--service-password",

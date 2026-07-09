@@ -30,7 +30,7 @@ class InputContainer(Container):
 		layout: grid;
 		grid-size: 2 4;
 		grid-gutter: 1 2;
-		grid-columns: 18 1fr;
+		grid-columns: 29 1fr;
 	}
 	"""
 

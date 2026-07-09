@@ -88,7 +88,7 @@ class ConsoleDialog(BaseDialog, App):
 			self.inputs["client_id"],
 			PaddedLabel("Opsi Service url"),
 			self.inputs["service_address"],
-			PaddedLabel("Username (Config Server)"),
+			PaddedLabel("Username (on Config Server)"),
 			self.inputs["service_username"],
 			PaddedLabel("Password"),
 			self.inputs["service_password"],

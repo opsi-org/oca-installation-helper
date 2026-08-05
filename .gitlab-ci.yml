@@ -50,6 +50,9 @@ test:pytest-linux-x64:
     - export UV_PYTHON="3.14-x86_64"
     - export UV_PYTHON_PREFERENCE="only-managed"
     - uv self update
+    - uv python install
+    # PBS release 20260718 added hardening flags to sysconfig CFLAGS which GCC 6 on deb9 does not support
+    - find "$(uv python dir)" -name "_sysconfigdata_*.py" -exec sed -i 's/-fstack-clash-protection//g' {} +
     - uv sync --frozen
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - mv .coverage coverage_linux
@@ -120,6 +123,9 @@ build:pyinstaller-linux-x64:
     - export UV_PYTHON_PREFERENCE="only-managed"
     - curl -sS "${OPSIDEVTOOLS_INSTALLER_URL_LINUX_X64}" | sh
     - uv self update
+    - uv python install
+    # PBS release 20260718 added hardening flags to sysconfig CFLAGS which GCC 6 on deb9 does not support
+    - find "$(uv python dir)" -name "_sysconfigdata_*.py" -exec sed -i 's/-fstack-clash-protection//g' {} +
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     - ./dist/oca-installation-helper --version

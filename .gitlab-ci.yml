@@ -148,10 +148,10 @@ build:pyinstaller-windows-x64:
   script:
     - $Env:UV_PYTHON_INSTALL_DIR = "c:\\uv\\python"
     - $Env:UV_CACHE_DIR = "c:\\uv\\cache"
-    - $Env:UV_PYTHON = "3.13-x86_64"
+    - $Env:UV_PYTHON = "3.13-x86"
     - $Env:UV_PYTHON_PREFERENCE = "only-managed"
-    - $Env:RUSTUP_TOOLCHAIN = "stable-x86_64-pc-windows-msvc"
-    - irm "${OPSIDEVTOOLS_INSTALLER_URL_WINDOWS_X64}" | iex
+    - $Env:RUSTUP_TOOLCHAIN = "stable-i686-pc-windows-msvc"
+    - irm "${OPSIDEVTOOLS_INSTALLER_URL_WINDOWS_X86}" | iex
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     - opsi-dev-cli -l info signserver sign dist\oca-installation-helper.exe

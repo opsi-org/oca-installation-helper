@@ -68,7 +68,7 @@ test:lint-and-test:
     - docker-x64
   needs:
     # We want to combine test coverage from all test jobs
-    - job: test:pytest-windows-x86
+    - job: test:pytest-windows-x64
       artifacts: true
     - job: test:pytest-macos-x64
       artifacts: true

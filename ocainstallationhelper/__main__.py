@@ -12,7 +12,6 @@ import asyncio
 import os
 import platform
 import shutil
-import subprocess
 import sys
 import tempfile
 import time
@@ -20,16 +19,14 @@ import traceback
 from pathlib import Path
 from typing import IO, Literal
 
-from opsicommon.exceptions import BackendAuthenticationError
-from opsicommon.logging import LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL, logging_config
-from opsicommon.system.subprocess import patch_popen
+from opsi.exception import BackendAuthenticationError
+from opsi.logging import LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL, logging_config
+from opsi.process import run_command, run_script
 
 from ocainstallationhelper import CONFIG_CACHE_DIRS, Dialog, __version__, logger
 from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
 from ocainstallationhelper.config import SETUP_SCRIPT_NAME, Config
 from ocainstallationhelper.utils import decode_password, encode_password, get_installed_oca_version, make_executable, show_message
-
-patch_popen()
 
 OCA_INSTALL_TIMEOUT = 60 * 20  # 20 minutes
 
@@ -108,7 +105,7 @@ class InstallationHelper:
 		if not opsi_script_log_dir.exists():
 			try:
 				opsi_script_log_dir.mkdir(parents=True)
-			except Exception as exc:
+			except Exception as exc:  # noqa: BLE001
 				logger.error(
 					"Could not create log directory %s due to %s\n still trying to continue",
 					opsi_script_log_dir,
@@ -136,74 +133,25 @@ class InstallationHelper:
 		]
 		if self.config.bootimage:
 			arg_list += [f"{param_char}parameter", "bootimage"]
-		if platform.system().lower() == "windows":
-			powershell_command = "powershell"
-			for powershell_command in (
-				"powershell",
-				shutil.which("powershell") or "powershell",
-				r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
-				r"C:\Windows\sysnative\WindowsPowerShell\v1.0\powershell.exe",
-			):
-				logger.debug("Trying command: '%s'", powershell_command)
-				try:
-					proc = await asyncio.create_subprocess_exec(
-						powershell_command,
-						"-command",
-						"$PSVersionTable",
-						stdout=asyncio.subprocess.PIPE,
-						stderr=asyncio.subprocess.PIPE,
-					)
-				except FileNotFoundError:
-					logger.debug("Command not found: '%s'", powershell_command)
-					continue
-				stdout, stderr = await proc.communicate()
-				logger.debug("Stdout: %s", stdout.decode("utf-8", errors="replace"))
-				logger.debug("Stderr: %s", stderr.decode("utf-8", errors="replace"))
-				logger.debug("returncode: %s", proc.returncode)
-				if proc.returncode == 0:
-					logger.notice("Using powershell from '%s'", powershell_command)
-					break
-			else:
-				logger.error("Cannot execute powershell. Maybe missing in system PATH? Returncode: %s", proc.returncode)
-				raise RuntimeError(f"Cannot execute powershell. Maybe missing in system PATH? Returncode: {proc.returncode}")
-			logger.debug("Found powershell with following version information:\n%s", stdout)
-
-			arg_string = ",".join([f"'\"{arg}\"'" for arg in arg_list])  # Enclosing by ' and " to be robust against spaces in params
-			ps_script = f'Start-Process -Verb runas -FilePath "{self.config.opsi_script}" -ArgumentList {arg_string} -Wait'
-			command = [powershell_command, "-ExecutionPolicy", "bypass", "-WindowStyle", "hidden", "-command", ps_script]
-		else:
-			command = [str(self.config.opsi_script)] + arg_list
 
 		self.backend.set_poc_to_installing(self.config.oca_package, self.config.client_id)
-		logger.info("Executing: %s\n", command)
-		proc = await asyncio.create_subprocess_exec(
-			*command,
-			stderr=asyncio.subprocess.STDOUT,
-			stdout=asyncio.subprocess.PIPE,
-			stdin=asyncio.subprocess.PIPE,
-		)
-		if platform.system().lower() == "windows" and platform.version().startswith("6.1"):  # Windows 7
-			# For some reason proc.communicate hangs on win7 after successful oca installation and exit of opsi-script.
-			# Therefor we do not wait for process termination, but instead wait for oca poc to be not installing anymore.
-			now = time.monotonic()
-			while time.monotonic() - now < OCA_INSTALL_TIMEOUT:
-				await asyncio.sleep(10)
-				pocs = self.backend.get_pocs(self.config.oca_package, self.config.client_id)
-				if pocs and pocs[0].actionProgress != "installing":
-					break
-				logger.debug("still waiting for result")
-			if time.monotonic() - now > OCA_INSTALL_TIMEOUT:
-				logger.warning("Killing process")
-				proc.kill()
-			if proc.returncode is not None:
-				logger.info("Command exit code: %s", proc.returncode)
-				logger.debug("Command stdout: %s", (await proc.stdout.read()).decode("utf-8", errors="replace") if proc.stdout else "")
-				logger.debug("Command stderr: %s", (await proc.stderr.read()).decode("utf-8", errors="replace") if proc.stderr else "")
+		if platform.system().lower() == "windows":
+			arg_string = ",".join([f"'\"{arg}\"'" for arg in arg_list])  # Enclosing by ' and " to be robust against spaces in params
+			asyncio.get_event_loop().run_in_executor(
+				None,
+				lambda: run_script(
+					f'Start-Process -Verb runas -FilePath "{self.config.opsi_script}" -ArgumentList {arg_string} -Wait',
+					timeout=OCA_INSTALL_TIMEOUT,
+				),
+			)
 		else:
-			out, err = await proc.communicate()
-			logger.info("Command exit code: %s", proc.returncode)
-			logger.debug("Command stdout: %s", (out.decode("utf-8", errors="replace") if out else ""))
-			logger.debug("Command stderr: %s", (err.decode("utf-8", errors="replace") if err else ""))
+			asyncio.get_event_loop().run_in_executor(
+				None,
+				lambda: run_command(
+					[str(self.config.opsi_script)] + arg_list,
+					timeout=OCA_INSTALL_TIMEOUT,
+				),
+			)
 
 	async def install(self) -> bool:
 		await self.show_message("Connecting to service...")
@@ -352,7 +300,7 @@ class InstallationHelper:
 		except InstallationUnsuccessful as err:
 			await self.show_message(f"Installation Unsuccessful: {err}", "error")
 			await self.show_logpath(self.opsi_script_logfile or "Undefined logfile.")
-		except Exception as err:
+		except Exception as err:  # noqa: BLE001
 			await self.show_message(str(err), "error")
 			await self.show_logpath(self.config.log_file)
 		await self.dialog.set_button_enabled("install", True)
@@ -378,12 +326,6 @@ class InstallationHelper:
 
 	def ensure_root(self) -> None:
 		if os.geteuid() != 0:
-			# not root
-			if self.config.use_gui and platform.system().lower() == "linux":
-				try:
-					subprocess.call(["xhost", "+si:localuser:root"])
-				except subprocess.SubprocessError as err:
-					logger.error(err)
 			print(f"{Path(sys.argv[0]).name} has to be run as root")
 			os.execvp("sudo", ["sudo"] + sys.argv)
 
@@ -393,7 +335,7 @@ class InstallationHelper:
 			if cache_dir and cache_dir.exists():
 				logger.info("Deleting opsiclientd WAN cache.")
 				shutil.rmtree(cache_dir)
-		except Exception as error:
+		except Exception as error:  # noqa: BLE001
 			logger.warning("Failed to clean up cache: %s", error)
 
 	async def prepare_installation(self) -> None:
@@ -429,7 +371,7 @@ class InstallationHelper:
 				asyncio.run(self.prepare_installation())
 				asyncio.run(self.install())
 
-		except Exception as err:
+		except Exception as err:  # noqa: BLE001
 			logger.error(err, exc_info=True)
 			error = err
 			asyncio.run(self.show_message(str(err), "error"))
@@ -443,8 +385,8 @@ class InstallationHelper:
 
 		if self.config.end_command:
 			try:
-				subprocess.check_call(self.config.end_command, shell=True)
-			except subprocess.CalledProcessError as err:
+				run_script(self.config.end_command)
+			except Exception as err:  # noqa: BLE001
 				logger.error(err)
 				error = err
 
@@ -618,7 +560,7 @@ if __name__ == "__main__":
 	except KeyboardInterrupt:
 		print("Interrupted", file=sys.stderr)
 		sys.exit(1)
-	except Exception:
+	except Exception:  # noqa: BLE001
 		# Do not let pyinstaller handle exceptions and print:
 		# "Failed to execute script"
 		traceback.print_exc()

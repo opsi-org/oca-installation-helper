@@ -13,44 +13,11 @@ from __future__ import annotations
 
 import platform
 from pathlib import Path
-from typing import Any
 from unittest.mock import patch
 
-from opsicommon.objects import OpsiClient, ProductOnClient
+from opsi.opsi.service.model.object import OpsiClient, ProductOnClient
 
 from .utils import fake_get_service_client, get_installation_helper
-
-
-class PopenLog:
-	entries: list[list[str]] = []
-
-	def write(self, entry: list[str]) -> None:
-		self.entries.append(entry)
-
-
-popen_log = PopenLog()
-
-
-class FakePopen:
-	def __init__(self, command: list[str], **kwargs: dict[str, Any]) -> None:
-		self.command = command
-		self.returncode = 0
-		self.stdout = None
-		self.stderr = None
-		popen_log.write(self.command)
-
-	def __enter__(self) -> FakePopen:
-		return self
-
-	def __exit__(self, *args: tuple[Any]) -> None:
-		pass
-
-	async def communicate(self, input: Any = None, timeout: float | None = None) -> tuple[bytes, bytes]:
-		return (b"", b"")
-
-
-async def fake_create_subprocess_exec(*args: str, **kwargs: dict[str, Any]) -> FakePopen:
-	return FakePopen(list(args), kwargs=kwargs)
 
 
 def fake_get_pocs(self, package: str, client: str) -> list[ProductOnClient]:
@@ -96,13 +63,13 @@ def test_run(tmp_path: Path) -> None:
 			patch("ocainstallationhelper.backend.Backend.get_depot_id", return_value="server.domain.local"),
 			patch("ocainstallationhelper.backend.Backend.set_poc_to_installing"),
 			patch("ocainstallationhelper.backend.Backend.get_pocs", fake_get_pocs),
-			patch("ocainstallationhelper.__main__.asyncio.create_subprocess_exec", fake_create_subprocess_exec),
+			patch("ocainstallationhelper.__main__.run_command") as run_command_mock,
 			patch("ocainstallationhelper.backend.Backend.get_available_oca_version", return_value=("server.domain.local", "4.3.0.0")),
 		):
 			installation_helper.run()
 		if platform.system().lower() == "windows":
 			return
-		assert popen_log.entries[0] == [
+		assert run_command_mock.call_args[0][0] == [
 			"None",  # opsi-script bin path is set during copy_installation_files
 			str(tmp_path / "setup.opsiscript"),
 			"/var/log/opsi-script/opsi-client-agent.log",

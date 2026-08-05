@@ -16,45 +16,26 @@ from ocainstallationhelper import logger
 
 from .utils import get_installation_helper
 
-caller_log = []
-
-
-async def fake_async(self) -> None:  # type: ignore[no-untyped-def]
-	global caller_log
-	caller_log.append(self.__class__.__name__)
-
-
-has_exit_been_called = False
-
-
-def fake_exit(code: int) -> None:
-	global has_exit_been_called
-	has_exit_been_called = True
-
 
 @pytest.mark.asyncio
 async def test_cancel_button() -> None:
-	global has_exit_been_called
-	has_exit_been_called = False
 	with (
 		get_installation_helper() as installation_helper,
-		patch("ocainstallationhelper.console.ConsoleDialog.on_mount", fake_async),
-		patch("ocainstallationhelper.__main__.sys.exit", fake_exit),
+		patch("ocainstallationhelper.console.ConsoleDialog.on_mount"),
+		patch("ocainstallationhelper.__main__.sys.exit") as exit_mock,
 	):
 		app = ocainstallationhelper.console.ConsoleDialog(installation_helper)
 		async with app.run_test() as pilot:
 			await pilot.click("#cancel")
-			assert has_exit_been_called
+			assert exit_mock.called
 
 
 @pytest.mark.asyncio
 async def test_install_button() -> None:
-	global caller_log
-	caller_log = []
 	with (
-		patch("ocainstallationhelper.console.ConsoleDialog.on_mount", fake_async),
+		patch("ocainstallationhelper.console.ConsoleDialog.on_mount"),
 		get_installation_helper() as installation_helper,
-		patch("tests.utils.InstallationHelper.install", fake_async),
+		patch("tests.utils.InstallationHelper.install"),
 	):
 		app = ocainstallationhelper.console.ConsoleDialog(installation_helper)
 		installation_helper.dialog = app
@@ -69,7 +50,7 @@ async def test_install_button() -> None:
 @pytest.mark.asyncio
 async def test_update() -> None:
 	with (
-		patch("ocainstallationhelper.console.ConsoleDialog.on_mount", fake_async),
+		patch("ocainstallationhelper.console.ConsoleDialog.on_mount"),
 		get_installation_helper(
 			["--client-id", "client.domain.local", "--service-address", "https://server.domain.local:4447"]
 		) as installation_helper,
@@ -87,7 +68,7 @@ async def test_update() -> None:
 @pytest.mark.asyncio
 async def test_show_message_log_path() -> None:
 	with (
-		patch("ocainstallationhelper.console.ConsoleDialog.on_mount", fake_async),
+		patch("ocainstallationhelper.console.ConsoleDialog.on_mount"),
 		get_installation_helper() as installation_helper,
 	):
 		app = ocainstallationhelper.console.ConsoleDialog(installation_helper)
@@ -119,7 +100,7 @@ async def test_show_message_log_path() -> None:
 @pytest.mark.asyncio
 async def test_on_input_changed() -> None:
 	with (
-		patch("ocainstallationhelper.console.ConsoleDialog.on_mount", fake_async),
+		patch("ocainstallationhelper.console.ConsoleDialog.on_mount"),
 		get_installation_helper() as installation_helper,
 	):
 		app = ocainstallationhelper.console.ConsoleDialog(installation_helper)

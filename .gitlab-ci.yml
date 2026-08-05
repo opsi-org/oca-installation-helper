@@ -22,16 +22,16 @@ test:pytest-macos-x64:
       - coverage_darwin
     expire_in: 3 days
 
-test:pytest-windows-x86:
+test:pytest-windows-x64:
   stage: test
   tags:
     - win10-x64
   script:
     - $Env:UV_PYTHON_INSTALL_DIR = "c:\\uv\\python"
     - $Env:UV_CACHE_DIR = "c:\\uv\\cache"
-    - $Env:UV_PYTHON = "3.13-x86"
+    - $Env:UV_PYTHON = "3.13-x86_64"
     - $Env:UV_PYTHON_PREFERENCE = "only-managed"
-    - $Env:RUSTUP_TOOLCHAIN = "stable-i686-pc-windows-msvc"
+    - $Env:RUSTUP_TOOLCHAIN = "stable-x86_64-pc-windows-msvc"
     - uv sync --frozen
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - Rename-Item -Path .coverage -NewName coverage_windows
@@ -141,17 +141,17 @@ build:pyinstaller-linux-arm64:
     - '[ "$CI_COMMIT_TAG" = "" ] && opsi-dev-cli -l info binary push dist/oca-installation-helper --prerelease="$CI_JOB_ID"'
     - '[ "$CI_COMMIT_TAG" = "" ] || opsi-dev-cli -l info binary push dist/oca-installation-helper'
 
-build:pyinstaller-windows-x86:
+build:pyinstaller-windows-x64:
   stage: build
   tags:
     - win10-x64
   script:
     - $Env:UV_PYTHON_INSTALL_DIR = "c:\\uv\\python"
     - $Env:UV_CACHE_DIR = "c:\\uv\\cache"
-    - $Env:UV_PYTHON = "3.13-x86"
+    - $Env:UV_PYTHON = "3.13-x86_64"
     - $Env:UV_PYTHON_PREFERENCE = "only-managed"
-    - $Env:RUSTUP_TOOLCHAIN = "stable-i686-pc-windows-msvc"
-    - irm "${OPSIDEVTOOLS_INSTALLER_URL_WINDOWS_X86}" | iex
+    - $Env:RUSTUP_TOOLCHAIN = "stable-x86_64-pc-windows-msvc"
+    - irm "${OPSIDEVTOOLS_INSTALLER_URL_WINDOWS_X64}" | iex
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     - opsi-dev-cli -l info signserver sign dist\oca-installation-helper.exe

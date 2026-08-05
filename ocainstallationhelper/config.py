@@ -13,13 +13,14 @@ import os
 import platform
 import re
 import socket
+from collections.abc import Callable
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, Callable, Tuple
+from typing import Any
 from urllib.parse import urlparse
 
-from opsicommon.logging import get_logger
-from opsicommon.types import forceHostId
+from opsi.logging import get_logger
+from opsi.opsi.service.model.type import to_host_id
 from zeroconf import ServiceBrowser, Zeroconf
 
 from ocainstallationhelper.utils import get_ip_interfaces
@@ -78,7 +79,7 @@ class Config:
 
 		self.interactive: bool = not cmdline_args.non_interactive
 		self.force_recreate_client: bool = cmdline_args.force_recreate_client
-		self.read_conf_files: Tuple[Path | str, ...] = cmdline_args.read_conf_files
+		self.read_conf_files: tuple[Path | str, ...] = cmdline_args.read_conf_files
 		self.install_condition: str | None = cmdline_args.install_condition
 		self.end_command: str | None = cmdline_args.end_command
 		self.end_marker: str | None = cmdline_args.end_marker
@@ -141,7 +142,7 @@ class Config:
 		placeholder_regex = re.compile(r"#\@(\w+)\**#+")
 		placeholder_regex_new = re.compile(r"%([\w\-]+)%")
 
-		def get_value_from_config_file(key_tuples: list[Tuple[str, str]]) -> str | None:
+		def get_value_from_config_file(key_tuples: list[tuple[str, str]]) -> str | None:
 			for section, key in key_tuples:
 				result = config.get(section, key, fallback=None)
 				if result and not placeholder_regex.search(result) and not placeholder_regex_new.search(result):
@@ -212,7 +213,7 @@ class Config:
 						self.dns_domain or "",
 					)
 			except Exception as err:
-				logger.error(err, exc_info=True)
+				logger.exception(str(err))  # noqa: TRY401
 
 	@property
 	def opsiclientd_conf(self) -> Path:
@@ -317,7 +318,7 @@ class Config:
 			hostname = f"[{hostname}]"
 		self.service_address = f"{url.scheme}://{hostname}:{port}{url.path}"
 
-		self.client_id = forceHostId(self.client_id)
+		self.client_id = to_host_id(self.client_id)
 
 	def fill_config_from_zeroconf(self) -> None:
 		if self.zeroconf:
@@ -326,7 +327,7 @@ class Config:
 			self.zeroconf = Zeroconf()
 			ServiceBrowser(zc=self.zeroconf, type_="_opsics._tcp.local.", handlers=[self.zeroconf_handler])
 		except Exception as err:
-			logger.error("Failed to start zeroconf: %s", err, exc_info=True)
+			logger.exception("Failed to start zeroconf: %s", err)  # noqa: TRY401
 
 	def zeroconf_handler(self, zeroconf: Zeroconf, service_type: str, name: str, state_change: Any) -> None:
 		info = zeroconf.get_service_info(service_type, name)

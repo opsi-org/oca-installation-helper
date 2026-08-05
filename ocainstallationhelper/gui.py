@@ -17,7 +17,7 @@ from tkinter import Message, StringVar, Text, Tk
 from tkinter.ttk import Button, Entry, Frame, Label
 from typing import TYPE_CHECKING, Literal
 
-from opsicommon.logging import get_logger
+from opsi.logging import get_logger
 from PIL import Image, ImageTk
 
 from ocainstallationhelper import Dialog as BaseDialog
@@ -34,7 +34,7 @@ class GUIDialog(BaseDialog, Tk):
 		icon = (Path(__file__).parent.parent / "opsi.ico").resolve()
 		try:
 			self.wm_iconphoto(True, ImageTk.PhotoImage(Image.open(str(icon))))  # ty: ignore[invalid-argument-type]
-		except Exception as err:
+		except Exception as err:  # noqa: BLE001
 			logger.warning("Could not set icon '%s': %s", icon, err)
 		self.title("opsi-client-agent Installer")
 		self.inst_helper = inst_helper
@@ -161,7 +161,7 @@ class GUIDialog(BaseDialog, Tk):
 				color = "green"
 			self.message.config(text=message, foreground=color)
 			self.message.update()
-		except Exception as err:
+		except Exception as err:  # noqa: BLE001
 			logger.error("Error showing message: %s", err)
 
 	async def show_logpath(self, logpath: Path | str | None) -> None:

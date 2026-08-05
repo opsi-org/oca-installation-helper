@@ -16,11 +16,11 @@ import platform
 import re
 import socket
 import sys
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import psutil
-from opsicommon.system.network import get_network_info
+from opsi.system.network import get_network_info
 
 from . import KEY, POSIX_OCA_VERSION_FILE, VERSION_PATTERN, WINDOWS_OCA_VERSION_FILE, logger
 
@@ -47,7 +47,7 @@ def get_resource_path(relative_path: str) -> str:
 	"""Get absolute path to resource, works for dev and for PyInstaller"""
 	try:
 		# PyInstaller creates a temp folder and stores path in _MEIPASS
-		base_path = getattr(sys, "_MEIPASS")
+		base_path = sys._MEIPASS  # ty: ignore[unresolved-attribute]
 	except AttributeError:
 		base_path = Path(".").absolute()
 
@@ -70,7 +70,7 @@ def get_mac_address() -> str | None:
 	return None
 
 
-def get_ip_interfaces() -> Generator[ipaddress.IPv4Interface | ipaddress.IPv6Interface, None, None]:
+def get_ip_interfaces() -> Generator[ipaddress.IPv4Interface | ipaddress.IPv6Interface]:
 	for snics in psutil.net_if_addrs().values():
 		for snic in snics:
 			if snic.family not in (socket.AF_INET, socket.AF_INET6) or not snic.address or not snic.netmask:

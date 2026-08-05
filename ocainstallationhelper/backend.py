@@ -13,8 +13,8 @@ import time
 from functools import lru_cache
 from pathlib import Path
 
-from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlags, get_service_client
-from opsicommon.objects import OpsiClient, ProductOnClient
+from opsi.opsi.service.client import ServiceClient, ServiceVerificationFlags, get_service_client
+from opsi.opsi.service.model.object import OpsiClient, ProductOnClient
 
 from ocainstallationhelper import logger
 from ocainstallationhelper.utils import get_ip_interfaces, get_mac_address
@@ -54,7 +54,7 @@ class Backend:
 				self.service.connect()
 				logger.info("Connected to OPSI service at %s", self.service_address)
 				return
-			except Exception as err:
+			except Exception as err:  # noqa: BLE001
 				logger.warning("Connection attempt %d/%d failed: %s", attempt, attempts, err)
 				if attempt < attempts:
 					time.sleep(10)
@@ -81,7 +81,7 @@ class Backend:
 				],
 			)
 			logger.notice("Added %s to group %s", client_id, group)
-		except Exception as err:
+		except Exception as err:  # noqa: BLE001
 			logger.warning("Adding %s to group %s failed: %s", client_id, group, err)
 
 	def assign_client_to_depot(self, client_id: str, depot: str) -> None:
@@ -98,7 +98,7 @@ class Backend:
 				],
 			)
 			logger.notice("Assigned %s to depot %s", client_id, depot)
-		except Exception as err:
+		except Exception as err:  # noqa: BLE001
 			logger.warning("Assigning %s to depot %s failed: %s", client_id, depot, err)
 
 	def set_poc_to_installing(self, product_id: str, client_id: str) -> None:
@@ -187,7 +187,7 @@ class Backend:
 		logger.notice("Downloading product '%s' to '%s' from depot", product, destination)
 		self.service.download(f"/depot/{product}", destination)
 
-	@lru_cache
+	@lru_cache  # noqa: B019
 	def get_configserver_id(self) -> str:
 		return self.service.jsonrpc("host_getIdents", ["str", {"type": "OpsiConfigserver"}])[0]
 

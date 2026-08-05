@@ -83,6 +83,8 @@ class Config:
 		self.install_condition: str | None = cmdline_args.install_condition
 		self.end_command: str | None = cmdline_args.end_command
 		self.end_marker: str | None = cmdline_args.end_marker
+		self.oca_package_source: Path | None = cmdline_args.oca_package_source
+		self.opsi_script_package: Path | None = cmdline_args.opsi_script_package
 		self.opsi_script: Path | None = None
 		self.log_file: str | None = cmdline_args.log_file
 
@@ -296,6 +298,18 @@ class Config:
 			self.sso = args.sso
 
 	def check_values(self, with_host_key: bool = True) -> None:
+		if self.oca_package_source and not self.oca_package_source.exists():
+			raise ValueError(f"OCA package source '{self.oca_package_source}' does not exist.")
+
+		if self.oca_package_source and not (self.oca_package_source.is_dir() or self.oca_package_source.is_file()):
+			raise ValueError(f"OCA package source '{self.oca_package_source}' is neither a directory nor a file.")
+
+		if self.opsi_script_package and not self.opsi_script_package.exists():
+			raise ValueError(f"opsi-script package '{self.opsi_script_package}' does not exist.")
+
+		if self.opsi_script_package and not (self.opsi_script_package.is_dir() or self.opsi_script_package.is_file()):
+			raise ValueError(f"opsi-script package '{self.opsi_script_package}' is neither a directory nor a file.")
+
 		if not self.service_address:
 			raise ValueError("Service address undefined.")
 

@@ -19,6 +19,7 @@ import traceback
 from pathlib import Path
 from typing import IO, Literal
 
+from opsi.archive import extract_archive
 from opsi.exception import BackendAuthenticationError
 from opsi.logging import LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL, logging_config
 from opsi.process import run_command, run_script
@@ -71,15 +72,29 @@ class InstallationHelper:
 			raise ValueError("Insufficient data - no client_id set.")
 		self.cleanup()
 		self.tmp_dir.mkdir(parents=True, exist_ok=True)
-		await self.show_message(f"Copying installation files from depot '{depot_id}' to '{self.tmp_dir}'")
+		await self.show_message(f"Copying installation files to '{self.tmp_dir}'")
 		depot_backend = self.backend
 		if depot_id != self.backend.get_configserver_id():
 			depot_backend = Backend(f"https://{depot_id}:4447", self.config.client_id, self.config.client_key)
 			depot_backend.connect()
-		depot_backend.get_from_depot(self.config.oca_package, self.tmp_dir)
-		depot_backend.get_from_depot("opsi-script", self.tmp_dir)
+		if self.config.oca_package_source:
+			self._copy_package_from_source(
+				self.config.oca_package_source,
+				self.config.oca_package,
+				Path(SETUP_SCRIPT_NAME),
+			)
+		else:
+			depot_backend.get_from_depot(self.config.oca_package, self.tmp_dir)
+		if self.config.opsi_script_package:
+			self._copy_package_from_source(
+				self.config.opsi_script_package,
+				"opsi-script",
+				self.config.opsi_script_path,
+			)
+		else:
+			depot_backend.get_from_depot("opsi-script", self.tmp_dir)
 
-		await self.show_message(f"Installation files succesfully copied from '{depot_id}' to '{self.tmp_dir}'", "success")
+		await self.show_message(f"Installation files successfully copied to '{self.tmp_dir}'", "success")
 		self.config.opsi_script = self.tmp_dir / "opsi-script" / self.config.opsi_script_path
 		assert isinstance(self.config.opsi_script, Path)
 		if self.config.oca_package != "opsi-mac-client-agent":
@@ -92,6 +107,20 @@ class InstallationHelper:
 			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "lib", self.config.opsi_script.parent / "lib")
 		make_executable(self.config.opsi_script)
 		return self.tmp_dir / self.config.oca_package
+
+	def _copy_package_from_source(self, source: Path, package_name: str, required_file: Path) -> None:
+		destination = self.tmp_dir / package_name
+		if source.is_dir():
+			package_root = source / package_name if (source / package_name).is_dir() else source
+			shutil.copytree(package_root, destination)
+		else:
+			extraction_dir = self.tmp_dir / f"{package_name}-source"
+			extract_archive(source, extraction_dir)
+			package_root = extraction_dir / package_name if (extraction_dir / package_name).is_dir() else extraction_dir
+			shutil.move(package_root, destination)
+
+		if not (destination / required_file).is_file():
+			raise ValueError(f"Package source '{source}' does not contain {required_file}.")
 
 	async def run_setup_script(self) -> None:
 		if not self.backend:
@@ -486,6 +515,18 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 	)
 	parser.add_argument("--end-command", default=None, help="Run this command at the end.")
 	parser.add_argument("--end-marker", default=None, help="Create this marker file at the end.")
+	parser.add_argument(
+		"--oca-package-source",
+		type=Path,
+		metavar="PATH",
+		help="Use a local directory or archive instead of downloading the client-agent package from the depot.",
+	)
+	parser.add_argument(
+		"--opsi-script-package",
+		type=Path,
+		metavar="PATH",
+		help="Use a local directory or archive instead of downloading opsi-script from the depot.",
+	)
 	parser.add_argument(
 		"--read-conf-files",
 		nargs="*",

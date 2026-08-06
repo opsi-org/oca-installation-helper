@@ -72,7 +72,7 @@ class GUIDialog(BaseDialog, Tk):
 		self.relevant_log_file: str = ""
 		self._set_geometry()
 		self._build()
-		self._loop = asyncio.get_event_loop()
+		self._loop = asyncio.new_event_loop()
 
 	def _make_button(self, button_id: str, button_text: str | None = None, disabled: bool = False) -> Button:
 		def on_button_click(button_id: str = button_id) -> None:
@@ -184,14 +184,15 @@ def show_message(message: str, severity: Literal["normal", "error", "success"] =
 	:param severity: The severity of the message, can be "normal", "error", or "success".
 	"""
 	window = Tk()
-	msg = Text(window, wrap="word", height=10, width=50)
+	msg = Text(window, wrap="word")
 	msg.insert("1.0", message)
 	if severity == "error":
 		msg.config(fg="red")
 	elif severity == "success":
 		msg.config(fg="green")
-	msg.pack(padx=20, pady=20)
+	msg.pack(fill="both", expand=True, padx=20, pady=20)
 	window.title("Message")
-	window.geometry("400x200")
+	window.geometry("800x600")
+	window.minsize(400, 200)
 	window.mainloop()  # Start the GUI event loop
 	logger.info("Message dialog closed")

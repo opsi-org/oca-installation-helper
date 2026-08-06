@@ -166,7 +166,7 @@ class InstallationHelper:
 		self.backend.set_poc_to_installing(self.config.oca_package, self.config.client_id)
 		if platform.system().lower() == "windows":
 			arg_string = ",".join([f"'\"{arg}\"'" for arg in arg_list])  # Enclosing by ' and " to be robust against spaces in params
-			asyncio.get_event_loop().run_in_executor(
+			await asyncio.get_event_loop().run_in_executor(
 				None,
 				lambda: run_script(
 					f'Start-Process -Verb runas -FilePath "{self.config.opsi_script}" -ArgumentList {arg_string} -Wait',
@@ -174,7 +174,7 @@ class InstallationHelper:
 				),
 			)
 		else:
-			asyncio.get_event_loop().run_in_executor(
+			await asyncio.get_event_loop().run_in_executor(
 				None,
 				lambda: run_command(
 					[str(self.config.opsi_script)] + arg_list,

@@ -85,9 +85,9 @@ class InstallationHelper:
 			)
 		else:
 			depot_backend.get_from_depot(self.config.oca_package, self.tmp_dir)
-		if self.config.opsi_script_package:
+		if self.config.opsi_script_package_source:
 			self._copy_package_from_source(
-				self.config.opsi_script_package,
+				self.config.opsi_script_package_source,
 				"opsi-script",
 				self.config.opsi_script_path,
 			)
@@ -103,8 +103,8 @@ class InstallationHelper:
 				self.tmp_dir / "opsi-script" / "common",
 				self.config.opsi_script.parent,
 			)
-			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "skin", self.config.opsi_script.parent / "skin")
-			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "lib", self.config.opsi_script.parent / "lib")
+			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "skin", self.config.opsi_script.parent / "skin", dirs_exist_ok=True)
+			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "lib", self.config.opsi_script.parent / "lib", dirs_exist_ok=True)
 		make_executable(self.config.opsi_script)
 		return self.tmp_dir / self.config.oca_package
 
@@ -522,7 +522,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 		help="Use a local directory or archive instead of downloading the client-agent package from the depot.",
 	)
 	parser.add_argument(
-		"--opsi-script-package",
+		"--opsi-script-package-source",
 		type=Path,
 		metavar="PATH",
 		help="Use a local directory or archive instead of downloading opsi-script from the depot.",

@@ -31,7 +31,7 @@ def test_fill_config_from_params(tmp_path: Path) -> None:
 			"product1:setup,product2,product3:uninstall",
 			"--oca-package-source",
 			str(tmp_path),
-			"--opsi-script-package",
+			"--opsi-script-package-source",
 			str(tmp_path),
 		]
 	) as installation_helper:
@@ -41,7 +41,7 @@ def test_fill_config_from_params(tmp_path: Path) -> None:
 		assert installation_helper.config.setup_after_install == ["product1", "product2"]
 		assert installation_helper.config.set_product_actions == {"product1": "setup", "product2": "setup", "product3": "uninstall"}
 		assert installation_helper.config.oca_package_source == tmp_path
-		assert installation_helper.config.opsi_script_package == tmp_path
+		assert installation_helper.config.opsi_script_package_source == tmp_path
 		installation_helper.config.check_values(with_host_key=False)
 
 
@@ -54,10 +54,10 @@ def test_check_values_rejects_missing_oca_package_source(tmp_path: Path) -> None
 		installation_helper.config.check_values(with_host_key=False)
 
 
-def test_check_values_rejects_missing_opsi_script_package(tmp_path: Path) -> None:
+def test_check_values_rejects_missing_opsi_script_package_source(tmp_path: Path) -> None:
 	missing_package = tmp_path / "missing"
 	with (
-		get_installation_helper(["--opsi-script-package", str(missing_package)]) as installation_helper,
+		get_installation_helper(["--opsi-script-package-source", str(missing_package)]) as installation_helper,
 		pytest.raises(ValueError, match="does not exist"),
 	):
 		installation_helper.config.check_values(with_host_key=False)

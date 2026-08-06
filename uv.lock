@@ -652,7 +652,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/a6/91/86a6eac449ddfae23
 
 [[package]]
 name = "oca-installation-helper"
-version = "4.3.8.0"
+version = "4.3.8.1"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },

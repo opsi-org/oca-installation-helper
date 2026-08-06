@@ -52,7 +52,7 @@ def prepare_download(installation_helper: InstallationHelper, product: str, dest
 	(opsi_script_dir / "common" / "lib").mkdir(parents=True)
 
 
-def prepare_opsi_script_package(installation_helper: InstallationHelper, package_dir: Path) -> None:
+def prepare_opsi_script_package_source(installation_helper: InstallationHelper, package_dir: Path) -> None:
 	(package_dir / installation_helper.config.opsi_script_path).parent.mkdir(parents=True)
 	(package_dir / installation_helper.config.opsi_script_path).touch()
 	(package_dir / "common" / "skin").mkdir(parents=True)
@@ -128,8 +128,12 @@ async def test_copy_installation_files_downloads_oca_package_without_local_sourc
 async def test_copy_installation_files_uses_local_directory_for_opsi_script(tmp_path: Path) -> None:
 	source = tmp_path / "source"
 	with get_installation_helper(["--client-id", "client.domain.local"]) as installation_helper:
-		prepare_opsi_script_package(installation_helper, source)
-		installation_helper.config.opsi_script_package = source
+		prepare_opsi_script_package_source(installation_helper, source)
+		(source / "common" / "skin" / "common-file").touch()
+		platform_skin = source / installation_helper.config.opsi_script_path.parent / "skin"
+		platform_skin.mkdir()
+		(platform_skin / "platform-file").touch()
+		installation_helper.config.opsi_script_package_source = source
 		installation_helper.tmp_dir = tmp_path / "work"
 		backend = MagicMock(spec=Backend)
 		backend.get_configserver_id.return_value = "depot.domain.local"
@@ -139,6 +143,9 @@ async def test_copy_installation_files_uses_local_directory_for_opsi_script(tmp_
 		await installation_helper.copy_installation_files("depot.domain.local")
 
 		assert (installation_helper.tmp_dir / "opsi-script" / "local-file").is_file()
+		assert isinstance(installation_helper.config.opsi_script, Path)
+		assert (installation_helper.config.opsi_script.parent / "skin" / "common-file").is_file()
+		assert (installation_helper.config.opsi_script.parent / "skin" / "platform-file").is_file()
 		assert (source / "local-file").is_file()
 		assert backend.get_from_depot.call_args_list == [call(installation_helper.config.oca_package, installation_helper.tmp_dir)]
 
@@ -148,11 +155,11 @@ async def test_copy_installation_files_extracts_local_opsi_script_archive(tmp_pa
 	archive_contents = tmp_path / "archive-contents"
 	with get_installation_helper(["--client-id", "client.domain.local"]) as installation_helper:
 		package_dir = archive_contents / "opsi-script"
-		prepare_opsi_script_package(installation_helper, package_dir)
+		prepare_opsi_script_package_source(installation_helper, package_dir)
 		archive = tmp_path / "opsi-script.tar.gz"
 		with tarfile.open(archive, "w:gz") as tar:
 			tar.add(package_dir, arcname=package_dir.name)
-		installation_helper.config.opsi_script_package = archive
+		installation_helper.config.opsi_script_package_source = archive
 		installation_helper.tmp_dir = tmp_path / "work"
 		backend = MagicMock(spec=Backend)
 		backend.get_configserver_id.return_value = "depot.domain.local"

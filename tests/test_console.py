@@ -36,15 +36,18 @@ async def test_install_button() -> None:
 		patch("ocainstallationhelper.console.ConsoleDialog.on_mount"),
 		get_installation_helper() as installation_helper,
 		patch("tests.utils.InstallationHelper.install"),
+		patch("ocainstallationhelper.__main__.INSTALLATION_SUCCESS_CLOSE_DELAY", 0),
 	):
 		app = ocainstallationhelper.console.ConsoleDialog(installation_helper)
 		installation_helper.dialog = app
-		async with app.run_test() as pilot:
-			await pilot.click("#install")
-			# await pilot.pause()  # should wait until all message have been processed, but runs into timeout
-			await asyncio.sleep(5.5)
-			logger.devel("Checking for closed app")
-			assert app._closed  # install calls close at the end
+		closed = asyncio.Event()
+		close = app.close
+		with patch.object(app, "close", side_effect=lambda: (close(), closed.set())):
+			async with app.run_test() as pilot:
+				await pilot.click("#install")
+				await asyncio.wait_for(closed.wait(), timeout=1)
+				logger.devel("Checking for closed app")
+				assert app._closed  # install calls close at the end
 
 
 @pytest.mark.asyncio

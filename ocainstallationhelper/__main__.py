@@ -30,6 +30,7 @@ from ocainstallationhelper.config import SETUP_SCRIPT_NAME, Config
 from ocainstallationhelper.utils import decode_password, encode_password, get_installed_oca_version, make_executable, show_message
 
 OCA_INSTALL_TIMEOUT = 60 * 20  # 20 minutes
+INSTALLATION_SUCCESS_CLOSE_DELAY = 5
 
 
 class InstallationHelper:
@@ -97,14 +98,13 @@ class InstallationHelper:
 		await self.show_message(f"Installation files successfully copied to '{self.tmp_dir}'", "success")
 		self.config.opsi_script = self.tmp_dir / "opsi-script" / self.config.opsi_script_path
 		assert isinstance(self.config.opsi_script, Path)
-		if self.config.oca_package != "opsi-mac-client-agent":
-			logger.debug(
-				"Copying opsi-script additional files from %s to %s",
-				self.tmp_dir / "opsi-script" / "common",
-				self.config.opsi_script.parent,
-			)
-			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "skin", self.config.opsi_script.parent / "skin", dirs_exist_ok=True)
-			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "lib", self.config.opsi_script.parent / "lib", dirs_exist_ok=True)
+		logger.debug(
+			"Copying opsi-script additional files from %s to %s",
+			self.tmp_dir / "opsi-script" / "common",
+			self.config.opsi_script.parent,
+		)
+		shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "skin", self.config.opsi_script.parent / "skin", dirs_exist_ok=True)
+		shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "lib", self.config.opsi_script.parent / "lib", dirs_exist_ok=True)
 		make_executable(self.config.opsi_script)
 		return self.tmp_dir / self.config.oca_package
 
@@ -319,9 +319,7 @@ class InstallationHelper:
 			if await self.install():
 				await self.show_message("Installation completed (closing in 5 Seconds)", "success")
 			if self.dialog:
-				# if using a dialog, wait for 5 Seconds before closing
-				for _num in range(5):
-					await asyncio.sleep(1)
+				await asyncio.sleep(INSTALLATION_SUCCESS_CLOSE_DELAY)
 				self.dialog.close()
 		except BackendAuthenticationError:
 			await self.show_message("Authentication error, wrong username or password", "error")

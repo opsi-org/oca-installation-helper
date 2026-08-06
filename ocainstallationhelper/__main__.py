@@ -117,6 +117,15 @@ class InstallationHelper:
 			extraction_dir = self.tmp_dir / f"{package_name}-source"
 			extract_archive(source, extraction_dir)
 			package_root = extraction_dir / package_name if (extraction_dir / package_name).is_dir() else extraction_dir
+			if not (package_root / required_file).is_file():
+				client_data_archives = sorted(
+					(path for path in extraction_dir.rglob("CLIENT_DATA.*") if path.is_file()),
+					key=lambda path: len(path.name.split(".")),
+				)
+				if client_data_archives:
+					package_root = extraction_dir / "CLIENT_DATA"
+					for client_data_archive in client_data_archives:
+						extract_archive(client_data_archive, package_root)
 			shutil.move(package_root, destination)
 
 		if not (destination / required_file).is_file():

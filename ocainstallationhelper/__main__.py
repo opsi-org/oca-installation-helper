@@ -170,6 +170,7 @@ class InstallationHelper:
 				None,
 				lambda: run_script(
 					f'Start-Process -Verb runas -FilePath "{self.config.opsi_script}" -ArgumentList {arg_string} -Wait',
+					interpreter="powershell",
 					timeout=OCA_INSTALL_TIMEOUT,
 				),
 			)

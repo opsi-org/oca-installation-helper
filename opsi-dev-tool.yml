@@ -29,3 +29,4 @@ pyinstaller:
   extra_args:
     windows:
       - --uac-admin
+      - --noconsole

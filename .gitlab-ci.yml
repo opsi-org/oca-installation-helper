@@ -10,7 +10,7 @@ test:pytest-macos-x64:
   tags:
     - catalina-x64
   script:
-    - export UV_PYTHON="3.13-x86_64"
+    - export UV_PYTHON="3.14-x86_64"
     - export UV_PYTHON_PREFERENCE="only-managed"
     - uv sync --frozen
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
@@ -22,16 +22,16 @@ test:pytest-macos-x64:
       - coverage_darwin
     expire_in: 3 days
 
-test:pytest-windows-x86:
+test:pytest-windows-x64:
   stage: test
   tags:
     - win10-x64
   script:
     - $Env:UV_PYTHON_INSTALL_DIR = "c:\\uv\\python"
     - $Env:UV_CACHE_DIR = "c:\\uv\\cache"
-    - $Env:UV_PYTHON = "3.13-x86"
+    - $Env:UV_PYTHON = "3.14-x86_64"
     - $Env:UV_PYTHON_PREFERENCE = "only-managed"
-    - $Env:RUSTUP_TOOLCHAIN = "stable-i686-pc-windows-msvc"
+    - $Env:RUSTUP_TOOLCHAIN = "stable-x86_64-pc-windows-msvc"
     - uv sync --frozen
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - Rename-Item -Path .coverage -NewName coverage_windows
@@ -47,9 +47,12 @@ test:pytest-linux-x64:
   tags:
     - docker-x64
   script:
-    - export UV_PYTHON="3.13-x86_64"
+    - export UV_PYTHON="3.14-x86_64"
     - export UV_PYTHON_PREFERENCE="only-managed"
     - uv self update
+    - uv python install
+    # PBS release 20260718 added hardening flags to sysconfig CFLAGS which GCC 6 on deb9 does not support
+    - find "$(uv python dir)" -name "_sysconfigdata_*.py" -exec sed -i 's/-fstack-clash-protection//g' {} +
     - uv sync --frozen
     - uv run pytest --tb=short -o junit_family=xunit2 --junitxml=testreport.xml --cov-append --cov ocainstallationhelper --cov-report term --cov-report xml -v
     - mv .coverage coverage_linux
@@ -68,16 +71,19 @@ test:lint-and-test:
     - docker-x64
   needs:
     # We want to combine test coverage from all test jobs
-    - job: test:pytest-windows-x86
+    - job: test:pytest-windows-x64
       artifacts: true
     - job: test:pytest-macos-x64
       artifacts: true
     - job: test:pytest-linux-x64
       artifacts: true
   script:
-    - export UV_PYTHON="3.13-x86_64"
+    - export UV_PYTHON="3.14-x86_64"
     - export UV_PYTHON_PREFERENCE="only-managed"
     - uv self update
+    - uv python install
+    # PBS release 20260718 added hardening flags to sysconfig CFLAGS which GCC 6 on deb9 does not support
+    - find "$(uv python dir)" -name "_sysconfigdata_*.py" -exec sed -i 's/-fstack-clash-protection//g' {} +
     - uv sync --frozen
     - uv run ruff check ocainstallationhelper tests
     - uv run ty check ocainstallationhelper tests
@@ -100,7 +106,7 @@ build:pyinstaller-macos-x64:
   tags:
     - catalina-x64
   script:
-    - export UV_PYTHON="3.13-x86_64"
+    - export UV_PYTHON="3.14-x86_64"
     - export UV_PYTHON_PREFERENCE="only-managed"
     - curl -sS "${OPSIDEVTOOLS_INSTALLER_URL_MACOS_X64}" | sh
     - uv self update
@@ -116,10 +122,13 @@ build:pyinstaller-linux-x64:
   tags:
     - docker-x64
   script:
-    - export UV_PYTHON="3.13-x86_64"
+    - export UV_PYTHON="3.14-x86_64"
     - export UV_PYTHON_PREFERENCE="only-managed"
     - curl -sS "${OPSIDEVTOOLS_INSTALLER_URL_LINUX_X64}" | sh
     - uv self update
+    - uv python install
+    # PBS release 20260718 added hardening flags to sysconfig CFLAGS which GCC 6 on deb9 does not support
+    - find "$(uv python dir)" -name "_sysconfigdata_*.py" -exec sed -i 's/-fstack-clash-protection//g' {} +
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     - ./dist/oca-installation-helper --version
@@ -131,27 +140,30 @@ build:pyinstaller-linux-arm64:
   tags:
     - docker-arm64
   script:
-    - export UV_PYTHON="3.13-aarch64"
+    - export UV_PYTHON="3.14-aarch64"
     - export UV_PYTHON_PREFERENCE="only-managed"
     - curl -sS "${OPSIDEVTOOLS_INSTALLER_URL_LINUX_ARM64}" | sh
     - uv self update
+    - uv python install
+    # PBS release 20260718 added hardening flags to sysconfig CFLAGS which GCC 6 on deb9 does not support
+    - find "$(uv python dir)" -name "_sysconfigdata_*.py" -exec sed -i 's/-fstack-clash-protection//g' {} +
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     - ./dist/oca-installation-helper --version
     - '[ "$CI_COMMIT_TAG" = "" ] && opsi-dev-cli -l info binary push dist/oca-installation-helper --prerelease="$CI_JOB_ID"'
     - '[ "$CI_COMMIT_TAG" = "" ] || opsi-dev-cli -l info binary push dist/oca-installation-helper'
 
-build:pyinstaller-windows-x86:
+build:pyinstaller-windows-x64:
   stage: build
   tags:
     - win10-x64
   script:
     - $Env:UV_PYTHON_INSTALL_DIR = "c:\\uv\\python"
     - $Env:UV_CACHE_DIR = "c:\\uv\\cache"
-    - $Env:UV_PYTHON = "3.13-x86"
+    - $Env:UV_PYTHON = "3.14-x86_64"
     - $Env:UV_PYTHON_PREFERENCE = "only-managed"
-    - $Env:RUSTUP_TOOLCHAIN = "stable-i686-pc-windows-msvc"
-    - irm "${OPSIDEVTOOLS_INSTALLER_URL_WINDOWS_X86}" | iex
+    - $Env:RUSTUP_TOOLCHAIN = "stable-x86_64-pc-windows-msvc"
+    - irm "${OPSIDEVTOOLS_INSTALLER_URL_WINDOWS_X64}" | iex
     - uv sync --frozen
     - uv run opsi-dev-cli -l info pyinstaller build
     - opsi-dev-cli -l info signserver sign dist\oca-installation-helper.exe

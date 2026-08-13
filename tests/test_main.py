@@ -12,45 +12,18 @@ main tests
 from __future__ import annotations
 
 import platform
+import tarfile
 from pathlib import Path
-from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, call, patch
 
-from opsicommon.objects import OpsiClient, ProductOnClient
+import pytest
+from opsi.opsi.service.model.object import OpsiClient, ProductOnClient
+
+from ocainstallationhelper.__main__ import InstallationHelper
+from ocainstallationhelper.backend import Backend
+from ocainstallationhelper.config import SETUP_SCRIPT_NAME
 
 from .utils import fake_get_service_client, get_installation_helper
-
-
-class PopenLog:
-	entries: list[list[str]] = []
-
-	def write(self, entry: list[str]) -> None:
-		self.entries.append(entry)
-
-
-popen_log = PopenLog()
-
-
-class FakePopen:
-	def __init__(self, command: list[str], **kwargs: dict[str, Any]) -> None:
-		self.command = command
-		self.returncode = 0
-		self.stdout = None
-		self.stderr = None
-		popen_log.write(self.command)
-
-	def __enter__(self) -> FakePopen:
-		return self
-
-	def __exit__(self, *args: tuple[Any]) -> None:
-		pass
-
-	async def communicate(self, input: Any = None, timeout: float | None = None) -> tuple[bytes, bytes]:
-		return (b"", b"")
-
-
-async def fake_create_subprocess_exec(*args: str, **kwargs: dict[str, Any]) -> FakePopen:
-	return FakePopen(list(args), kwargs=kwargs)
 
 
 def fake_get_pocs(self, package: str, client: str) -> list[ProductOnClient]:
@@ -62,6 +35,172 @@ def test_helper_object() -> None:
 		assert installation_helper.config.opsiclientd_conf.name == "opsiclientd.conf"
 		assert installation_helper.config.oca_package.endswith("-client-agent")
 		assert installation_helper.config.opsi_script_path.name.startswith("opsi-script")
+
+
+def prepare_download(installation_helper: InstallationHelper, product: str, destination: Path) -> None:
+	config = installation_helper.config
+	if product == config.oca_package:
+		package_dir = destination / config.oca_package
+		package_dir.mkdir(parents=True)
+		(package_dir / SETUP_SCRIPT_NAME).touch()
+		return
+
+	opsi_script_dir = destination / "opsi-script"
+	(opsi_script_dir / config.opsi_script_path).parent.mkdir(parents=True)
+	(opsi_script_dir / config.opsi_script_path).touch()
+	(opsi_script_dir / "common" / "skin").mkdir(parents=True)
+	(opsi_script_dir / "common" / "lib").mkdir(parents=True)
+
+
+def prepare_opsi_script_package_source(installation_helper: InstallationHelper, package_dir: Path) -> None:
+	(package_dir / installation_helper.config.opsi_script_path).parent.mkdir(parents=True)
+	(package_dir / installation_helper.config.opsi_script_path).touch()
+	(package_dir / "common" / "skin").mkdir(parents=True)
+	(package_dir / "common" / "lib").mkdir(parents=True)
+	(package_dir / "local-file").touch()
+
+
+@pytest.mark.asyncio
+async def test_copy_installation_files_uses_local_directory_for_oca_package(tmp_path: Path) -> None:
+	source = tmp_path / "source"
+	source.mkdir()
+	(source / SETUP_SCRIPT_NAME).touch()
+	(source / "local-file").touch()
+
+	with get_installation_helper(["--client-id", "client.domain.local", "--oca-package-source", str(source)]) as installation_helper:
+		installation_helper.tmp_dir = tmp_path / "work"
+		backend = MagicMock(spec=Backend)
+		backend.get_configserver_id.return_value = "depot.domain.local"
+		backend.get_from_depot.side_effect = lambda product, destination: prepare_download(installation_helper, product, destination)
+		installation_helper.backend = backend
+
+		base_dir = await installation_helper.copy_installation_files("depot.domain.local")
+
+		assert base_dir == installation_helper.tmp_dir / installation_helper.config.oca_package
+		assert (base_dir / "local-file").is_file()
+		assert (source / "local-file").is_file()
+		assert backend.get_from_depot.call_args_list == [call("opsi-script", installation_helper.tmp_dir)]
+
+
+@pytest.mark.asyncio
+async def test_copy_installation_files_extracts_local_archive(tmp_path: Path) -> None:
+	archive_contents = tmp_path / "archive-contents"
+	with get_installation_helper(["--client-id", "client.domain.local"]) as installation_helper:
+		package_dir = archive_contents / installation_helper.config.oca_package
+		package_dir.mkdir(parents=True)
+		(package_dir / SETUP_SCRIPT_NAME).touch()
+		(package_dir / "archive-file").touch()
+		archive = tmp_path / "oca-package.tar.gz"
+		with tarfile.open(archive, "w:gz") as tar:
+			tar.add(package_dir, arcname=package_dir.name)
+		installation_helper.config.oca_package_source = archive
+		installation_helper.tmp_dir = tmp_path / "work"
+		backend = MagicMock(spec=Backend)
+		backend.get_configserver_id.return_value = "depot.domain.local"
+		backend.get_from_depot.side_effect = lambda product, destination: prepare_download(installation_helper, product, destination)
+		installation_helper.backend = backend
+
+		base_dir = await installation_helper.copy_installation_files("depot.domain.local")
+
+		assert (base_dir / "archive-file").is_file()
+		assert archive.is_file()
+		assert backend.get_from_depot.call_args_list == [call("opsi-script", installation_helper.tmp_dir)]
+
+
+@pytest.mark.asyncio
+async def test_copy_installation_files_extracts_oca_package_archive(tmp_path: Path) -> None:
+	client_data = tmp_path / "client-data"
+	client_data.mkdir()
+	(client_data / SETUP_SCRIPT_NAME).touch()
+	(client_data / "archive-file").touch()
+	client_data_archive = tmp_path / "CLIENT_DATA.tar.gz"
+	with tarfile.open(client_data_archive, "w:gz") as tar:
+		tar.add(client_data / SETUP_SCRIPT_NAME, arcname=SETUP_SCRIPT_NAME)
+		tar.add(client_data / "archive-file", arcname="archive-file")
+	package_archive = tmp_path / "opsi-client-agent.opsi"
+	with tarfile.open(package_archive, "w") as tar:
+		tar.add(client_data_archive, arcname=client_data_archive.name)
+
+	with get_installation_helper(["--client-id", "client.domain.local"]) as installation_helper:
+		installation_helper.config.oca_package_source = package_archive
+		installation_helper.tmp_dir = tmp_path / "work"
+		backend = MagicMock(spec=Backend)
+		backend.get_configserver_id.return_value = "depot.domain.local"
+		backend.get_from_depot.side_effect = lambda product, destination: prepare_download(installation_helper, product, destination)
+		installation_helper.backend = backend
+
+		base_dir = await installation_helper.copy_installation_files("depot.domain.local")
+
+		assert (base_dir / SETUP_SCRIPT_NAME).is_file()
+		assert (base_dir / "archive-file").is_file()
+		assert package_archive.is_file()
+		assert backend.get_from_depot.call_args_list == [call("opsi-script", installation_helper.tmp_dir)]
+
+
+@pytest.mark.asyncio
+async def test_copy_installation_files_downloads_oca_package_without_local_source(tmp_path: Path) -> None:
+	with get_installation_helper(["--client-id", "client.domain.local"]) as installation_helper:
+		installation_helper.tmp_dir = tmp_path / "work"
+		backend = MagicMock(spec=Backend)
+		backend.get_configserver_id.return_value = "depot.domain.local"
+		backend.get_from_depot.side_effect = lambda product, destination: prepare_download(installation_helper, product, destination)
+		installation_helper.backend = backend
+
+		await installation_helper.copy_installation_files("depot.domain.local")
+
+		assert backend.get_from_depot.call_args_list == [
+			call(installation_helper.config.oca_package, installation_helper.tmp_dir),
+			call("opsi-script", installation_helper.tmp_dir),
+		]
+
+
+@pytest.mark.asyncio
+async def test_copy_installation_files_uses_local_directory_for_opsi_script(tmp_path: Path) -> None:
+	source = tmp_path / "source"
+	with get_installation_helper(["--client-id", "client.domain.local"]) as installation_helper:
+		prepare_opsi_script_package_source(installation_helper, source)
+		(source / "common" / "skin" / "common-file").touch()
+		platform_skin = source / installation_helper.config.opsi_script_path.parent / "skin"
+		platform_skin.mkdir()
+		(platform_skin / "platform-file").touch()
+		installation_helper.config.opsi_script_package_source = source
+		installation_helper.tmp_dir = tmp_path / "work"
+		backend = MagicMock(spec=Backend)
+		backend.get_configserver_id.return_value = "depot.domain.local"
+		backend.get_from_depot.side_effect = lambda product, destination: prepare_download(installation_helper, product, destination)
+		installation_helper.backend = backend
+
+		await installation_helper.copy_installation_files("depot.domain.local")
+
+		assert (installation_helper.tmp_dir / "opsi-script" / "local-file").is_file()
+		assert isinstance(installation_helper.config.opsi_script, Path)
+		assert (installation_helper.config.opsi_script.parent / "skin" / "common-file").is_file()
+		assert (installation_helper.config.opsi_script.parent / "skin" / "platform-file").is_file()
+		assert (source / "local-file").is_file()
+		assert backend.get_from_depot.call_args_list == [call(installation_helper.config.oca_package, installation_helper.tmp_dir)]
+
+
+@pytest.mark.asyncio
+async def test_copy_installation_files_extracts_local_opsi_script_archive(tmp_path: Path) -> None:
+	archive_contents = tmp_path / "archive-contents"
+	with get_installation_helper(["--client-id", "client.domain.local"]) as installation_helper:
+		package_dir = archive_contents / "opsi-script"
+		prepare_opsi_script_package_source(installation_helper, package_dir)
+		archive = tmp_path / "opsi-script.tar.gz"
+		with tarfile.open(archive, "w:gz") as tar:
+			tar.add(package_dir, arcname=package_dir.name)
+		installation_helper.config.opsi_script_package_source = archive
+		installation_helper.tmp_dir = tmp_path / "work"
+		backend = MagicMock(spec=Backend)
+		backend.get_configserver_id.return_value = "depot.domain.local"
+		backend.get_from_depot.side_effect = lambda product, destination: prepare_download(installation_helper, product, destination)
+		installation_helper.backend = backend
+
+		await installation_helper.copy_installation_files("depot.domain.local")
+
+		assert (installation_helper.tmp_dir / "opsi-script" / "local-file").is_file()
+		assert archive.is_file()
+		assert backend.get_from_depot.call_args_list == [call(installation_helper.config.oca_package, installation_helper.tmp_dir)]
 
 
 def test_run(tmp_path: Path) -> None:
@@ -96,13 +235,13 @@ def test_run(tmp_path: Path) -> None:
 			patch("ocainstallationhelper.backend.Backend.get_depot_id", return_value="server.domain.local"),
 			patch("ocainstallationhelper.backend.Backend.set_poc_to_installing"),
 			patch("ocainstallationhelper.backend.Backend.get_pocs", fake_get_pocs),
-			patch("ocainstallationhelper.__main__.asyncio.create_subprocess_exec", fake_create_subprocess_exec),
+			patch("ocainstallationhelper.__main__.run_command") as run_command_mock,
 			patch("ocainstallationhelper.backend.Backend.get_available_oca_version", return_value=("server.domain.local", "4.3.0.0")),
 		):
 			installation_helper.run()
 		if platform.system().lower() == "windows":
 			return
-		assert popen_log.entries[0] == [
+		assert run_command_mock.call_args[0][0] == [
 			"None",  # opsi-script bin path is set during copy_installation_files
 			str(tmp_path / "setup.opsiscript"),
 			"/var/log/opsi-script/opsi-client-agent.log",

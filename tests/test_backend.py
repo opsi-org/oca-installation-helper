@@ -7,8 +7,8 @@ import ipaddress
 from unittest.mock import patch
 
 import pytest
-from opsicommon.logging import use_logging_config
-from opsicommon.objects import OpsiConfigserver, OpsiDepotserver
+from opsi.logging import use_logging_config
+from opsi.opsi.service.model.object import OpsiConfigserver, OpsiDepotserver
 
 from ocainstallationhelper.backend import Backend
 

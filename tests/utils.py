@@ -12,18 +12,18 @@ main tests
 from __future__ import annotations
 
 import tempfile
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator
 
-from opsicommon.client.opsiservice import ServiceClient, ServiceVerificationFlags
-from opsicommon.exceptions import OpsiServiceConnectionError
+from opsi.exception import OpsiServiceConnectionError
+from opsi.opsi.service.client import ServiceClient, ServiceVerificationFlags
 
 from ocainstallationhelper.__main__ import InstallationHelper, parse_args
 
 
 @contextmanager
-def get_installation_helper(args: list[str] | None = None) -> Generator[InstallationHelper, None, None]:
+def get_installation_helper(args: list[str] | None = None) -> Generator[InstallationHelper]:
 	args = args or []
 	with tempfile.TemporaryDirectory() as tempdir:
 		tempdir_path = Path(tempdir)
@@ -49,7 +49,6 @@ def fake_get_service_client(
 		attempt += 1
 		if attempt == 1:
 			raise OpsiServiceConnectionError("Simulated connection error")
-		return None
 
 	service_client.connect = connect  # ty: ignore[invalid-assignment]
 	return service_client

@@ -457,7 +457,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 	parser.add_argument(
 		"--log-level",
 		"-l",
-		default="info",
+		default="notice",
 		choices=[
 			"0",
 			"none",
@@ -591,8 +591,11 @@ def main() -> None:
 		log_file.parent.mkdir(parents=True, exist_ok=True)
 		if log_file.exists():
 			log_file.unlink()
+		stderr_level = log_level
+		if not args.non_interactive and args.no_gui:  # no-gui mode and interactive
+			stderr_level = 0
 		logging_config(
-			stderr_level=log_level if args.non_interactive else 0,
+			stderr_level=stderr_level,
 			file_level=log_level,
 			file_format="[%(levelname)-9s %(asctime)s] %(message)s   (%(filename)s:%(lineno)d)",
 			log_file=str(log_file),
@@ -604,8 +607,6 @@ def main() -> None:
 if __name__ == "__main__":
 	try:
 		main()
-	except SystemExit:
-		pass
 	except KeyboardInterrupt:
 		print("Interrupted", file=sys.stderr)
 		sys.exit(1)

@@ -407,7 +407,8 @@ class InstallationHelper:
 			else:
 				asyncio.run(self.prepare_installation())
 				asyncio.run(self.install())
-		except Exception as err:
+
+		except Exception as err:  # noqa: BLE001
 			logger.error(err, exc_info=True)
 			error = err
 			asyncio.run(self.show_message(str(err), "error"))

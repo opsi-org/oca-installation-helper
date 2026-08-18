@@ -432,7 +432,7 @@ class InstallationHelper:
 				pass
 
 		if self.backend:
-			self.backend.disconnect()
+			self.backend.stop()
 		if error:
 			print(f"ERROR: {error}", file=sys.stderr)
 			sys.exit(1)

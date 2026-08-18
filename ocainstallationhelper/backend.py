@@ -255,9 +255,9 @@ class Backend:
 
 		raise InstallationUnsuccessful(f"Package {self.product_id!r} not available on {dep_ids!r}")
 
-	def disconnect(self) -> None:
+	def stop(self) -> None:
 		try:
-			self.service.disconnect()
+			self.service.stop()
 			logger.info("Disconnected from OPSI service at %s", self.service_address)
 		except Exception as err:  # noqa: BLE001
 			logger.warning("Failed to disconnect from OPSI service at %s: %s", self.service_address, err)

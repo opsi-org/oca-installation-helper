@@ -1,6 +1,6 @@
 [project]
 name = "oca-installation-helper"
-version = "4.3.8.2"
+version = "4.3.8.3"
 readme = "README.md"
 requires-python = ">=3.13,<3.15"
 description = "installer for opsi-client-agent packages"

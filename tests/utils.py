@@ -40,8 +40,16 @@ def fake_get_service_client(
 	sso: bool = False,
 	connect_timeout: int = 10,
 	auto_connect: bool = True,
+	session_lifetime: int = 3600,
 ) -> ServiceClient:
-	service_client = ServiceClient(address=address, username=username, password=password, verify=verify, connect_timeout=connect_timeout)
+	service_client = ServiceClient(
+		address=address,
+		username=username,
+		password=password,
+		verify=verify,
+		connect_timeout=connect_timeout,
+		session_lifetime=session_lifetime,
+	)
 	attempt = 0
 
 	def connect() -> None:

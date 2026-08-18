@@ -35,6 +35,7 @@ class Backend:
 			sso=sso,
 			auto_connect=False,
 			connect_timeout=60,  # in case of slow network
+			session_lifetime=3600,  # 1 hour session lifetime because of long installation times
 		)
 
 		self.service_address: str | None = self.service.base_url
@@ -253,3 +254,10 @@ class Backend:
 				)
 
 		raise InstallationUnsuccessful(f"Package {self.product_id!r} not available on {dep_ids!r}")
+
+	def stop(self) -> None:
+		try:
+			self.service.stop()
+			logger.info("Disconnected from OPSI service at %s", self.service_address)
+		except Exception as err:  # noqa: BLE001
+			logger.warning("Failed to disconnect from OPSI service at %s: %s", self.service_address, err)

@@ -431,6 +431,8 @@ class InstallationHelper:
 			with open(self.config.end_marker, "wb"):
 				pass
 
+		if self.backend:
+			self.backend.stop()
 		if error:
 			print(f"ERROR: {error}", file=sys.stderr)
 			sys.exit(1)

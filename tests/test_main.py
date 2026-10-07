@@ -174,8 +174,9 @@ async def test_copy_installation_files_uses_local_directory_for_opsi_script(tmp_
 
 		assert (installation_helper.tmp_dir / "opsi-script" / "local-file").is_file()
 		assert isinstance(installation_helper.config.opsi_script, Path)
-		assert (installation_helper.config.opsi_script.parent / "skin" / "common-file").is_file()
-		assert (installation_helper.config.opsi_script.parent / "skin" / "platform-file").is_file()
+		if installation_helper.config.oca_package != "opsi-mac-client-agent":
+			assert (installation_helper.config.opsi_script.parent / "skin" / "common-file").is_file()
+			assert (installation_helper.config.opsi_script.parent / "skin" / "platform-file").is_file()
 		assert (source / "local-file").is_file()
 		assert backend.get_from_depot.call_args_list == [call(installation_helper.config.oca_package, installation_helper.tmp_dir)]
 

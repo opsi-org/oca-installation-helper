@@ -98,13 +98,16 @@ class InstallationHelper:
 		await self.show_message(f"Installation files successfully copied to '{self.tmp_dir}'", "success")
 		self.config.opsi_script = self.tmp_dir / "opsi-script" / self.config.opsi_script_path
 		assert isinstance(self.config.opsi_script, Path)
-		logger.debug(
-			"Copying opsi-script additional files from %s to %s",
-			self.tmp_dir / "opsi-script" / "common",
-			self.config.opsi_script.parent,
-		)
-		shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "skin", self.config.opsi_script.parent / "skin", dirs_exist_ok=True)
-		shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "lib", self.config.opsi_script.parent / "lib", dirs_exist_ok=True)
+		if (
+			self.config.oca_package != "opsi-mac-client-agent"
+		):  # macOS opsi-script is bundled as app. It already contains the lib. Copying it again breaks signature!
+			logger.debug(
+				"Copying opsi-script additional files from %s to %s",
+				self.tmp_dir / "opsi-script" / "common",
+				self.config.opsi_script.parent,
+			)
+			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "skin", self.config.opsi_script.parent / "skin", dirs_exist_ok=True)
+			shutil.copytree(self.tmp_dir / "opsi-script" / "common" / "lib", self.config.opsi_script.parent / "lib", dirs_exist_ok=True)
 		make_executable(self.config.opsi_script)
 		return self.tmp_dir / self.config.oca_package
 

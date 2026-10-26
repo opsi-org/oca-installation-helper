@@ -368,13 +368,19 @@ class Config:
 				service_address = ipaddress.ip_address(service_address_str)
 			except ValueError as err:
 				logger.warning("Failed to parse service address '%s': %s", service_address_str, err)
+				continue
 			for iface in ifaces:
 				if service_address in iface.network:
 					logger.info("Service address '%s' in network '%s'", service_address, iface.network)
 					service_url = f"https://{service_address}:{info.port}"
 					if service_url not in self.zeroconf_addresses:
 						self.zeroconf_addresses.append(service_url)
-				logger.debug("Service address '%s' not in network '%s'", service_address, iface.network)
+				else:
+					logger.debug("Service address '%s' not in network '%s'", service_address, iface.network)
+
+		if not self.zeroconf_addresses:
+			logger.info("No service address matches a local network, not setting service_address from zeroconf")
+			return
 
 		self.zeroconf_idx += 1
 		if self.zeroconf_idx >= len(self.zeroconf_addresses):

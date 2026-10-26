@@ -9,6 +9,7 @@ oca-installation-helper tests
 config tests
 """
 
+import ipaddress
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -153,3 +154,36 @@ def test_registry_does_not_override_cmdline_flags(
 		installation_helper.config.fill_config_from_registry(parse_args)
 		assert installation_helper.config.interactive is expected_interactive
 		assert installation_helper.config.sso is expected_sso
+
+
+def _zeroconf_info(addresses: list[str], port: int = 4447) -> MagicMock:
+	info = MagicMock()
+	info.server = "server.domain.local."
+	info.port = port
+	info.properties = {b"version": b"4.3"}
+	info.parsed_addresses.return_value = addresses
+	return info
+
+
+def test_zeroconf_handler_sets_service_address_of_matching_network() -> None:
+	zeroconf = MagicMock()
+	zeroconf.get_service_info.return_value = _zeroconf_info(["not-an-ip", "10.0.0.5", "192.168.1.5"])
+	with (
+		get_installation_helper() as installation_helper,
+		patch("ocainstallationhelper.config.get_ip_interfaces", return_value=[ipaddress.ip_interface("192.168.1.20/24")]),
+	):
+		installation_helper.config.zeroconf_handler(zeroconf, "_opsics._tcp.local.", "server", None)
+		assert installation_helper.config.zeroconf_addresses == ["https://192.168.1.5:4447"]
+		assert installation_helper.config.service_address == "https://192.168.1.5:4447"
+
+
+def test_zeroconf_handler_ignores_service_without_matching_network() -> None:
+	zeroconf = MagicMock()
+	zeroconf.get_service_info.return_value = _zeroconf_info(["10.0.0.5", "invalid"])
+	with (
+		get_installation_helper() as installation_helper,
+		patch("ocainstallationhelper.config.get_ip_interfaces", return_value=[ipaddress.ip_interface("192.168.1.20/24")]),
+	):
+		installation_helper.config.zeroconf_handler(zeroconf, "_opsics._tcp.local.", "server", None)
+		assert installation_helper.config.zeroconf_addresses == []
+		assert installation_helper.config.service_address is None

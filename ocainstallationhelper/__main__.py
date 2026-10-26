@@ -355,7 +355,7 @@ class InstallationHelper:
 		await self.show_message("Searching for opsi config services")
 		self.config.fill_config_from_zeroconf()
 		for _sec in range(5):
-			if self.config.service_address:
+			if self.config.service_address:  # ty: ignore[redundant-condition]  # set asynchronously by zeroconf thread
 				break
 			await asyncio.sleep(1)
 		await self.show_message(f"opsi config services found: {len(self.config.zeroconf_addresses)}")

@@ -10,8 +10,11 @@ config tests
 """
 
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
+
+from ocainstallationhelper.__main__ import parse_args
 
 from .utils import get_installation_helper
 
@@ -106,3 +109,47 @@ def test_priority_of_sources(tmp_path: Path) -> None:
 		assert installation_helper.config.client_id  # assembled from hostname
 		assert installation_helper.config.service_address == "from_file"
 		assert installation_helper.config.service_username == "from_param"
+
+
+def test_cmdline_flags_are_not_overridden_by_config_file(tmp_path: Path) -> None:
+	install_conf = tmp_path / "install.conf"
+	install_conf.write_text("interactive = yes\nsso = no\n", encoding="utf-8")
+	with get_installation_helper(["--non-interactive", "--sso"]) as installation_helper:
+		installation_helper.config.read_conf_files = (install_conf,)
+		installation_helper.config.fill_config_from_files(tmp_path)
+		assert installation_helper.config.interactive is False
+		assert installation_helper.config.sso is True
+
+
+def test_config_file_can_set_flags_not_given_on_cmdline(tmp_path: Path) -> None:
+	install_conf = tmp_path / "install.conf"
+	install_conf.write_text("interactive = no\nsso = yes\n", encoding="utf-8")
+	with get_installation_helper() as installation_helper:
+		assert installation_helper.config.interactive is True
+		installation_helper.config.read_conf_files = (install_conf,)
+		installation_helper.config.fill_config_from_files(tmp_path)
+		assert installation_helper.config.interactive is False
+		assert installation_helper.config.sso is True
+
+
+@pytest.mark.parametrize(
+	("cmdline", "install_params", "expected_interactive", "expected_sso"),
+	[
+		(["--non-interactive", "--sso"], "--client-id=foo.domain.local", False, True),  # registry must not reset cmdline flags
+		([], "--client-id=foo.domain.local", True, False),
+		([], "--non-interactive --sso", False, True),
+	],
+)
+def test_registry_does_not_override_cmdline_flags(
+	cmdline: list[str], install_params: str, expected_interactive: bool, expected_sso: bool
+) -> None:
+	winreg = MagicMock()
+	winreg.QueryValueEx.return_value = (install_params, 1)
+	with (
+		get_installation_helper(cmdline) as installation_helper,
+		patch("ocainstallationhelper.config.platform.system", return_value="Windows"),
+		patch("ocainstallationhelper.config.winreg", winreg, create=True),
+	):
+		installation_helper.config.fill_config_from_registry(parse_args)
+		assert installation_helper.config.interactive is expected_interactive
+		assert installation_helper.config.sso is expected_sso

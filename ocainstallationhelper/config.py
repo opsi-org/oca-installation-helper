@@ -53,7 +53,8 @@ class Config:
 			logger.error("Both depot and depot_by_network are set.")
 			raise ValueError("Both depot and depot_by_network are set.")
 		self.group: str | None = cmdline_args.group
-		self.sso: bool = cmdline_args.sso or False
+		self._cmdline_sso: bool = bool(cmdline_args.sso)  # explicitly requested, must not be overridden by files / registry
+		self.sso: bool = self._cmdline_sso
 		self.bootimage: bool = cmdline_args.bootimage or False
 		self.setup_after_install: list[str] = []
 		if cmdline_args.setup_after_install:
@@ -77,7 +78,8 @@ class Config:
 		if cmdline_args.no_set_mac_address:
 			self.set_mac_address = False
 
-		self.interactive: bool = not cmdline_args.non_interactive
+		self._cmdline_non_interactive: bool = bool(cmdline_args.non_interactive)  # must not be overridden by files / registry
+		self.interactive: bool = not self._cmdline_non_interactive
 		self.force_recreate_client: bool = cmdline_args.force_recreate_client
 		self.read_conf_files: tuple[Path | str, ...] = cmdline_args.read_conf_files
 		self.install_condition: str | None = cmdline_args.install_condition
@@ -198,11 +200,11 @@ class Config:
 						]
 					)
 					sso = config.get("install", "sso", fallback=None)  # install.conf
-					if sso:
-						self.sso = sso.lower().strip() in ("yes", "true", "on", "1")
+					if sso and not placeholder_regex.search(sso) and not placeholder_regex_new.search(sso):
+						self.sso = self._cmdline_sso or sso.lower().strip() in ("yes", "true", "on", "1")
 					val = config.get("install", "interactive", fallback=None)  # install.conf
 					if val and not placeholder_regex.search(val) and not placeholder_regex_new.search(val):
-						self.interactive = val.lower().strip() in ("yes", "true", "on", "1")
+						self.interactive = not self._cmdline_non_interactive and val.lower().strip() in ("yes", "true", "on", "1")
 					logger.debug(
 						"Config after reading '%s': interactive=%s, client_id=%s, service_address=%s, "
 						"service_username=%s, service_password=%s, dns_domain=%s",
@@ -292,10 +294,10 @@ class Config:
 		self.depot = self.depot or args.depot
 		self.group = self.group or args.group
 		self.dns_domain = self.dns_domain or args.dns_domain
-		if args.non_interactive is not None:
-			self.interactive = not args.non_interactive
-		if args.sso is not None:
-			self.sso = args.sso
+		if args.non_interactive:
+			self.interactive = False
+		if args.sso:
+			self.sso = True
 
 	def check_values(self, with_host_key: bool = True) -> None:
 		if self.oca_package_source and not self.oca_package_source.exists():

@@ -78,22 +78,26 @@ class InstallationHelper:
 		if depot_id != self.backend.get_configserver_id():
 			depot_backend = Backend(f"https://{depot_id}:4447", self.config.client_id, self.config.client_key)
 			depot_backend.connect()
-		if self.config.oca_package_source:
-			self._copy_package_from_source(
-				self.config.oca_package_source,
-				self.config.oca_package,
-				Path(SETUP_SCRIPT_NAME),
-			)
-		else:
-			depot_backend.get_from_depot(self.config.oca_package, self.tmp_dir)
-		if self.config.opsi_script_package_source:
-			self._copy_package_from_source(
-				self.config.opsi_script_package_source,
-				"opsi-script",
-				self.config.opsi_script_path,
-			)
-		else:
-			depot_backend.get_from_depot("opsi-script", self.tmp_dir)
+		try:
+			if self.config.oca_package_source:
+				self._copy_package_from_source(
+					self.config.oca_package_source,
+					self.config.oca_package,
+					Path(SETUP_SCRIPT_NAME),
+				)
+			else:
+				depot_backend.get_from_depot(self.config.oca_package, self.tmp_dir)
+			if self.config.opsi_script_package_source:
+				self._copy_package_from_source(
+					self.config.opsi_script_package_source,
+					"opsi-script",
+					self.config.opsi_script_path,
+				)
+			else:
+				depot_backend.get_from_depot("opsi-script", self.tmp_dir)
+		finally:
+			if depot_backend is not self.backend:
+				depot_backend.stop()
 
 		await self.show_message(f"Installation files successfully copied to '{self.tmp_dir}'", "success")
 		self.config.opsi_script = self.tmp_dir / "opsi-script" / self.config.opsi_script_path
@@ -208,6 +212,8 @@ class InstallationHelper:
 			or (not self.config.sso and (not self.config.service_username or not password))
 		):
 			raise ValueError("Incomplete data - cannot run service_setup.")
+		if self.backend:
+			self.backend.stop()  # do not leak the connection of a previous (failed) attempt
 		self.backend = Backend(self.config.service_address, self.config.service_username, password, sso=self.config.sso)
 		self.backend.connect()
 
@@ -431,6 +437,8 @@ class InstallationHelper:
 
 		if self.backend:
 			self.backend.stop()
+		if self.config.zeroconf:
+			self.config.zeroconf.close()
 		if error:
 			print(f"ERROR: {error}", file=sys.stderr)
 			sys.exit(1)

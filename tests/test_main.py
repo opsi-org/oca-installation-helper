@@ -331,3 +331,45 @@ def test_main_encode_password_does_not_require_root() -> None:
 		main()
 	ensure_root.assert_not_called()
 	show_message.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("download_fails", [False, True])
+async def test_copy_installation_files_stops_depot_backend(tmp_path: Path, download_fails: bool) -> None:
+	with (
+		get_installation_helper(["--client-id", "client.domain.local"]) as installation_helper,
+		patch("ocainstallationhelper.__main__.Backend") as backend_class,
+	):
+		installation_helper.tmp_dir = tmp_path / "work"
+		backend = MagicMock(spec=Backend)
+		backend.get_configserver_id.return_value = "configserver.domain.local"
+		installation_helper.backend = backend
+		depot_backend = backend_class.return_value
+		if download_fails:
+			depot_backend.get_from_depot.side_effect = RuntimeError("download failed")
+		else:
+			depot_backend.get_from_depot.side_effect = lambda product, destination: prepare_download(
+				installation_helper, product, destination
+			)
+
+		if download_fails:
+			with pytest.raises(RuntimeError, match="download failed"):
+				await installation_helper.copy_installation_files("depot.domain.local")
+		else:
+			await installation_helper.copy_installation_files("depot.domain.local")
+
+		depot_backend.connect.assert_called_once()
+		depot_backend.stop.assert_called_once()
+		backend.stop.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_install_stops_previous_backend() -> None:
+	args = ["--service-address", "https://s:4447", "--client-id", "c.d", "--service-username", "user", "--service-password", "pw"]
+	with get_installation_helper(args) as installation_helper, patch("ocainstallationhelper.__main__.Backend") as backend_class:
+		previous_backend = MagicMock()
+		installation_helper.backend = previous_backend
+		backend_class.return_value.connect.side_effect = ConnectionError("stop here")
+		with pytest.raises(ConnectionError, match="stop here"):
+			await installation_helper.install()
+		previous_backend.stop.assert_called_once()

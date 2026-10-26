@@ -129,9 +129,9 @@ class ConsoleDialog(BaseDialog, App):
 		self.message.update(message)
 		await asyncio.sleep(0.05)  # forces idle event and gives time for widgets to handle it
 
-	async def show_log_path(self, log_path: Path | str | None) -> None:
+	async def show_logpath(self, logpath: Path | str | None) -> None:
 		assert self.log_path
-		self.log_path.update(f"See logs at: {log_path}")
+		self.log_path.update(f"See logs at: {logpath}")
 		await asyncio.sleep(0.05)  # forces idle event and gives time for widgets to handle it
 
 	async def on_button_pressed(self, event: Button.Pressed) -> None:

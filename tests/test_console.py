@@ -92,7 +92,7 @@ async def test_show_message_log_path() -> None:
 			assert not app.message.renderable._spans
 
 			assert app.log_path.renderable == ""
-			await app.show_log_path(Path("/tmp/foo.log"))
+			await app.show_logpath(Path("/tmp/foo.log"))
 			assert isinstance(app.log_path.renderable, Text)
 			checkstring = "See logs at: /tmp/foo.log"
 			if platform.system().lower() == "windows":

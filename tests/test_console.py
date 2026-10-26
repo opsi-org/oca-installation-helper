@@ -112,3 +112,17 @@ async def test_on_input_changed() -> None:
 			await pilot.click("#service_address")
 			await pilot.press(*(key for key in "https://server.domain.local:4447"))
 			assert installation_helper.config.service_address == "https://server.domain.local:4447"
+
+
+@pytest.mark.asyncio
+async def test_prepare_installation_error_is_shown() -> None:
+	with get_installation_helper() as installation_helper:
+		app = ocainstallationhelper.console.ConsoleDialog(installation_helper)
+		installation_helper.dialog = app
+		with patch.object(installation_helper, "prepare_installation", side_effect=ValueError("config broken")):
+			async with app.run_test() as pilot:
+				await app._prepare_task
+				await pilot.pause()
+				assert isinstance(app.message.renderable, Text)
+				assert app.message.renderable._text == ["config broken"]
+				assert app.message.renderable._spans[0].style == "red"

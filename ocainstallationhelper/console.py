@@ -18,6 +18,7 @@ from textual.containers import Container
 from textual.widgets import Button, Input, Label
 
 from ocainstallationhelper import Dialog as BaseDialog
+from ocainstallationhelper import logger
 
 if TYPE_CHECKING:
 	from ocainstallationhelper.__main__ import InstallationHelper
@@ -103,9 +104,17 @@ class ConsoleDialog(BaseDialog, App):
 	def close(self) -> None:
 		self._closed = True
 
+	async def _prepare_installation(self) -> None:
+		try:
+			await self.inst_helper.prepare_installation()
+		except Exception as err:  # noqa: BLE001
+			# Running as task, nobody would retrieve the exception
+			logger.error("Preparing installation failed: %s", err, exc_info=True)
+			await self.show_message(str(err), "error")
+
 	async def on_mount(self) -> None:
 		assert self._loop, "Event loop not running"
-		self._loop.create_task(self.inst_helper.prepare_installation())
+		self._prepare_task = self._loop.create_task(self._prepare_installation())  # keep reference, tasks are weakly referenced
 
 	async def update_values(self) -> None:
 		if not self.inputs:

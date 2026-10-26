@@ -37,6 +37,16 @@ def test_helper_object() -> None:
 		assert installation_helper.config.opsi_script_path.name.startswith("opsi-script")
 
 
+@pytest.mark.asyncio
+async def test_service_setup_masks_client_key_in_logs() -> None:
+	with get_installation_helper(["--non-interactive", "--client-id", "client.domain.local"]) as installation_helper:
+		installation_helper.backend = MagicMock()
+		installation_helper.backend.get_or_create_client.return_value = OpsiClient(id="client.domain.local", opsiHostKey="a" * 32)
+		with patch("ocainstallationhelper.__main__.secret_filter") as secret_filter:
+			await installation_helper.service_setup()
+		secret_filter.add_secrets.assert_called_once_with("a" * 32)
+
+
 def prepare_download(installation_helper: InstallationHelper, product: str, destination: Path) -> None:
 	config = installation_helper.config
 	if product == config.oca_package:

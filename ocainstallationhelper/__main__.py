@@ -21,7 +21,7 @@ from typing import IO, Literal
 
 from opsi.archive import extract_archive
 from opsi.exception import BackendAuthenticationError
-from opsi.logging import LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL, logging_config
+from opsi.logging import LEVEL_TO_OPSI_LEVEL, NAME_TO_LEVEL, logging_config, secret_filter
 from opsi.process import run_command, run_script
 
 from ocainstallationhelper import CONFIG_CACHE_DIRS, Dialog, __version__, logger
@@ -263,6 +263,8 @@ class InstallationHelper:
 			set_mac_address=self.config.set_mac_address,
 		)
 		self.config.client_key = client.opsiHostKey
+		if self.config.client_key:
+			secret_filter.add_secrets(self.config.client_key)  # mask host key in logs (e.g. opsi-script command line)
 		self.config.client_id = str(client.id)
 		assert self.config.client_id
 

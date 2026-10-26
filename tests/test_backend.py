@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from opsi.exception import BackendAuthenticationError, OpsiServiceConnectionError
 from opsi.logging import use_logging_config
 from opsi.opsi.service.model.object import OpsiConfigserver, OpsiDepotserver
 
@@ -82,3 +83,25 @@ def test_get_available_oca_version_not_available() -> None:
 	backend = _get_backend()
 	with patch.object(backend.service, "jsonrpc", return_value=[]), pytest.raises(InstallationUnsuccessful):
 		backend.get_available_oca_version("configserver", "depot")
+
+
+def test_connect_does_not_retry_on_authentication_error() -> None:
+	backend = _get_backend()
+	with (
+		patch.object(backend.service, "connect", side_effect=BackendAuthenticationError("denied")) as connect,
+		patch("ocainstallationhelper.backend.time.sleep") as sleep,
+		pytest.raises(BackendAuthenticationError),
+	):
+		backend.connect()
+	assert connect.call_count == 1
+	sleep.assert_not_called()
+
+
+def test_connect_retries_on_connection_error() -> None:
+	backend = _get_backend()
+	with (
+		patch.object(backend.service, "connect", side_effect=[OpsiServiceConnectionError("down"), None]) as connect,
+		patch("ocainstallationhelper.backend.time.sleep"),
+	):
+		backend.connect()
+	assert connect.call_count == 2

@@ -13,6 +13,7 @@ import time
 from functools import lru_cache
 from pathlib import Path
 
+from opsi.exception import BackendAuthenticationError
 from opsi.opsi.service.client import ServiceClient, ServiceVerificationFlags, get_service_client
 from opsi.opsi.service.model.object import OpsiClient, ProductOnClient
 
@@ -55,6 +56,9 @@ class Backend:
 				self.service.connect()
 				logger.info("Connected to OPSI service at %s", self.service_address)
 				return
+			except BackendAuthenticationError:
+				logger.error("Authentication at OPSI service %s failed", self.service_address)
+				raise  # retrying with the same credentials is pointless
 			except Exception as err:  # noqa: BLE001
 				logger.warning("Connection attempt %d/%d failed: %s", attempt, attempts, err)
 				if attempt < attempts:

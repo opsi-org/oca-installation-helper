@@ -270,3 +270,31 @@ def test_run(tmp_path: Path) -> None:
 			"-parameter",
 			"noreboot",
 		]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+	"args",
+	[
+		["--service-address", "https://s:4447", "--client-id", "c.d", "--service-password", "pw"],  # no username
+		["--service-address", "https://s:4447", "--client-id", "c.d", "--service-username", "", "--service-password", "pw"],
+		["--service-address", "https://s:4447", "--client-id", "c.d", "--service-username", "user"],  # no password
+		["--service-address", "https://s:4447", "--client-id", "c.d", "--service-username", "user", "--service-password", ""],
+		["--client-id", "c.d", "--service-username", "user", "--service-password", "pw"],  # no address
+	],
+)
+async def test_install_rejects_incomplete_credentials(args: list[str]) -> None:
+	with get_installation_helper(args) as installation_helper, patch("ocainstallationhelper.__main__.Backend") as backend_mock:
+		with pytest.raises(ValueError, match="Incomplete data"):
+			await installation_helper.install()
+		backend_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_install_with_sso_does_not_require_credentials() -> None:
+	args = ["--service-address", "https://s:4447", "--client-id", "c.d", "--sso"]
+	with get_installation_helper(args) as installation_helper, patch("ocainstallationhelper.__main__.Backend") as backend_mock:
+		backend_mock.return_value.connect.side_effect = ConnectionError("stop here")
+		with pytest.raises(ConnectionError, match="stop here"):
+			await installation_helper.install()
+		backend_mock.assert_called_once()

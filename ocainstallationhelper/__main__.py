@@ -200,17 +200,12 @@ class InstallationHelper:
 		password = self.config.service_password or ""
 		if password.startswith("{crypt}"):
 			password = decode_password(password)
-		if self.config.service_address is None or self.config.service_username is None or password is None:
-			raise ValueError("Incomplete data - cannot run service_setup.")
-
-		await self.show_message("Connecting to service...")
-		password = self.config.service_password or ""
-		if password.startswith("{crypt}"):
-			password = decode_password(password)
+		# Empty values (e.g. from empty input fields) are as invalid as missing ones.
+		# With sso username and password are not needed.
 		if (
-			self.config.service_address is None
+			not self.config.service_address
 			or not self.config.client_id
-			or (not self.config.sso and (self.config.service_username is None or password is None))
+			or (not self.config.sso and (not self.config.service_username or not password))
 		):
 			raise ValueError("Incomplete data - cannot run service_setup.")
 		self.backend = Backend(self.config.service_address, self.config.service_username, password, sso=self.config.sso)

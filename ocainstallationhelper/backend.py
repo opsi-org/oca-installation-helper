@@ -225,6 +225,7 @@ class Backend:
 				service_network = ipaddress.ip_network(service_address_str)
 			except ValueError as err:
 				logger.warning("Failed to parse service address '%s': %s", service_address_str, err)
+				continue
 			for iface in ifaces:
 				if iface.ip in service_network:
 					logger.info("Ip '%s' in network '%s'", iface.ip, service_network)

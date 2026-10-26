@@ -128,3 +128,20 @@ def test_get_or_create_client_respects_set_mac_address(set_mac_address: bool, ex
 	create_params = next(params for method, params in calls if method == "host_createOpsiClient")
 	assert create_params[4] == expected_mac
 	assert get_mac.called is set_mac_address
+
+
+@pytest.mark.parametrize("invalid_first", [True, False])
+def test_get_depot_id_by_network_skips_unparsable_network_address(invalid_first: bool) -> None:
+	depots = [
+		OpsiDepotserver(id="invalid.domain.local", networkAddress="not-a-network"),
+		OpsiDepotserver(id="depot1.domain.local", networkAddress="1.0.0.0/8"),
+	]
+	if not invalid_first:
+		depots.reverse()
+	backend = _get_backend()
+	with (
+		patch.object(backend.service, "jsonrpc", return_value=depots),
+		patch("ocainstallationhelper.backend.get_ip_interfaces", return_value=[ipaddress.IPv4Interface("1.1.1.1")]),
+		patch("ocainstallationhelper.backend.Backend.get_configserver_id", return_value="configserver.domain.local"),
+	):
+		assert backend.get_depot_id_by_network() == "depot1.domain.local"

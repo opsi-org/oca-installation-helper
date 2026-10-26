@@ -4,13 +4,14 @@
 # License: AGPL-3.0-only
 
 import ipaddress
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
 from opsi.logging import use_logging_config
 from opsi.opsi.service.model.object import OpsiConfigserver, OpsiDepotserver
 
-from ocainstallationhelper.backend import Backend
+from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
 
 from .utils import fake_get_service_client
 
@@ -45,3 +46,39 @@ def test_get_depot_id_by_network(my_ip_address: str, expected_depot_id: str) -> 
 			patch("ocainstallationhelper.backend.Backend.get_configserver_id", return_value="configserver.domain.local"),
 		):
 			assert backend.get_depot_id_by_network() == expected_depot_id
+
+
+def _get_backend() -> Backend:
+	with patch("ocainstallationhelper.backend.get_service_client", fake_get_service_client):
+		return Backend("foo", "bar", "baz")
+
+
+def test_get_available_oca_version_prefers_depot() -> None:
+	backend = _get_backend()
+	queried: list[str] = []
+
+	def jsonrpc(method: str, params: list) -> list[SimpleNamespace]:
+		queried.append(params[1]["depotId"])
+		return [SimpleNamespace(productVersion="4.3-1")]
+
+	with patch.object(backend.service, "jsonrpc", side_effect=jsonrpc):
+		assert backend.get_available_oca_version("configserver", "depot") == ("depot", "4.3-1")
+	assert queried == ["depot"]
+
+
+def test_get_available_oca_version_falls_back_to_configserver() -> None:
+	backend = _get_backend()
+
+	def jsonrpc(method: str, params: list) -> list[SimpleNamespace]:
+		if params[1]["depotId"] == "configserver":
+			return [SimpleNamespace(productVersion="4.3-2")]
+		return []
+
+	with patch.object(backend.service, "jsonrpc", side_effect=jsonrpc):
+		assert backend.get_available_oca_version("configserver", "depot") == ("configserver", "4.3-2")
+
+
+def test_get_available_oca_version_not_available() -> None:
+	backend = _get_backend()
+	with patch.object(backend.service, "jsonrpc", return_value=[]), pytest.raises(InstallationUnsuccessful):
+		backend.get_available_oca_version("configserver", "depot")

@@ -241,10 +241,10 @@ class Backend:
 		"""
 		Get the available OCA version from the service.
 		"""
-		dep_ids = {depot_id, configserver_id}
+		dep_ids = list(dict.fromkeys((depot_id, configserver_id)))  # depot first, then configserver; without duplicates
 		for dep_id in dep_ids:
 			logger.debug("Checking version of %r on depot %s", self.product_id, dep_id)
-			pods = self.service.jsonrpc("productOnDepot_getObjects", [[], {"productId": self.product_id, "depotId": depot_id}])
+			pods = self.service.jsonrpc("productOnDepot_getObjects", [[], {"productId": self.product_id, "depotId": dep_id}])
 			if pods:
 				logger.info("Available OCA version of depot %r: %r", dep_id, pods[0].productVersion)
 				return (dep_id, pods[0].productVersion)

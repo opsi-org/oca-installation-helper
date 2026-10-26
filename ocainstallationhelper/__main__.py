@@ -362,9 +362,7 @@ class InstallationHelper:
 			shutil.rmtree(str(self.tmp_dir))
 
 	def ensure_root(self) -> None:
-		if os.geteuid() != 0:
-			print(f"{Path(sys.argv[0]).name} has to be run as root")
-			os.execvp("sudo", ["sudo"] + sys.argv)
+		ensure_root()
 
 	def cleanup_cache(self) -> None:
 		cache_dir = CONFIG_CACHE_DIRS.get(platform.system().lower())
@@ -577,11 +575,21 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 	return parser.parse_args(args)
 
 
+def ensure_root() -> None:
+	if os.geteuid() != 0:
+		print(f"{Path(sys.argv[0]).name} has to be run as root")
+		os.execvp("sudo", ["sudo"] + sys.argv)
+
+
 def main() -> None:
 	args = parse_args()
 	if args.encode_password:
 		show_message("{crypt}" + encode_password(args.encode_password))
 		return
+
+	# Has to happen before the log file is created, because /var/log is not writable for normal users.
+	if platform.system().lower() != "windows":
+		ensure_root()
 
 	try:
 		log_level = int(args.log_level)

@@ -19,7 +19,7 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 from opsi.opsi.service.model.object import OpsiClient, ProductOnClient
 
-from ocainstallationhelper.__main__ import InstallationHelper
+from ocainstallationhelper.__main__ import InstallationHelper, main
 from ocainstallationhelper.backend import Backend
 from ocainstallationhelper.config import SETUP_SCRIPT_NAME
 
@@ -298,3 +298,36 @@ async def test_install_with_sso_does_not_require_credentials() -> None:
 		with pytest.raises(ConnectionError, match="stop here"):
 			await installation_helper.install()
 		backend_mock.assert_called_once()
+
+
+def test_main_ensures_root_before_creating_log_file(tmp_path: Path) -> None:
+	log_file = tmp_path / "oca.log"
+	events: list[str] = []
+
+	def fake_ensure_root() -> None:
+		events.append("ensure_root")
+		assert not log_file.exists()
+
+	def fake_run(self: InstallationHelper) -> None:
+		events.append("run")
+
+	with (
+		patch("ocainstallationhelper.__main__.sys.argv", ["oca-installation-helper", "--log-file", str(log_file)]),
+		patch("ocainstallationhelper.__main__.platform.system", return_value="Linux"),
+		patch("ocainstallationhelper.__main__.ensure_root", fake_ensure_root),
+		patch("ocainstallationhelper.__main__.InstallationHelper.run", fake_run),
+		patch("ocainstallationhelper.__main__.logging_config"),
+	):
+		main()
+	assert events == ["ensure_root", "run"]
+
+
+def test_main_encode_password_does_not_require_root() -> None:
+	with (
+		patch("ocainstallationhelper.__main__.sys.argv", ["oca-installation-helper", "--encode-password", "secret"]),
+		patch("ocainstallationhelper.__main__.ensure_root") as ensure_root,
+		patch("ocainstallationhelper.__main__.show_message") as show_message,
+	):
+		main()
+	ensure_root.assert_not_called()
+	show_message.assert_called_once()

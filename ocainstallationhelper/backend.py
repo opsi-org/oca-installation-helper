@@ -167,7 +167,7 @@ class Backend:
 	def get_or_create_client(self, client_id: str, force_create: bool = False, set_mac_address: bool = True) -> OpsiClient:
 		clients = self.service.jsonrpc("host_getObjects", [[], {"id": client_id}])
 		logger.debug("Got client objects: %r", clients)
-		mac_address = get_mac_address()
+		mac_address = get_mac_address() if set_mac_address else None
 		if not clients or force_create:
 			# id, opsiHostKey, description, notes, hardwareAddress, ipAddress,
 			# inventoryNumber, oneTimePassword, created, lastSeen

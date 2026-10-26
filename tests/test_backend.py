@@ -105,3 +105,26 @@ def test_connect_retries_on_connection_error() -> None:
 	):
 		backend.connect()
 	assert connect.call_count == 2
+
+
+@pytest.mark.parametrize(("set_mac_address", "expected_mac"), [(True, "aa:bb:cc:dd:ee:ff"), (False, None)])
+def test_get_or_create_client_respects_set_mac_address(set_mac_address: bool, expected_mac: str | None) -> None:
+	backend = _get_backend()
+	client = SimpleNamespace(id="client.domain.local", hardwareAddress=None)
+	calls: list[tuple[str, list]] = []
+
+	def jsonrpc(method: str, params: list) -> list[SimpleNamespace] | None:
+		calls.append((method, params))
+		if method == "host_getObjects":
+			return [client] if any(m == "host_createOpsiClient" for m, _ in calls) else []
+		return None
+
+	with (
+		patch.object(backend.service, "jsonrpc", side_effect=jsonrpc),
+		patch("ocainstallationhelper.backend.get_mac_address", return_value="aa:bb:cc:dd:ee:ff") as get_mac,
+	):
+		backend.get_or_create_client("client.domain.local", set_mac_address=set_mac_address)
+
+	create_params = next(params for method, params in calls if method == "host_createOpsiClient")
+	assert create_params[4] == expected_mac
+	assert get_mac.called is set_mac_address

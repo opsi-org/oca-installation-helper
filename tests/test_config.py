@@ -9,8 +9,8 @@ oca-installation-helper tests
 config tests
 """
 
-from argparse import Namespace
 import ipaddress
+from argparse import Namespace
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 

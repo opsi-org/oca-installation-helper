@@ -9,6 +9,7 @@ oca-installation-helper tests
 config tests
 """
 
+from argparse import Namespace
 import ipaddress
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -16,8 +17,27 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from ocainstallationhelper.__main__ import parse_args
+from ocainstallationhelper.config import determine_use_gui
 
 from .utils import get_installation_helper
+
+
+def test_determine_use_gui(monkeypatch: pytest.MonkeyPatch) -> None:
+	monkeypatch.setattr("ocainstallationhelper.config.platform.system", lambda: "Linux")
+	monkeypatch.delenv("DISPLAY", raising=False)
+	cmdline_args = Namespace(gui=False, no_gui=False)
+
+	assert not determine_use_gui(cmdline_args)
+
+	monkeypatch.setenv("DISPLAY", ":0")
+	assert determine_use_gui(cmdline_args)
+
+	monkeypatch.delenv("DISPLAY")
+	cmdline_args.gui = True
+	assert determine_use_gui(cmdline_args)
+
+	cmdline_args.no_gui = True
+	assert not determine_use_gui(cmdline_args)
 
 
 def test_fill_config_from_params(tmp_path: Path) -> None:

@@ -34,8 +34,17 @@ DEFAULT_CONFIG_SERVICE_PORT = 4447
 logger = get_logger()
 
 
+def determine_use_gui(cmdline_args: argparse.Namespace) -> bool:
+	use_gui = platform.system().lower() == "windows" or os.environ.get("DISPLAY") not in (None, "")
+	if cmdline_args.gui:
+		use_gui = True
+	if cmdline_args.no_gui:
+		use_gui = False
+	return use_gui
+
+
 class Config:
-	def __init__(self, cmdline_args: argparse.Namespace) -> None:
+	def __init__(self, cmdline_args: argparse.Namespace, use_gui: bool | None = None) -> None:
 		self.client_id: str | None = cmdline_args.client_id
 		if self.client_id and self.client_id.endswith("."):
 			self.client_id = self.client_id[:-1]
@@ -68,11 +77,7 @@ class Config:
 					product, action = item, "setup"
 				self.set_product_actions[product.strip()] = action.strip()
 
-		self.use_gui: bool = platform.system().lower() == "windows" or os.environ.get("DISPLAY") not in (None, "")
-		if cmdline_args.gui:
-			self.use_gui = True
-		if cmdline_args.no_gui:
-			self.use_gui = False
+		self.use_gui: bool = use_gui if use_gui is not None else determine_use_gui(cmdline_args)
 
 		self.set_mac_address: bool = True
 		if cmdline_args.no_set_mac_address:

@@ -26,7 +26,7 @@ from opsi.process import run_command, run_script
 
 from ocainstallationhelper import CONFIG_CACHE_DIRS, Dialog, __version__, logger
 from ocainstallationhelper.backend import Backend, InstallationUnsuccessful
-from ocainstallationhelper.config import SETUP_SCRIPT_NAME, Config
+from ocainstallationhelper.config import SETUP_SCRIPT_NAME, Config, determine_use_gui
 from ocainstallationhelper.utils import decode_password, encode_password, get_installed_oca_version, make_executable, show_message
 
 OCA_INSTALL_TIMEOUT = 60 * 20  # 20 minutes
@@ -34,13 +34,13 @@ INSTALLATION_SUCCESS_CLOSE_DELAY = 5
 
 
 class InstallationHelper:
-	def __init__(self, cmdline_args: argparse.Namespace) -> None:
+	def __init__(self, cmdline_args: argparse.Namespace, use_gui: bool | None = None) -> None:
 		# macos does not use DISPLAY. gui does not work properly on macos right now.
 		self.dialog: Dialog | None = None
 		self.backend: Backend | None = None
 		self.opsi_script_logfile: Path | None = None
 		self.tmp_dir: Path = Path(tempfile.gettempdir()) / "oca-installation-helper-tmp"
-		self.config = Config(cmdline_args)
+		self.config = Config(cmdline_args, use_gui=use_gui)
 		self.base_dir: Path
 
 	async def configure_from_zeroconf_default(self) -> None:
@@ -619,7 +619,8 @@ def main() -> None:
 			log_file=str(log_file),
 		)
 
-	InstallationHelper(args).run()
+	use_gui = determine_use_gui(args)
+	InstallationHelper(args, use_gui=use_gui).run()
 
 
 if __name__ == "__main__":

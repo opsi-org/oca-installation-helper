@@ -604,13 +604,14 @@ def main() -> None:
 	except ValueError:
 		log_level = LEVEL_TO_OPSI_LEVEL[NAME_TO_LEVEL[args.log_level.upper()]]
 
+	use_gui = determine_use_gui(args)
 	if log_level > 0:
 		log_file = Path(args.log_file)
 		log_file.parent.mkdir(parents=True, exist_ok=True)
 		if log_file.exists():
 			log_file.unlink()
 		stderr_level = log_level
-		if not args.non_interactive and args.no_gui:  # no-gui mode and interactive
+		if not args.non_interactive and not use_gui:  # no-gui mode and interactive
 			stderr_level = 0
 		logging_config(
 			stderr_level=stderr_level,
@@ -619,7 +620,6 @@ def main() -> None:
 			log_file=str(log_file),
 		)
 
-	use_gui = determine_use_gui(args)
 	InstallationHelper(args, use_gui=use_gui).run()
 
 
